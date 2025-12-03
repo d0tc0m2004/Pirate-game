@@ -1,0 +1,27 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 67a0343649fdc9c45b1bb2895966fa23, type: 3}
+  m_Name: Data_Lightning
+  m_EditorClassIdentifier: Assembly-CSharp::HazardData
+  hazardName: Lightning
+  hazardPrefab: {fileID: 5865212283544446679, guid: 35514ac8a7827ce4b841f88f32989408, type: 3}
+  isBlocking: 1
+  causesDisplacement: 0
+  shapePattern: 4
+  isDestructible: 0
+  maxHealth: 0
+  dropItem: {fileID: 0}
+  effectType: 5
+  damageHP: 0
+  damageMorale: 0
+  curseMultiplier: 0
+  effectDuration: 1
