@@ -15,8 +15,8 @@ public class UnitStatus : MonoBehaviour
     public bool isTrapped = false;  
     public bool isCursed = false;   
     
+    // This variable was missing in your screenshot, causing the error!
     private int stunDuration = 0; 
-    // ----------------------------------------------
 
     private float damageMultiplier = 1.0f; 
 
@@ -32,14 +32,13 @@ public class UnitStatus : MonoBehaviour
         Debug.Log($"<color=orange>TRAPPED:</color> {name} caught in a Trap! Cannot Move.");
     }
 
-    
+    // Accepts duration to fix CS1501 error
     public void ApplyStun(int duration)
     {
         isStunned = true;
         stunDuration = duration;
         Debug.Log($"<color=cyan>STUNNED:</color> {name} struck by Lightning! Cannot Act for {duration} turn(s).");
     }
-   
 
     public void SetCurse(bool state, float multiplier)
     {
@@ -65,10 +64,10 @@ public class UnitStatus : MonoBehaviour
         Debug.Log($"{name} took {amount} Morale Damage. (Morale: {currentMorale})");
     }
 
-    public void OnTurnStart()
+    // This function fixes the "UnitStatus does not contain definition for OnTurnEnd" error
+    public void OnTurnEnd()
     {
-        if (isTrapped) isTrapped = false; 
-
+        // Handle Stun Timer
         if (isStunned)
         {
             stunDuration--;
@@ -78,7 +77,12 @@ public class UnitStatus : MonoBehaviour
                 Debug.Log($"{name} is no longer stunned.");
             }
         }
-        
+    }
+
+    // This function fixes the "OnTurnStart" error
+    public void OnTurnStart()
+    {
+        if (isTrapped) isTrapped = false; 
         isCursed = false;
         damageMultiplier = 1.0f; 
     }

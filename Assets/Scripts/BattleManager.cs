@@ -87,7 +87,6 @@ public class BattleManager : MonoBehaviour
             Debug.Log($"<color=orange>BLOCKED:</color> {unit.name} is Trapped and cannot move!");
             return;
         }
-        // -------------------------------
 
         selectedUnit = unit;
         Debug.Log($"Selected {unit.name}");

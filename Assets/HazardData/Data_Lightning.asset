@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::HazardData
   hazardName: Lightning
   hazardPrefab: {fileID: 5865212283544446679, guid: 35514ac8a7827ce4b841f88f32989408, type: 3}
-  isBlocking: 1
+  isBlocking: 0
   causesDisplacement: 0
   shapePattern: 4
   isDestructible: 0

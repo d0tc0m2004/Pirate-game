@@ -16,7 +16,7 @@ GameObject:
   - component: {fileID: 140358592881133908}
   m_Layer: 0
   m_Name: Unit_Enemy
-  m_TagString: Untagged
+  m_TagString: Unit
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -130,6 +130,7 @@ MonoBehaviour:
   moveRange: 3
   moveAnimationSpeed: 5
   isMoving: 0
+  hasMoved: 0
 --- !u!114 &140358592881133908
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -142,3 +143,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 91244f8cd4d5ca84bb703a8a05400446, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::UnitStatus
+  maxHP: 100
+  currentHP: 0
+  maxMorale: 100
+  currentMorale: 0
+  isStunned: 0
+  isTrapped: 0
+  isCursed: 0
