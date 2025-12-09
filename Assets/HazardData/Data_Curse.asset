@@ -15,12 +15,16 @@ MonoBehaviour:
   hazardName: Curse
   hazardPrefab: {fileID: 7881978578682638168, guid: 77dda1cd7d076ae4fb40f1af9d882ef5, type: 3}
   isBlocking: 0
-  causesDisplacement: 0
-  shapePattern: 0
   isDestructible: 0
   maxHealth: 0
-  dropItem: {fileID: 0}
-  effectType: 7
+  causesDisplacement: 0
+  shapePattern: 0
+  effectType: 6
   damageHP: 0
   damageMorale: 0
+  effectDuration: 0
   curseMultiplier: 1.1
+  standingBonusHP: 0
+  standingBonusMorale: 0
+  standingAppliesCurse: 1
+  dropItem: {fileID: 0}

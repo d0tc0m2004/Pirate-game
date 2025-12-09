@@ -15,12 +15,13 @@ MonoBehaviour:
   hazardName: Boulder
   hazardPrefab: {fileID: 1934756347407776863, guid: cf3a82c5bb1f2ea49b629d13217d3ca9, type: 3}
   isBlocking: 1
-  causesDisplacement: 1
-  shapePattern: 0
   isDestructible: 0
   maxHealth: 0
-  dropItem: {fileID: 0}
-  effectType: 0
+  causesDisplacement: 1
+  shapePattern: 0
+  effectType: 7
   damageHP: 0
   damageMorale: 0
+  effectDuration: 0
   curseMultiplier: 0
+  dropItem: {fileID: 0}

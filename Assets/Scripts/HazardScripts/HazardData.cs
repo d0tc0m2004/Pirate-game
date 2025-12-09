@@ -1,45 +1,43 @@
 using UnityEngine;
 
-[CreateAssetMenu(fileName = "NewHazard", menuName = "Tactical/Hazard Data")]
+[CreateAssetMenu(fileName = "New Hazard", menuName = "Tactical/Hazard")]
 public class HazardData : ScriptableObject
 {
     [Header("Visuals")]
     public string hazardName;
     public GameObject hazardPrefab;
-
-    [Header("Grid Rules")]
+    
+    [Header("Properties")]
     public bool isBlocking;         
+    public bool isDestructible;     
+    public int maxHealth = 2;       
     public bool causesDisplacement; 
+
+    [Header("Shape")]
     public HazardShape shapePattern;
 
-    [Header("Destruction")]
-    public bool isDestructible;     
-    public int maxHealth;           
-    public GameObject dropItem;     
-
     [Header("Effect Logic")]
-    public HazardEffectType effectType; 
+    public HazardEffectType effectType;
 
-    [Header("Stats")]
-    public int damageHP;            
-    public int damageMorale;        
-    public float curseMultiplier;   
+    [Header("Stats (Turn End/Enter)")]
+    public int damageHP;
+    public int damageMorale;
+    public int effectDuration;
+    public float curseMultiplier = 1.0f;
     
+    [Header("Attack Bonuses (When Standing On)")]
+    [Tooltip("Extra HP damage added to attacks if you stand on this.")]
+    public int standingBonusHP = 0; 
     
-    public int effectDuration;      
+    [Tooltip("Extra Morale damage added to attacks if you stand on this.")]
+    public int standingBonusMorale = 0; 
     
+    [Tooltip("If true, attacking while standing on this applies Curse to the target.")]
+    public bool standingAppliesCurse = false; 
 
-    public enum HazardEffectType 
-    { 
-        None,          
-        Box,            
-        Fire,           
-        Plague,         
-        ShiftingSand,   
-        Lightning,      
-        Trap,           
-        Cursed          
-    }
+    [Header("Loot")]
+    public GameObject dropItem; 
 
     public enum HazardShape { Single, Row, Column, Square, Plus }
+    public enum HazardEffectType { None, Fire, Trap, Plague, ShiftingSand, Lightning, Cursed, Boulder, Box }
 }

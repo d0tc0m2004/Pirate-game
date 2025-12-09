@@ -15,12 +15,13 @@ MonoBehaviour:
   hazardName: Box
   hazardPrefab: {fileID: 1776223160548118709, guid: 1ec6fc75ebca91845844d7028512226f, type: 3}
   isBlocking: 1
+  isDestructible: 1
+  maxHealth: 2
   causesDisplacement: 1
   shapePattern: 0
-  isDestructible: 1
-  maxHealth: 1
-  dropItem: {fileID: 0}
-  effectType: 1
+  effectType: 8
   damageHP: 0
   damageMorale: 0
+  effectDuration: 0
   curseMultiplier: 0
+  dropItem: {fileID: 0}

@@ -1,88 +1,77 @@
 using UnityEngine;
-using System.Collections;
-using System.Collections.Generic;
+using System.Collections; 
 
 public class TurnManager : MonoBehaviour
 {
-    [Header("State")]
+    public bool isPlayerTurn = true;
     public int currentRound = 1;
-    public bool isPlayerTurn = false;
-
+    
     [Header("References")]
-    public BattleManager battleManager;
+    public EnergyManager energyManager; // Link in Inspector
+
     public void StartGameLoop()
     {
         currentRound = 1;
-        StartPlayerTurn();
+        isPlayerTurn = true;
+        
+        // Refill Energy at start of combat
+        if (energyManager != null) energyManager.StartTurn();
+        
+        ResetUnitsForNewTurn();
     }
 
-    void StartPlayerTurn()
+    public void EndTurn()
     {
-        isPlayerTurn = true;
-        battleManager.isBattleActive = true;
-        Debug.Log($"<color=white>--- ROUND {currentRound} START ---</color>");
-        UnitMovement[] allUnits = FindObjectsByType<UnitMovement>(FindObjectsSortMode.None);
-        foreach (UnitMovement unit in allUnits)
+        // 1. IF ENDING PLAYER TURN: Convert leftover Energy to Grog
+        if (isPlayerTurn && energyManager != null)
         {
-            unit.BeginTurn(); 
-            UnitStatus status = unit.GetComponent<UnitStatus>();
-            if (status != null) status.OnTurnStart();
+            energyManager.EndTurn(); 
+        }
+
+        // Switch Sides
+        isPlayerTurn = !isPlayerTurn;
+
+        if (isPlayerTurn)
+        {
+            // --- PLAYER TURN STARTS AGAIN ---
+            currentRound++; 
+            Debug.Log("Round " + currentRound + " Start!");
+            
+            // 2. REFILL ENERGY TO 3
+            if (energyManager != null) energyManager.StartTurn();
+
+            ResetUnitsForNewTurn();
+        }
+        else
+        {
+            // --- ENEMY TURN START ---
+            Debug.Log("Enemy Turn Started (No AI). Skipping back to player in 1.5 seconds...");
+            ResetUnitsForNewTurn();
+            
+            // AUTOMATICALLY SKIP ENEMY TURN (So you can keep playing)
+            StartCoroutine(AutoSkipEnemyTurn());
         }
     }
-    public void EndPlayerTurnButton()
-    {
-        if (!isPlayerTurn) return;
 
-        StartCoroutine(ProcessEndTurn());
+    // A temporary helper to loop the game until you add AI later
+    IEnumerator AutoSkipEnemyTurn()
+    {
+        yield return new WaitForSeconds(1.5f); // Wait so you can see the UI change
+        EndTurn(); // Loop back to Player
     }
 
-    IEnumerator ProcessEndTurn()
-    {
-        isPlayerTurn = false;
-        battleManager.isBattleActive = false;
-        
-        Debug.Log("Processing Turn End Effects...");
-
-        ApplyAllTurnEndEffects();
-
-        yield return new WaitForSeconds(1.5f);
-
-        Debug.Log("<color=red>Enemy Turn...</color>");
-        yield return new WaitForSeconds(1f); 
-        currentRound++;
-        StartPlayerTurn();
-    }
-
-    void ApplyAllTurnEndEffects()
+    void ResetUnitsForNewTurn()
     {
         GameObject[] units = GameObject.FindGameObjectsWithTag("Unit");
-
         foreach (GameObject unit in units)
         {
+            // Reset Movement
+            UnitMovement move = unit.GetComponent<UnitMovement>();
+            if (move != null) move.BeginTurn();
+
+            // Reset Status Effects (Stun duration, Trap checks)
             UnitStatus status = unit.GetComponent<UnitStatus>();
-            if (status == null) continue;
-            status.OnTurnEnd();
-            CheckFloorHazards(unit);
-        }
-    }
-
-    void CheckFloorHazards(GameObject unit)
-    {
-        RaycastHit[] hits = Physics.RaycastAll(unit.transform.position + Vector3.up, Vector3.down, 2.0f);
-
-        foreach (RaycastHit hit in hits)
-        {
-            GridCell cell = hit.collider.GetComponent<GridCell>();
-            if (cell != null && cell.hasHazard && cell.hazardVisualObject != null)
-            {
-                HazardInstance hazard = cell.hazardVisualObject.GetComponent<HazardInstance>();
-                if (hazard != null)
-                {
-                    Debug.Log($"Hazard found under {unit.name}: {hazard.name}");
-                    hazard.OnTurnEnd(unit);
-                    return;
-                }
-            }
+            if (status != null) status.OnTurnStart();
         }
     }
 }

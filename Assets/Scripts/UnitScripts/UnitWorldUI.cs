@@ -6,36 +6,57 @@ public class UnitWorldUI : MonoBehaviour
 {
     [Header("References")]
     public UnitStatus unitStatus;
+    
+    [Header("Bars")]
     public Slider hpSlider;
     public Slider moraleSlider;
-    public TMP_Text statusText;
+    public Slider buzzSlider;
+
+    [Header("Text Numbers (Drag objects here!)")]
+    public TMP_Text hpNumberText;      // Displays "80 / 100"
+    public TMP_Text moraleNumberText;  // Displays "50 / 100"
+    public TMP_Text arrowText;         // Displays "10"
 
     private void Start()
     {
-        if (unitStatus == null) unitStatus = GetComponent<UnitStatus>();
+        if (unitStatus == null) unitStatus = GetComponentInParent<UnitStatus>();
     }
 
     private void Update()
     {
         if (unitStatus == null) return;
 
-        if (hpSlider != null)
-        {
-            hpSlider.maxValue = unitStatus.maxHP;
-            hpSlider.value = unitStatus.currentHP;
+        // 1. UPDATE SLIDERS
+        if (hpSlider) 
+        { 
+            hpSlider.maxValue = unitStatus.maxHP; 
+            hpSlider.value = unitStatus.currentHP; 
         }
-        if (moraleSlider != null)
-        {
-            moraleSlider.maxValue = unitStatus.maxMorale;
-            moraleSlider.value = unitStatus.currentMorale;
+        
+        if (moraleSlider) 
+        { 
+            moraleSlider.maxValue = unitStatus.maxMorale; 
+            moraleSlider.value = unitStatus.currentMorale; 
         }
-        if (statusText != null)
-        {
-            statusText.text = "";
+        
+        if (buzzSlider) 
+        { 
+            buzzSlider.maxValue = unitStatus.maxBuzz; 
+            buzzSlider.value = unitStatus.currentBuzz; 
+            
+            // Color change for drunk state
+            Image fill = buzzSlider.fillRect.GetComponent<Image>();
+            if (fill) fill.color = unitStatus.isTooDrunk ? Color.green : Color.yellow;
+        }
 
-            if (unitStatus.isStunned) statusText.text += "<color=red>STUNNED</color>\n";
-            if (unitStatus.isTrapped) statusText.text += "<color=orange>TRAPPED</color>\n";
-            if (unitStatus.isCursed)  statusText.text += "<color=purple>CURSED</color>\n";
-        }
+        // 2. UPDATE TEXT NUMBERS (New Logic)
+        if (hpNumberText) 
+            hpNumberText.text = $"{unitStatus.currentHP}";
+            
+        if (moraleNumberText) 
+            moraleNumberText.text = $"{unitStatus.currentMorale}";
+        
+        if (arrowText) 
+            arrowText.text = unitStatus.currentArrows.ToString();
     }
 }

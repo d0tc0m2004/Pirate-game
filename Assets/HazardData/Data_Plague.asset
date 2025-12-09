@@ -15,12 +15,16 @@ MonoBehaviour:
   hazardName: Plague
   hazardPrefab: {fileID: 3004994222369689113, guid: 012d62259ce3f0241a09c06a502b7a3f, type: 3}
   isBlocking: 0
-  causesDisplacement: 0
-  shapePattern: 3
   isDestructible: 0
   maxHealth: 0
-  dropItem: {fileID: 0}
+  causesDisplacement: 0
+  shapePattern: 3
   effectType: 3
   damageHP: 0
   damageMorale: 20
+  effectDuration: 0
   curseMultiplier: 0
+  standingBonusHP: 0
+  standingBonusMorale: 5
+  standingAppliesCurse: 0
+  dropItem: {fileID: 0}

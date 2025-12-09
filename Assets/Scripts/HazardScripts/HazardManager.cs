@@ -24,14 +24,10 @@ public class HazardManager : MonoBehaviour
     {
         if (possibleHazards == null || possibleHazards.Count == 0) return;
 
-        
         int targetTiles = Random.Range(minOccupiedTilesPerSide, maxOccupiedTilesPerSide + 1);
         Debug.Log($"Target Balance: Occupying ~{targetTiles} tiles per side.");
 
-        
         SpawnHazardsUntilTargetReached(true, targetTiles);
-
-        
         SpawnHazardsUntilTargetReached(false, targetTiles);
     }
 
@@ -45,27 +41,21 @@ public class HazardManager : MonoBehaviour
         {
             attempts++;
 
-            
             HazardData selectedHazard = possibleHazards[Random.Range(0, possibleHazards.Count)];
-            
             
             int shapeSize = GetShapeSize(selectedHazard.shapePattern);
 
-            
             if (occupiedCount + shapeSize > targetTileCount + 2) 
             {
                 continue; 
             }
 
-            
             int middle = gridManager.GetMiddleColumnIndex();
             int startX = isPlayerSide ? Random.Range(0, middle) : Random.Range(middle + 1, gridManager.gridWidth);
             int startY = Random.Range(0, gridManager.gridHeight);
 
-            
             List<Vector2Int> targetCoords = GetShapeCoordinates(selectedHazard.shapePattern, startX, startY);
 
-            
             bool shapeIsValid = true;
             foreach (Vector2Int coord in targetCoords)
             {
@@ -78,33 +68,35 @@ public class HazardManager : MonoBehaviour
                 }
             }
 
-            
             if (shapeIsValid)
             {
                 foreach (Vector2Int coord in targetCoords)
                 {
                     GridCell cell = gridManager.GetCell(coord.x, coord.y);
                     
-                    
                     if (cell.isOccupied && selectedHazard.causesDisplacement)
                     {
                         DisplaceUnit(cell);
                     }
 
-                    
                     cell.ApplyHazard(selectedHazard.hazardPrefab, selectedHazard.isBlocking);
 
-                   
                     GameObject spawnedObj = cell.hazardVisualObject;
                     if (spawnedObj != null)
                     {
                         HazardInstance instance = spawnedObj.GetComponent<HazardInstance>();
                         if (instance == null) instance = spawnedObj.AddComponent<HazardInstance>();
+                        
                         instance.Initialize(selectedHazard, cell);
+
+                        if (cell.isOccupied && cell.occupyingUnit != null)
+                        {
+                            Debug.Log($"Hazard spawned under {cell.occupyingUnit.name}. Triggering effect!");
+                            instance.OnUnitEnter(cell.occupyingUnit);
+                        }
                     }
                 }
 
-                
                 occupiedCount += shapeSize;
             }
         }
@@ -112,7 +104,6 @@ public class HazardManager : MonoBehaviour
         Debug.Log($"Side {(isPlayerSide ? "Left" : "Right")} finished with {occupiedCount} tiles occupied.");
     }
 
-    
     int GetShapeSize(HazardData.HazardShape shape)
     {
         switch (shape)
@@ -126,7 +117,6 @@ public class HazardManager : MonoBehaviour
         }
     }
 
-    
     List<Vector2Int> GetShapeCoordinates(HazardData.HazardShape shape, int x, int y)
     {
         List<Vector2Int> coords = new List<Vector2Int>();

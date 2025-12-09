@@ -2,15 +2,44 @@ using UnityEngine;
 
 public class HazardInstance : MonoBehaviour
 {
-    private HazardData data;
-    private int hazardDurability; 
+    public HazardData data;
     private GridCell currentCell;
+    
+    [Header("Obstacle Stats")]
+    public bool isSoftObstacle = false; 
+    public bool isHardObstacle = false; 
+    public int obstacleHP = 2; 
 
     public void Initialize(HazardData hazardData, GridCell cell)
     {
         data = hazardData;
         currentCell = cell;
-        hazardDurability = data.maxHealth; 
+        
+        if (data.effectType == HazardData.HazardEffectType.Box) isSoftObstacle = true;
+        if (data.effectType == HazardData.HazardEffectType.Boulder) isHardObstacle = true;
+        
+        if (isSoftObstacle || isHardObstacle) obstacleHP = data.maxHealth;
+    }
+
+    public void TakeObstacleDamage(int amount)
+    {
+        if (isHardObstacle) 
+        {
+            Debug.Log("Clang! Hard obstacle took no damage.");
+            return;
+        }
+
+        if (isSoftObstacle)
+        {
+            obstacleHP -= amount;
+            Debug.Log($"Obstacle hit! HP left: {obstacleHP}");
+            
+            if (obstacleHP <= 0)
+            {
+                Debug.Log("Obstacle Destroyed!");
+                DestroyHazard();
+            }
+        }
     }
 
     public void OnTurnEnd(GameObject unit)
@@ -22,21 +51,22 @@ public class HazardInstance : MonoBehaviour
         switch (data.effectType)
         {
             case HazardData.HazardEffectType.Fire:
-                status.TakeDamage(data.damageHP);
+                status.TakeDamage(data.damageHP, this.gameObject, false);
                 break;
+
             case HazardData.HazardEffectType.Plague:
                 status.TakeMoraleDamage(data.damageMorale);
                 break;
+
             case HazardData.HazardEffectType.ShiftingSand:
                 status.TakeMoraleDamage(data.damageMorale);
                 break;
+
             case HazardData.HazardEffectType.Lightning:
                 if (Random.value > 0.5f) 
-                {
                     status.ApplyStun(data.effectDuration); 
-                    Debug.Log("Lightning STRIKE!");
-                }
                 break;
+
             case HazardData.HazardEffectType.Cursed:
                 status.SetCurse(true, data.curseMultiplier);
                 break;
@@ -54,19 +84,11 @@ public class HazardInstance : MonoBehaviour
                 status.ApplyTrap();
                 DestroyHazard(); 
                 break;
+
             case HazardData.HazardEffectType.Cursed:
                 status.SetCurse(true, data.curseMultiplier);
                 break;
         }
-    }
-
-    
-    public void TakeDamage(int amount)
-    {
-        if (!data.isDestructible) return;
-
-        hazardDurability -= amount; 
-        if (hazardDurability <= 0) DestroyHazard();
     }
 
     void DestroyHazard()
@@ -84,6 +106,6 @@ public class HazardInstance : MonoBehaviour
         }
         Destroy(gameObject);
     }
-
-    private void OnMouseDown() { TakeDamage(1); }
+    
+    private void OnMouseDown() { TakeObstacleDamage(1); }
 }
