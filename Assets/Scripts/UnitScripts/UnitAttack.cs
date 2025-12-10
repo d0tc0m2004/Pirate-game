@@ -16,13 +16,9 @@ public class UnitAttack : MonoBehaviour
     {
         myStatus = GetComponent<UnitStatus>();
         myMovement = GetComponent<UnitMovement>();
-        
-        // Auto-Find Managers
         energyManager = FindFirstObjectByType<EnergyManager>();
         gridManager = FindFirstObjectByType<GridManager>();
     }
-    
-    // Helper to manually inject managers from Deployment
     public void SetupManagers(GridManager grid, EnergyManager energy)
     {
         this.gridManager = grid;
@@ -32,8 +28,6 @@ public class UnitAttack : MonoBehaviour
     public void TryMeleeAttack()
     {
         if (!CanAct()) return;
-        
-        // Safety: Re-find manager if missing
         if (energyManager == null) energyManager = FindFirstObjectByType<EnergyManager>();
         if (!energyManager.TrySpendEnergy(attackEnergyCost)) return;
 
@@ -46,20 +40,16 @@ public class UnitAttack : MonoBehaviour
                 BreakObstacleInPath(target, 100);
                 return;
             }
-
-            // --- DAMAGE CALCULATION ---
             var bonuses = GetStandingBonuses();
             
             float drunkMod = 1.0f;
             if (myStatus.isTooDrunk)
             {
                 drunkMod = 0.8f;
-                // NEW CONSOLE LOG HERE
                 Debug.Log($"<color=orange>HIC! {name} is Too Drunk! Melee damage reduced (-20%)</color>");
             }
 
             int finalDmg = Mathf.RoundToInt(meleeDamage * drunkMod);
-            // ---------------------------
             
             target.TakeDamage(finalDmg, this.gameObject, true, bonuses.hp, bonuses.morale, bonuses.applyCurse);
             
@@ -87,20 +77,16 @@ public class UnitAttack : MonoBehaviour
                  myStatus.currentArrows--; 
                  return;
             }
-
-            // --- DAMAGE CALCULATION ---
             var bonuses = GetStandingBonuses();
 
             float drunkMod = 1.0f;
             if (myStatus.isTooDrunk)
             {
                 drunkMod = 0.8f;
-                // NEW CONSOLE LOG HERE
                 Debug.Log($"<color=orange>HIC! {name} is Too Drunk! Ranged damage reduced (-20%)</color>");
             }
 
             int finalDmg = Mathf.RoundToInt(rangedDamage * drunkMod);
-            // ---------------------------
 
             myStatus.currentArrows--;
             target.TakeDamage(finalDmg, this.gameObject, false, bonuses.hp, bonuses.morale, bonuses.applyCurse);
@@ -110,8 +96,6 @@ public class UnitAttack : MonoBehaviour
             GetComponent<MeshRenderer>().material.color = Color.gray;
         }
     }
-
-    // --- HELPERS (Unchanged) ---
 
     (int hp, int morale, bool applyCurse) GetStandingBonuses()
     {

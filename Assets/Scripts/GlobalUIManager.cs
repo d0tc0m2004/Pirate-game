@@ -6,9 +6,9 @@ public class GlobalUIManager : MonoBehaviour
 {
     [Header("--- TEAM STATS UI (Top Screen) ---")]
     public Slider playerTeamHPSlider;
-    public TMP_Text playerTeamHPText; // Displays "450/500"
+    public TMP_Text playerTeamHPText; 
     public Slider playerTeamMoraleSlider;
-    public TMP_Text playerTeamMoraleText; // Displays "100/100"
+    public TMP_Text playerTeamMoraleText;
 
     public Slider enemyTeamHPSlider;
     public TMP_Text enemyTeamHPText;
@@ -39,22 +39,16 @@ public class GlobalUIManager : MonoBehaviour
 
     private void Start()
     {
-        // Auto-find managers
         if (energyManager == null) energyManager = FindFirstObjectByType<EnergyManager>();
         if (battleManager == null) battleManager = FindFirstObjectByType<BattleManager>();
         if (turnManager == null) turnManager = FindFirstObjectByType<TurnManager>();
-
-        // Setup Buttons
         if (healthRumButton) healthRumButton.onClick.AddListener(() => OnDrinkRum("Health"));
         if (moraleRumButton) moraleRumButton.onClick.AddListener(() => OnDrinkRum("Morale"));
     }
 
     private void Update()
     {
-        // 1. UPDATE TEAM STATS (The missing part!)
         UpdateTeamStats();
-
-        // 2. UPDATE ROUND & TURN TEXT
         if (turnManager)
         {
             if (roundText) roundText.text = "Round " + turnManager.currentRound;
@@ -64,8 +58,6 @@ public class GlobalUIManager : MonoBehaviour
                 turnStatusText.text = turnManager.isPlayerTurn ? "PLAYER TURN" : "ENEMY TURN";
             }
         }
-
-        // 3. UPDATE ECONOMY TEXT
         if (energyManager)
         {
             if (energyText) energyText.text = $"Energy: {energyManager.currentEnergy}/{energyManager.maxEnergy}";
@@ -103,10 +95,6 @@ public class GlobalUIManager : MonoBehaviour
                 playerMaxMorale += status.maxMorale;
             }
         }
-
-        // --- UPDATE UI ELEMENTS ---
-        
-        // PLAYER
         if (playerTeamHPSlider) { playerTeamHPSlider.maxValue = playerMaxHP; playerTeamHPSlider.value = playerHP; }
         if (playerTeamHPText) playerTeamHPText.text = $"{playerHP}";
 

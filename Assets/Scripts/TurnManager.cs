@@ -7,14 +7,13 @@ public class TurnManager : MonoBehaviour
     public int currentRound = 1;
     
     [Header("References")]
-    public EnergyManager energyManager; // Link in Inspector
+    public EnergyManager energyManager; 
 
     public void StartGameLoop()
     {
         currentRound = 1;
         isPlayerTurn = true;
         
-        // Refill Energy at start of combat
         if (energyManager != null) energyManager.StartTurn();
         
         ResetUnitsForNewTurn();
@@ -22,42 +21,54 @@ public class TurnManager : MonoBehaviour
 
     public void EndTurn()
     {
-        // 1. IF ENDING PLAYER TURN: Convert leftover Energy to Grog
+        ApplyHazardEffects();
         if (isPlayerTurn && energyManager != null)
         {
             energyManager.EndTurn(); 
         }
-
-        // Switch Sides
         isPlayerTurn = !isPlayerTurn;
 
         if (isPlayerTurn)
         {
-            // --- PLAYER TURN STARTS AGAIN ---
             currentRound++; 
-            Debug.Log("Round " + currentRound + " Start!");
+            Debug.Log($"Round {currentRound} Start!");
             
-            // 2. REFILL ENERGY TO 3
             if (energyManager != null) energyManager.StartTurn();
 
             ResetUnitsForNewTurn();
         }
         else
         {
-            // --- ENEMY TURN START ---
-            Debug.Log("Enemy Turn Started (No AI). Skipping back to player in 1.5 seconds...");
+            Debug.Log("Enemy Turn. Skipping in 1.5s");
             ResetUnitsForNewTurn();
-            
-            // AUTOMATICALLY SKIP ENEMY TURN (So you can keep playing)
             StartCoroutine(AutoSkipEnemyTurn());
         }
     }
 
-    // A temporary helper to loop the game until you add AI later
     IEnumerator AutoSkipEnemyTurn()
     {
-        yield return new WaitForSeconds(1.5f); // Wait so you can see the UI change
-        EndTurn(); // Loop back to Player
+        yield return new WaitForSeconds(1.5f); 
+        EndTurn(); 
+    }
+    void ApplyHazardEffects()
+    {
+        GameObject[] units = GameObject.FindGameObjectsWithTag("Unit");
+        foreach (GameObject unit in units)
+        {
+            RaycastHit[] hits = Physics.RaycastAll(unit.transform.position + Vector3.up, Vector3.down, 2.0f);
+            foreach (var hit in hits)
+            {
+                 GridCell cell = hit.collider.GetComponent<GridCell>();
+                 if (cell != null && cell.hasHazard && cell.hazardVisualObject != null)
+                 {
+                     HazardInstance hazard = cell.hazardVisualObject.GetComponent<HazardInstance>();
+                     if (hazard != null)
+                     {
+                         hazard.OnTurnEnd(unit);
+                     }
+                 }
+            }
+        }
     }
 
     void ResetUnitsForNewTurn()
@@ -65,11 +76,9 @@ public class TurnManager : MonoBehaviour
         GameObject[] units = GameObject.FindGameObjectsWithTag("Unit");
         foreach (GameObject unit in units)
         {
-            // Reset Movement
             UnitMovement move = unit.GetComponent<UnitMovement>();
             if (move != null) move.BeginTurn();
 
-            // Reset Status Effects (Stun duration, Trap checks)
             UnitStatus status = unit.GetComponent<UnitStatus>();
             if (status != null) status.OnTurnStart();
         }

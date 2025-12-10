@@ -28,7 +28,6 @@ public class BattleManager : MonoBehaviour
     { 
         return selectedUnit; 
     }
-    // ----------------------------------------------------
 
     private void Update()
     {

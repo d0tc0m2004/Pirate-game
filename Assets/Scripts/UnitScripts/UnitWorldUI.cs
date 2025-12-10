@@ -13,9 +13,9 @@ public class UnitWorldUI : MonoBehaviour
     public Slider buzzSlider;
 
     [Header("Text Numbers (Drag objects here!)")]
-    public TMP_Text hpNumberText;      // Displays "80 / 100"
-    public TMP_Text moraleNumberText;  // Displays "50 / 100"
-    public TMP_Text arrowText;         // Displays "10"
+    public TMP_Text hpNumberText; 
+    public TMP_Text moraleNumberText; 
+    public TMP_Text arrowText;
 
     private void Start()
     {
@@ -25,8 +25,6 @@ public class UnitWorldUI : MonoBehaviour
     private void Update()
     {
         if (unitStatus == null) return;
-
-        // 1. UPDATE SLIDERS
         if (hpSlider) 
         { 
             hpSlider.maxValue = unitStatus.maxHP; 
@@ -43,13 +41,9 @@ public class UnitWorldUI : MonoBehaviour
         { 
             buzzSlider.maxValue = unitStatus.maxBuzz; 
             buzzSlider.value = unitStatus.currentBuzz; 
-            
-            // Color change for drunk state
             Image fill = buzzSlider.fillRect.GetComponent<Image>();
             if (fill) fill.color = unitStatus.isTooDrunk ? Color.green : Color.yellow;
         }
-
-        // 2. UPDATE TEXT NUMBERS (New Logic)
         if (hpNumberText) 
             hpNumberText.text = $"{unitStatus.currentHP}";
             

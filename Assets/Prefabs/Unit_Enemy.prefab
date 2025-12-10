@@ -745,9 +745,10 @@ MonoBehaviour:
   unitStatus: {fileID: 0}
   hpSlider: {fileID: 0}
   moraleSlider: {fileID: 0}
+  buzzSlider: {fileID: 0}
   hpNumberText: {fileID: 0}
   moraleNumberText: {fileID: 0}
-  statusText: {fileID: 0}
+  arrowText: {fileID: 0}
 --- !u!1 &5177479939285327352
 GameObject:
   m_ObjectHideFlags: 0
@@ -1132,7 +1133,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: -10.06997, y: 0, z: 953.0586}
-  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_LocalScale: {x: 0.55452, y: 0.55452, z: 0.55452}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 2267353687513821743}
@@ -1232,7 +1233,7 @@ MonoBehaviour:
   moveRange: 3
   moveAnimationSpeed: 5
   isMoving: 0
-  hasMoved: 0
+  hasAttacked: 0
 --- !u!114 &140358592881133908
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1250,12 +1251,19 @@ MonoBehaviour:
   maxMorale: 100
   currentMorale: 0
   surrenderThreshold: 20
+  currentBuzz: 0
+  maxBuzz: 100
+  buzzDecayPerTurn: 15
+  buzzDecayOnAttack: 25
   maxArrows: 10
   currentArrows: 0
   isStunned: 0
   isTrapped: 0
-  isCursed: 0
   hasSurrendered: 0
+  curseCharges: 0
+  whiteFlagVisual: {fileID: 0}
+  lastAttacker: {fileID: 0}
+  mvStacks: 0
 --- !u!114 &2392426204014732187
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1271,9 +1279,10 @@ MonoBehaviour:
   unitStatus: {fileID: 140358592881133908}
   hpSlider: {fileID: 3564262204922109326}
   moraleSlider: {fileID: 6187820845553252512}
+  buzzSlider: {fileID: 0}
   hpNumberText: {fileID: 526971875492764110}
   moraleNumberText: {fileID: 3885454990663881811}
-  statusText: {fileID: 6422355394687636638}
+  arrowText: {fileID: 0}
 --- !u!114 &2191029532430211089
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1288,4 +1297,4 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::UnitAttack
   meleeDamage: 20
   rangedDamage: 15
-  attackRange: 100
+  attackEnergyCost: 1
