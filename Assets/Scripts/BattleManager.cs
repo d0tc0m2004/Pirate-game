@@ -8,8 +8,11 @@ public class BattleManager : MonoBehaviour
     public GridManager gridManager;
     public TMP_Text instructionText; 
     public EnergyManager energyManager; 
+    public TurnManager turnManager; 
+    
     [Header("Selection Visuals")]
     public Color moveRangeColor = Color.blue;
+    
     public bool isBattleActive = false;
     private GameObject selectedUnit;
     private bool isSwapping = false; 
@@ -21,6 +24,7 @@ public class BattleManager : MonoBehaviour
     {
         if (gridManager == null) gridManager = FindFirstObjectByType<GridManager>();
         if (energyManager == null) energyManager = FindFirstObjectByType<EnergyManager>();
+        if (turnManager == null) turnManager = FindFirstObjectByType<TurnManager>();
         if (instructionText != null) instructionText.text = ""; 
     }
 
@@ -31,7 +35,8 @@ public class BattleManager : MonoBehaviour
         if (!isBattleActive) return;
 
         if (Input.GetMouseButtonDown(0)) HandleClick();
-        if (Input.GetMouseButtonDown(1)) DeselectUnit();
+        if (Input.GetMouseButtonDown(1)) DeselectUnit(); 
+
         if (selectedUnit != null && !isSwapping)
         {
              if (Input.GetKeyDown(KeyCode.C)) 
@@ -46,10 +51,23 @@ public class BattleManager : MonoBehaviour
              }
         }
     }
+
     public void InitiateSwapMode()
     {
         if (selectedUnit == null) return;
         UnitStatus status = selectedUnit.GetComponent<UnitStatus>();
+        
+        if (turnManager.swapsUsedThisRound >= 1)
+        {
+            Debug.Log("Cannot Swap: Limit reached (1 per round)!");
+            return;
+        }
+        if (status.swapCooldown > 0)
+        {
+            Debug.Log($"Cannot Swap: Unit is recovering ({status.swapCooldown} turns left).");
+            return;
+        }
+
         if (energyManager.currentEnergy < 1) 
         {
             Debug.Log("Not enough Energy to Swap!");
@@ -65,7 +83,7 @@ public class BattleManager : MonoBehaviour
         }
 
         isSwapping = true;
-        Debug.Log("Click on an unit or empty grid to swap with the selected unit.");
+        Debug.Log("Click on an unit or empty grid to swap.");
         if (instructionText) instructionText.text = "Select Target for Swap...";
     }
 
@@ -81,6 +99,7 @@ public class BattleManager : MonoBehaviour
                 ExecuteSwap(hit);
                 return;
             }
+
             UnitMovement unitClicked = hit.collider.GetComponent<UnitMovement>();
             if (unitClicked != null)
             {
@@ -110,8 +129,10 @@ public class BattleManager : MonoBehaviour
         UnitStatus sourceStatus = selectedUnit.GetComponent<UnitStatus>();
         Vector2Int sourceGridPos = gridManager.WorldToGridPosition(selectedUnit.transform.position);
         GridCell sourceCell = gridManager.GetCell(sourceGridPos.x, sourceGridPos.y);
+
         GridCell targetCell = null;
         GameObject targetUnit = null;
+
         if (hit.collider.CompareTag("Unit"))
         {
             targetUnit = hit.collider.gameObject;
@@ -122,21 +143,21 @@ public class BattleManager : MonoBehaviour
         {
             targetCell = hit.collider.GetComponent<GridCell>();
         }
+
         if (targetCell == null) return;
         if (targetCell == sourceCell) return;
         energyManager.TrySpendEnergy(1);
-        if (!selectedUnit.name.Contains("Captain"))
-        {
-            sourceStatus.ApplySwapPenalty();
-        }
+        turnManager.swapsUsedThisRound++;
+        sourceStatus.swapCooldown = 3; 
+
+        if (!selectedUnit.name.Contains("Captain")) sourceStatus.ApplySwapPenalty();
+
         if (targetUnit != null)
         {
             targetUnit.transform.position = sourceCell.GetWorldPosition();
             sourceCell.PlaceUnit(targetUnit);
-
             selectedUnit.transform.position = targetCell.GetWorldPosition();
             targetCell.PlaceUnit(selectedUnit);
-            
             Debug.Log("Units Swapped Positions!");
         }
         else if (!targetCell.isBlocked && !targetCell.isOccupied)
@@ -144,11 +165,10 @@ public class BattleManager : MonoBehaviour
             sourceCell.RemoveUnit();
             selectedUnit.transform.position = targetCell.GetWorldPosition();
             targetCell.PlaceUnit(selectedUnit);
-            
             Debug.Log("Swapped to Empty Grid!");
         }
 
-        DeselectUnit();
+        DeselectUnit(); 
     }
 
     void SelectUnit(GameObject unit)
@@ -162,7 +182,7 @@ public class BattleManager : MonoBehaviour
         if (status != null && (status.isTrapped || status.hasSurrendered)) return;
 
         selectedUnit = unit;
-        isSwapping = false;
+        isSwapping = false; 
 
         if (instructionText != null) instructionText.text = "Click Blue Tile to Move\nPress 'C' Melee | 'X' Ranged";
 
@@ -194,6 +214,7 @@ public class BattleManager : MonoBehaviour
 
         DeselectUnit();
     }
+    
     void CalculateValidMoves(GridCell startCell, int range) {
         validMoveTiles.Clear();
         Queue<GridCell> queue = new Queue<GridCell>();

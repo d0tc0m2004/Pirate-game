@@ -26,7 +26,7 @@ public class GlobalUIManager : MonoBehaviour
     public Button moraleRumButton; 
 
     [Header("NEW SWAP UI")]
-    public Button swapButton;
+    public Button swapButton; 
 
     [Header("Icon Containers")]
     public Transform playerIconContainer; 
@@ -52,7 +52,7 @@ public class GlobalUIManager : MonoBehaviour
         if (swapButton) 
         {
             swapButton.onClick.AddListener(() => battleManager.InitiateSwapMode());
-            swapButton.gameObject.SetActive(false);
+            swapButton.gameObject.SetActive(false); 
         }
     }
 
@@ -68,15 +68,23 @@ public class GlobalUIManager : MonoBehaviour
 
         if (energyManager)
         {
-            if (energyText) energyText.text = $"Energy: {energyManager.currentEnergy}";
+            if (energyText) energyText.text = $"Energy: {energyManager.currentEnergy}/{energyManager.maxEnergy}";
             if (grogText) grogText.text = $"Grog: {energyManager.grogTokens}";
         }
         
         if (swapButton && battleManager)
         {
-            bool showButton = battleManager.GetSelectedUnit() != null;
-            if (showButton && battleManager.GetSelectedUnit().name.Contains("Enemy")) showButton = false;
-            
+            GameObject sel = battleManager.GetSelectedUnit();
+            bool showButton = false;
+
+            if (sel != null && !sel.name.Contains("Enemy"))
+            {
+                UnitStatus status = sel.GetComponent<UnitStatus>();
+                if (turnManager.swapsUsedThisRound < 1 && status.swapCooldown == 0)
+                {
+                    showButton = true;
+                }
+            }
             swapButton.gameObject.SetActive(showButton);
         }
     }

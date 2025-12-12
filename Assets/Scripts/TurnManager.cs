@@ -5,7 +5,8 @@ public class TurnManager : MonoBehaviour
 {
     public bool isPlayerTurn = true;
     public int currentRound = 1;
-    
+    public int swapsUsedThisRound = 0;
+
     [Header("References")]
     public EnergyManager energyManager; 
 
@@ -13,33 +14,35 @@ public class TurnManager : MonoBehaviour
     {
         currentRound = 1;
         isPlayerTurn = true;
+        swapsUsedThisRound = 0;
         
         if (energyManager != null) energyManager.StartTurn();
-        
         ResetUnitsForNewTurn();
     }
 
     public void EndTurn()
     {
         ApplyHazardEffects();
+
         if (isPlayerTurn && energyManager != null)
         {
             energyManager.EndTurn(); 
         }
+
         isPlayerTurn = !isPlayerTurn;
 
         if (isPlayerTurn)
         {
             currentRound++; 
-            Debug.Log($"Round {currentRound} Start!");
+            swapsUsedThisRound = 0;
+            Debug.Log($"Round {currentRound} Start! Swap limit reset.");
             
             if (energyManager != null) energyManager.StartTurn();
-
             ResetUnitsForNewTurn();
         }
         else
         {
-            Debug.Log("Enemy Turn. Skipping in 1.5s");
+            Debug.Log("Enemy Turn. Skipping in 1.5s...");
             ResetUnitsForNewTurn();
             StartCoroutine(AutoSkipEnemyTurn());
         }
@@ -50,6 +53,7 @@ public class TurnManager : MonoBehaviour
         yield return new WaitForSeconds(1.5f); 
         EndTurn(); 
     }
+
     void ApplyHazardEffects()
     {
         GameObject[] units = GameObject.FindGameObjectsWithTag("Unit");
@@ -62,10 +66,7 @@ public class TurnManager : MonoBehaviour
                  if (cell != null && cell.hasHazard && cell.hazardVisualObject != null)
                  {
                      HazardInstance hazard = cell.hazardVisualObject.GetComponent<HazardInstance>();
-                     if (hazard != null)
-                     {
-                         hazard.OnTurnEnd(unit);
-                     }
+                     if (hazard != null) hazard.OnTurnEnd(unit);
                  }
             }
         }

@@ -18,8 +18,9 @@ public class UnitStatus : MonoBehaviour
     public int buzzDecayOnAttack = 25; 
     public bool isTooDrunk => currentBuzz >= maxBuzz;
 
-    [Header("Swap Debuff")]
+    [Header("Swap Stats")]
     public bool isExposed = false; 
+    public int swapCooldown = 0;
 
     [Header("Ammo")]
     public int maxArrows = 10;
@@ -167,30 +168,13 @@ public class UnitStatus : MonoBehaviour
         mvStacks = 0;
         lastAttacker = null;
         
-        if (isExposed) 
-        {
-            isExposed = false;
-            Debug.Log($"{name} is no longer Exposed.");
-        }
+        if (isExposed) isExposed = false;
+        if (swapCooldown > 0) swapCooldown--;
     }
     
-    public void ApplyStun(int duration)
-    {
-        isStunned = true;
-        stunDuration = duration;
-        Debug.Log($"{name} is Stunned!");
-    }
-
-    public void ApplyTrap()
-    {
-        isTrapped = true;
-        Debug.Log($"{name} is Trapped!");
-    }
-
-    public void OnTurnEnd()
-    {
-        if (isStunned) { stunDuration--; if (stunDuration <= 0) isStunned = false; }
-    }
+    public void ApplyStun(int duration) { isStunned = true; stunDuration = duration; }
+    public void ApplyTrap() { isTrapped = true; }
+    public void OnTurnEnd() { if (isStunned) { stunDuration--; if (stunDuration <= 0) isStunned = false; } }
 
     public void SetCurse(bool state, float multiplier) 
     {
@@ -203,12 +187,9 @@ public class UnitStatus : MonoBehaviour
         if (gridManager == null) return false;
 
         Vector2Int myPos = gridManager.WorldToGridPosition(transform.position);
-        
         Vector2Int[] neighbors = { 
-            new Vector2Int(myPos.x + 1, myPos.y),
-            new Vector2Int(myPos.x - 1, myPos.y),
-            new Vector2Int(myPos.x, myPos.y + 1),
-            new Vector2Int(myPos.x, myPos.y - 1)
+            new Vector2Int(myPos.x + 1, myPos.y), new Vector2Int(myPos.x - 1, myPos.y),
+            new Vector2Int(myPos.x, myPos.y + 1), new Vector2Int(myPos.x, myPos.y - 1)
         };
 
         foreach (Vector2Int n in neighbors)
