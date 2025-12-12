@@ -18,6 +18,9 @@ public class UnitStatus : MonoBehaviour
     public int buzzDecayOnAttack = 25; 
     public bool isTooDrunk => currentBuzz >= maxBuzz;
 
+    [Header("Swap Debuff")]
+    public bool isExposed = false; 
+
     [Header("Ammo")]
     public int maxArrows = 10;
     public int currentArrows;
@@ -26,16 +29,21 @@ public class UnitStatus : MonoBehaviour
     public bool isStunned = false;  
     public bool isTrapped = false;  
     public bool hasSurrendered = false;
+
     public bool isCursed => curseCharges > 0; 
     public int curseCharges = 0; 
     private float curseMultiplier = 1.5f;
 
     [Header("Visuals")]
     public GameObject whiteFlagVisual; 
+    
     [HideInInspector] public GameObject lastAttacker;
     [HideInInspector] public int mvStacks = 0; 
+    
     private readonly float[] mvMultipliers = { 0f, 0f, 0.10f, 0.25f, 0.45f, 0.65f };
     private int stunDuration = 0; 
+
+    private GridManager gridManager;
 
     private void Start()
     {
@@ -43,7 +51,10 @@ public class UnitStatus : MonoBehaviour
         currentMorale = maxMorale;
         currentArrows = maxArrows;
         if (whiteFlagVisual != null) whiteFlagVisual.SetActive(false);
+        
+        gridManager = FindFirstObjectByType<GridManager>();
     }
+
     public void DrinkRum(string type)
     {
         currentBuzz += 30; 
@@ -61,6 +72,7 @@ public class UnitStatus : MonoBehaviour
             if (currentBuzz < 0) currentBuzz = 0;
         }
     }
+
     public void TakeDamage(int rawDamage, GameObject source, bool isMelee, int flatBonusHP = 0, int flatBonusMorale = 0, bool applyCurse = false)
     {
         if (hasSurrendered) return; 
@@ -76,7 +88,7 @@ public class UnitStatus : MonoBehaviour
         string logHP = $"{rawDamage} Base";
         
         float damageMod = 1.0f;
-        if (CheckCover(source)) 
+        if (CheckAdjacencyCover()) 
         {
             damageMod -= 0.10f;
             logHP += " -10%(Cover)";
@@ -88,7 +100,10 @@ public class UnitStatus : MonoBehaviour
         float currentCurseMod = (curseCharges > 0) ? curseMultiplier : 1.0f;
         if (curseCharges > 0) logHP += " x1.5(Curse)";
 
-        int calculatedDamage = Mathf.RoundToInt(rawDamage * damageMod * hpMultiplier * currentCurseMod);
+        float swapPenaltyMod = isExposed ? 1.2f : 1.0f;
+        if (isExposed) logHP += " +20%(Exposed)";
+
+        int calculatedDamage = Mathf.RoundToInt(rawDamage * damageMod * hpMultiplier * currentCurseMod * swapPenaltyMod);
         int finalHP = calculatedDamage + flatBonusHP;
         
         if (flatBonusHP > 0) logHP += $" +{flatBonusHP}(HazardBonus)";
@@ -101,13 +116,13 @@ public class UnitStatus : MonoBehaviour
         int index = Mathf.Clamp(mvStacks, 0, mvMultipliers.Length - 1);
         float focusFireBonus = mvMultipliers[index];
         
-        int finalMorale = Mathf.RoundToInt(rawDamage * damageMod * moraleMultiplier * (1.0f + focusFireBonus)) + flatBonusMorale;
+        int finalMorale = Mathf.RoundToInt(rawDamage * damageMod * moraleMultiplier * (1.0f + focusFireBonus) * swapPenaltyMod) + flatBonusMorale;
         
         logMorale += $"{rawDamage} Base";
         if (isMelee) logMorale += " +10%(Melee)";
         
         if (focusFireBonus > 0) logMorale += $" +{Mathf.RoundToInt(focusFireBonus*100)}%(FocusFire x{mvStacks})";
-        
+        if (isExposed) logMorale += " +20%(Exposed)";
         if (flatBonusMorale > 0) logMorale += $" +{flatBonusMorale}(HazardBonus)";
         
         TakeMoraleDamage(finalMorale);
@@ -122,29 +137,43 @@ public class UnitStatus : MonoBehaviour
         if (currentHP <= 0) Die();
     }
 
+    public void ApplySwapPenalty()
+    {
+        int penalty = Mathf.RoundToInt(currentMorale * 0.15f);
+        currentMorale -= penalty;
+        Debug.Log($"<color=orange>{name} panicked during swap! Lost {penalty} Morale.</color>");
+
+        isExposed = true;
+    }
+
     void UpdateFocusFireStacks(GameObject source) 
     {
         if (lastAttacker != source) 
         { 
-            mvStacks = 1;
+            mvStacks = 1; 
             lastAttacker = source; 
         } 
         else 
         { 
             mvStacks++; 
-            if (mvStacks >= mvMultipliers.Length) mvStacks = mvMultipliers.Length - 1; // Cap at max
+            if (mvStacks >= mvMultipliers.Length) mvStacks = mvMultipliers.Length - 1; 
         }
     }
     
     public void OnTurnStart()
     {
         if (isTrapped) isTrapped = false;
-        
         ReduceBuzz(buzzDecayPerTurn);
-        
         mvStacks = 0;
         lastAttacker = null;
+        
+        if (isExposed) 
+        {
+            isExposed = false;
+            Debug.Log($"{name} is no longer Exposed.");
+        }
     }
+    
     public void ApplyStun(int duration)
     {
         isStunned = true;
@@ -168,17 +197,24 @@ public class UnitStatus : MonoBehaviour
         if (state) { curseCharges = 2; curseMultiplier = multiplier; } else curseCharges = 0;
     }
 
-    bool CheckCover(GameObject attacker)
+    bool CheckAdjacencyCover()
     {
-        if (attacker == null) return false;
-        float dist = Vector3.Distance(transform.position, attacker.transform.position);
-        Vector3 dir = (attacker.transform.position - transform.position).normalized;
-        RaycastHit[] hits = Physics.RaycastAll(transform.position + Vector3.up, dir, dist);
-        foreach (var hit in hits)
+        if (gridManager == null) gridManager = FindFirstObjectByType<GridManager>();
+        if (gridManager == null) return false;
+
+        Vector2Int myPos = gridManager.WorldToGridPosition(transform.position);
+        
+        Vector2Int[] neighbors = { 
+            new Vector2Int(myPos.x + 1, myPos.y),
+            new Vector2Int(myPos.x - 1, myPos.y),
+            new Vector2Int(myPos.x, myPos.y + 1),
+            new Vector2Int(myPos.x, myPos.y - 1)
+        };
+
+        foreach (Vector2Int n in neighbors)
         {
-            if (hit.collider.gameObject == gameObject || hit.collider.gameObject == attacker) continue;
-            GridCell cell = hit.collider.GetComponent<GridCell>();
-            if (cell != null && cell.hasHazard) return true; 
+            GridCell cell = gridManager.GetCell(n.x, n.y);
+            if (cell != null && cell.hasHazard) return true;
         }
         return false;
     }

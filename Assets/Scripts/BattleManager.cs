@@ -7,13 +7,13 @@ public class BattleManager : MonoBehaviour
     [Header("References")]
     public GridManager gridManager;
     public TMP_Text instructionText; 
-    public EnergyManager energyManager;
-    
+    public EnergyManager energyManager; 
     [Header("Selection Visuals")]
     public Color moveRangeColor = Color.blue;
-    
     public bool isBattleActive = false;
     private GameObject selectedUnit;
+    private bool isSwapping = false; 
+
     private List<GridCell> validMoveTiles = new List<GridCell>();
     private Dictionary<GridCell, Material> originalMaterials = new Dictionary<GridCell, Material>();
 
@@ -24,10 +24,7 @@ public class BattleManager : MonoBehaviour
         if (instructionText != null) instructionText.text = ""; 
     }
 
-    public GameObject GetSelectedUnit() 
-    { 
-        return selectedUnit; 
-    }
+    public GameObject GetSelectedUnit() { return selectedUnit; }
 
     private void Update()
     {
@@ -35,27 +32,41 @@ public class BattleManager : MonoBehaviour
 
         if (Input.GetMouseButtonDown(0)) HandleClick();
         if (Input.GetMouseButtonDown(1)) DeselectUnit();
-
-        if (selectedUnit != null)
+        if (selectedUnit != null && !isSwapping)
         {
-            if (selectedUnit.name.Contains("Player") || selectedUnit.name.Contains("Captain"))
-            {
-                UnitAttack attacker = selectedUnit.GetComponent<UnitAttack>();
-                if (attacker != null)
-                {
-                    if (Input.GetKeyDown(KeyCode.C))
-                    {
-                        attacker.TryMeleeAttack();
-                        DeselectUnit(); 
-                    }
-                    if (Input.GetKeyDown(KeyCode.X))
-                    {
-                        attacker.TryRangedAttack();
-                        DeselectUnit();
-                    }
-                }
-            }
+             if (Input.GetKeyDown(KeyCode.C)) 
+             {
+                 UnitAttack attacker = selectedUnit.GetComponent<UnitAttack>();
+                 if (attacker) { attacker.TryMeleeAttack(); DeselectUnit(); }
+             }
+             if (Input.GetKeyDown(KeyCode.X)) 
+             {
+                 UnitAttack attacker = selectedUnit.GetComponent<UnitAttack>();
+                 if (attacker) { attacker.TryRangedAttack(); DeselectUnit(); }
+             }
         }
+    }
+    public void InitiateSwapMode()
+    {
+        if (selectedUnit == null) return;
+        UnitStatus status = selectedUnit.GetComponent<UnitStatus>();
+        if (energyManager.currentEnergy < 1) 
+        {
+            Debug.Log("Not enough Energy to Swap!");
+            return;
+        }
+        if (status.hasSurrendered) return;
+
+        float hpPercent = (float)status.currentHP / (float)status.maxHP;
+        if (hpPercent < 0.2f)
+        {
+            Debug.Log("Unit is too injured to swap! (<20% HP)");
+            return;
+        }
+
+        isSwapping = true;
+        Debug.Log("Click on an unit or empty grid to swap with the selected unit.");
+        if (instructionText) instructionText.text = "Select Target for Swap...";
     }
 
     void HandleClick()
@@ -65,6 +76,11 @@ public class BattleManager : MonoBehaviour
 
         if (Physics.Raycast(ray, out hit))
         {
+            if (isSwapping && selectedUnit != null)
+            {
+                ExecuteSwap(hit);
+                return;
+            }
             UnitMovement unitClicked = hit.collider.GetComponent<UnitMovement>();
             if (unitClicked != null)
             {
@@ -89,6 +105,52 @@ public class BattleManager : MonoBehaviour
         }
     }
 
+    void ExecuteSwap(RaycastHit hit)
+    {
+        UnitStatus sourceStatus = selectedUnit.GetComponent<UnitStatus>();
+        Vector2Int sourceGridPos = gridManager.WorldToGridPosition(selectedUnit.transform.position);
+        GridCell sourceCell = gridManager.GetCell(sourceGridPos.x, sourceGridPos.y);
+        GridCell targetCell = null;
+        GameObject targetUnit = null;
+        if (hit.collider.CompareTag("Unit"))
+        {
+            targetUnit = hit.collider.gameObject;
+            Vector2Int targetPos = gridManager.WorldToGridPosition(targetUnit.transform.position);
+            targetCell = gridManager.GetCell(targetPos.x, targetPos.y);
+        }
+        else
+        {
+            targetCell = hit.collider.GetComponent<GridCell>();
+        }
+        if (targetCell == null) return;
+        if (targetCell == sourceCell) return;
+        energyManager.TrySpendEnergy(1);
+        if (!selectedUnit.name.Contains("Captain"))
+        {
+            sourceStatus.ApplySwapPenalty();
+        }
+        if (targetUnit != null)
+        {
+            targetUnit.transform.position = sourceCell.GetWorldPosition();
+            sourceCell.PlaceUnit(targetUnit);
+
+            selectedUnit.transform.position = targetCell.GetWorldPosition();
+            targetCell.PlaceUnit(selectedUnit);
+            
+            Debug.Log("Units Swapped Positions!");
+        }
+        else if (!targetCell.isBlocked && !targetCell.isOccupied)
+        {
+            sourceCell.RemoveUnit();
+            selectedUnit.transform.position = targetCell.GetWorldPosition();
+            targetCell.PlaceUnit(selectedUnit);
+            
+            Debug.Log("Swapped to Empty Grid!");
+        }
+
+        DeselectUnit();
+    }
+
     void SelectUnit(GameObject unit)
     {
         if (unit.name.Contains("Enemy")) return;
@@ -97,10 +159,11 @@ public class BattleManager : MonoBehaviour
         UnitStatus status = unit.GetComponent<UnitStatus>();
         
         if (movement == null) return;
-        if (movement.hasAttacked) { Debug.Log("Unit already attacked!"); return; }
         if (status != null && (status.isTrapped || status.hasSurrendered)) return;
 
         selectedUnit = unit;
+        isSwapping = false;
+
         if (instructionText != null) instructionText.text = "Click Blue Tile to Move\nPress 'C' Melee | 'X' Ranged";
 
         Vector2Int gridPos = gridManager.WorldToGridPosition(unit.transform.position);
@@ -112,12 +175,15 @@ public class BattleManager : MonoBehaviour
     {
         ResetHighlights();
         selectedUnit = null;
+        isSwapping = false;
         validMoveTiles.Clear();
         if (instructionText != null) instructionText.text = ""; 
     }
 
     void MoveSelectedUnitTo(GridCell targetCell)
     {
+        if (selectedUnit.GetComponent<UnitMovement>().hasAttacked) return;
+
         Vector2Int oldPos = gridManager.WorldToGridPosition(selectedUnit.transform.position);
         GridCell oldCell = gridManager.GetCell(oldPos.x, oldPos.y);
         oldCell.RemoveUnit();
@@ -128,8 +194,7 @@ public class BattleManager : MonoBehaviour
 
         DeselectUnit();
     }
-    
-    void CalculateValidMoves(GridCell startCell, int range) { 
+    void CalculateValidMoves(GridCell startCell, int range) {
         validMoveTiles.Clear();
         Queue<GridCell> queue = new Queue<GridCell>();
         Dictionary<GridCell, int> distances = new Dictionary<GridCell, int>();

@@ -16,9 +16,11 @@ public class UnitAttack : MonoBehaviour
     {
         myStatus = GetComponent<UnitStatus>();
         myMovement = GetComponent<UnitMovement>();
+        
         energyManager = FindFirstObjectByType<EnergyManager>();
         gridManager = FindFirstObjectByType<GridManager>();
     }
+    
     public void SetupManagers(GridManager grid, EnergyManager energy)
     {
         this.gridManager = grid;
@@ -28,27 +30,22 @@ public class UnitAttack : MonoBehaviour
     public void TryMeleeAttack()
     {
         if (!CanAct()) return;
+        
         if (energyManager == null) energyManager = FindFirstObjectByType<EnergyManager>();
         if (!energyManager.TrySpendEnergy(attackEnergyCost)) return;
 
         UnitStatus target = FindNearestEnemy();
         if (target != null)
         {
-            if (IsBlockedByObstacle(target)) 
+            if (IsBlockedByRow(target)) 
             {
-                Debug.Log("Melee Blocked by Row Obstacle!");
-                BreakObstacleInPath(target, 100);
+                Debug.Log("Attack Blocked by Obstacle in Row!");
                 return;
             }
+
             var bonuses = GetStandingBonuses();
             
-            float drunkMod = 1.0f;
-            if (myStatus.isTooDrunk)
-            {
-                drunkMod = 0.8f;
-                Debug.Log($"<color=orange>HIC! {name} is Too Drunk! Melee damage reduced (-20%)</color>");
-            }
-
+            float drunkMod = myStatus.isTooDrunk ? 0.8f : 1.0f;
             int finalDmg = Mathf.RoundToInt(meleeDamage * drunkMod);
             
             target.TakeDamage(finalDmg, this.gameObject, true, bonuses.hp, bonuses.morale, bonuses.applyCurse);
@@ -70,22 +67,16 @@ public class UnitAttack : MonoBehaviour
         UnitStatus target = FindNearestEnemy();
         if (target != null)
         {
-            if (IsBlockedByObstacle(target)) 
+            if (IsBlockedByRow(target)) 
             {
-                 Debug.Log("Shot Blocked by Row Obstacle!");
-                 BreakObstacleInPath(target, 1); 
+                 Debug.Log("Attack Blocked by Obstacle in Row!");
                  myStatus.currentArrows--; 
                  return;
             }
+
             var bonuses = GetStandingBonuses();
 
-            float drunkMod = 1.0f;
-            if (myStatus.isTooDrunk)
-            {
-                drunkMod = 0.8f;
-                Debug.Log($"<color=orange>HIC! {name} is Too Drunk! Ranged damage reduced (-20%)</color>");
-            }
-
+            float drunkMod = myStatus.isTooDrunk ? 0.8f : 1.0f;
             int finalDmg = Mathf.RoundToInt(rangedDamage * drunkMod);
 
             myStatus.currentArrows--;
@@ -103,10 +94,12 @@ public class UnitAttack : MonoBehaviour
         int totalMorale = 0;
         bool applyCurse = false;
 
-        RaycastHit[] hits = Physics.RaycastAll(transform.position + Vector3.up, Vector3.down, 2.0f);
-        foreach (RaycastHit hit in hits)
+        if (gridManager == null) gridManager = FindFirstObjectByType<GridManager>();
+        if (gridManager != null)
         {
-            GridCell cell = hit.collider.GetComponent<GridCell>();
+            Vector2Int pos = gridManager.WorldToGridPosition(transform.position);
+            GridCell cell = gridManager.GetCell(pos.x, pos.y);
+            
             if (cell != null && cell.hasHazard && cell.hazardVisualObject != null)
             {
                 HazardInstance hazardInst = cell.hazardVisualObject.GetComponent<HazardInstance>();
@@ -121,7 +114,7 @@ public class UnitAttack : MonoBehaviour
         return (totalHP, totalMorale, applyCurse);
     }
 
-    bool IsBlockedByObstacle(UnitStatus target)
+    bool IsBlockedByRow(UnitStatus target)
     {
         if (gridManager == null) gridManager = FindFirstObjectByType<GridManager>();
         if (gridManager == null) return false; 
@@ -131,37 +124,25 @@ public class UnitAttack : MonoBehaviour
 
         if (myPos.y != targetPos.y) return false; 
 
-        float dist = Vector3.Distance(transform.position, target.transform.position);
-        RaycastHit[] hits = Physics.RaycastAll(transform.position + Vector3.up, (target.transform.position - transform.position).normalized, dist);
+        int startX = Mathf.Min(myPos.x, targetPos.x) + 1;
+        int endX = Mathf.Max(myPos.x, targetPos.x);
 
-        foreach (var hit in hits)
+        for (int x = startX; x < endX; x++)
         {
-            if (hit.collider.CompareTag("Unit")) continue;
-            GridCell cell = hit.collider.GetComponent<GridCell>();
+            GridCell cell = gridManager.GetCell(x, myPos.y);
             if (cell != null && cell.hasHazard && cell.hazardVisualObject != null)
             {
                 HazardInstance hazard = cell.hazardVisualObject.GetComponent<HazardInstance>();
-                if (hazard != null && (hazard.isHardObstacle || hazard.isSoftObstacle)) return true;
+                if (hazard != null && (hazard.isHardObstacle || hazard.isSoftObstacle))
+                {
+                    hazard.TakeObstacleDamage(100); 
+                    return true; 
+                }
             }
         }
         return false;
     }
     
-    void BreakObstacleInPath(UnitStatus target, int dmg)
-    {
-        float dist = Vector3.Distance(transform.position, target.transform.position);
-        RaycastHit[] hits = Physics.RaycastAll(transform.position + Vector3.up, (target.transform.position - transform.position).normalized, dist);
-        foreach (var hit in hits)
-        {
-            GridCell cell = hit.collider.GetComponent<GridCell>();
-            if (cell != null && cell.hazardVisualObject != null)
-            {
-                HazardInstance hazard = cell.hazardVisualObject.GetComponent<HazardInstance>();
-                if (hazard != null) { hazard.TakeObstacleDamage(dmg); return; }
-            }
-        }
-    }
-
     UnitStatus FindNearestEnemy()
     {
         GameObject[] allUnits = GameObject.FindGameObjectsWithTag("Unit");
