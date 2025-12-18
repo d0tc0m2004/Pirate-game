@@ -9,22 +9,22 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 67a0343649fdc9c45b1bb2895966fa23, type: 3}
+  m_Script: {fileID: 11500000, guid: ce2942713f84aad4e8dbfa50c55dc2f2, type: 3}
   m_Name: Data_Sand
   m_EditorClassIdentifier: Assembly-CSharp::HazardData
-  hazardName: Sand
+  hazardName: 
   hazardPrefab: {fileID: 776625621227328888, guid: 662bd42d14e9e1c42a7f12b562745d2e, type: 3}
   isBlocking: 0
   isDestructible: 0
-  maxHealth: 0
+  maxHealth: 2
   causesDisplacement: 0
-  shapePattern: 1
-  effectType: 4
+  shapePattern: 0
+  effectType: 0
   damageHP: 0
-  damageMorale: 15
+  damageMorale: 0
   effectDuration: 0
-  curseMultiplier: 0
+  curseMultiplier: 1
   standingBonusHP: 0
-  standingBonusMorale: 5
+  standingBonusMorale: 0
   standingAppliesCurse: 0
   dropItem: {fileID: 0}

@@ -3400,8 +3400,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 1}
   m_AnchorMax: {x: 0, y: 1}
-  m_AnchoredPosition: {x: 117.1875, y: -350}
-  m_SizeDelta: {x: 224.375, y: 0}
+  m_AnchoredPosition: {x: 117.18751, y: -350}
+  m_SizeDelta: {x: 224.37502, y: 0}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &259075329
 MonoBehaviour:
@@ -3721,8 +3721,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 1}
   m_AnchorMax: {x: 0, y: 1}
-  m_AnchoredPosition: {x: 117.1875, y: -350}
-  m_SizeDelta: {x: 224.375, y: 0}
+  m_AnchoredPosition: {x: 117.18751, y: -350}
+  m_SizeDelta: {x: 224.37502, y: 0}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &275503114
 MonoBehaviour:
@@ -3849,8 +3849,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 1}
   m_AnchorMax: {x: 0, y: 1}
-  m_AnchoredPosition: {x: 117.1875, y: -350}
-  m_SizeDelta: {x: 224.375, y: 0}
+  m_AnchoredPosition: {x: 117.18751, y: -350}
+  m_SizeDelta: {x: 224.37502, y: 0}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &281060791
 MonoBehaviour:
@@ -4844,15 +4844,14 @@ MonoBehaviour:
   m_GameObject: {fileID: 330585543}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 7d4c9687775e5c940959e3049e84212b, type: 3}
+  m_Script: {fileID: 11500000, guid: 8cae95c4cc67f4940aa88a947f7d228a, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::CameraOrbit
-  gridManager: {fileID: 617130189}
+  m_EditorClassIdentifier: Assembly-CSharp::TacticalGame.Camera.CameraOrbit
   mouseSensitivity: 3
   panSpeed: 0.5
   zoomSpeed: 2
   minZoomDistance: 5
-  maxZoomDistance: 20
+  maxZoomDistance: 30
   minVerticalAngle: 10
   maxVerticalAngle: 85
 --- !u!1 &362076764
@@ -9282,8 +9281,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 1}
   m_AnchorMax: {x: 0, y: 1}
-  m_AnchoredPosition: {x: 117.1875, y: -350}
-  m_SizeDelta: {x: 224.375, y: 0}
+  m_AnchoredPosition: {x: 117.18751, y: -350}
+  m_SizeDelta: {x: 224.37502, y: 0}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &608785556
 MonoBehaviour:
@@ -9783,8 +9782,8 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 617130188}
-  - component: {fileID: 617130189}
   - component: {fileID: 617130190}
+  - component: {fileID: 617130189}
   m_Layer: 0
   m_Name: GridManager
   m_TagString: Untagged
@@ -9816,9 +9815,9 @@ MonoBehaviour:
   m_GameObject: {fileID: 617130187}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: ac87de5d8dcd0484f8c61e18a30963a9, type: 3}
+  m_Script: {fileID: 11500000, guid: 20f051083e014dc43aecdb66dacf970e, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::GridManager
+  m_EditorClassIdentifier: Assembly-CSharp::TacticalGame.Grid.GridManager
   gridWidth: 13
   gridHeight: 7
   minWidth: 7
@@ -9841,55 +9840,48 @@ MonoBehaviour:
   m_GameObject: {fileID: 617130187}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 82371ebdfb4e17a45a76207100c60916, type: 3}
+  m_Script: {fileID: 11500000, guid: 9bfd7568a0c661c498f3f9352a88dbc0, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::DeploymentManager
-  gridManager: {fileID: 617130189}
-  turnManager: {fileID: 1030682496}
-  battleManager: {fileID: 1030682494}
-  globalUI: {fileID: 1030682498}
-  energyManager: {fileID: 1030682499}
-  hazardManager: {fileID: 1030682492}
-  enemyManager: {fileID: 1030682495}
+  m_EditorClassIdentifier: Assembly-CSharp::TacticalGame.Managers.DeploymentManager
   finishDeploymentButton: {fileID: 1703586700}
   endTurnButton: {fileID: 1718279657}
   rolePrefabs:
-  - roleName: Captain
+  - role: 0
     playerPrefab: {fileID: 6888493511116314572, guid: 55f1882e71559f7439f3cb8e58f5bebd, type: 3}
     enemyPrefab: {fileID: 9082106799208901903, guid: 89de1d7679172b24baf085f3d4ede6af, type: 3}
-  - roleName: Boatswain
+  - role: 1
+    playerPrefab: {fileID: 6888493511116314572, guid: 4d05e5b777d9a1f4c883e4a1ba59d8a1, type: 3}
+    enemyPrefab: {fileID: 9082106799208901903, guid: 9e6e09c089400bc47855897ec623bd58, type: 3}
+  - role: 2
     playerPrefab: {fileID: 6888493511116314572, guid: 36c237843164f124fa0fc550c29d94c1, type: 3}
     enemyPrefab: {fileID: 9082106799208901903, guid: 743824ee6a4f1534685aa74d383adf57, type: 3}
-  - roleName: Quartermaster
-    playerPrefab: {fileID: 6888493511116314572, guid: 59234a68ae738a143b5d87c93dfdbca7, type: 3}
-    enemyPrefab: {fileID: 9082106799208901903, guid: 49c0d911dccd77f4caaa8d4e0b9d1096, type: 3}
-  - roleName: Shipwright
-    playerPrefab: {fileID: 6888493511116314572, guid: 01cd700fdf9752c4e93a3f977e58a6d6, type: 3}
-    enemyPrefab: {fileID: 9082106799208901903, guid: 5a975d01631fe9c44b5da282ded9a997, type: 3}
-  - roleName: Helmsmaster
-    playerPrefab: {fileID: 6888493511116314572, guid: b24d520155221f54a875f95dfb5cfd0f, type: 3}
-    enemyPrefab: {fileID: 9082106799208901903, guid: 051a1ae9031e51f409ae57c8701436ed, type: 3}
-  - roleName: Master Gunner
-    playerPrefab: {fileID: 6888493511116314572, guid: 66a0d2b112d90694896376dea04b9e40, type: 3}
-    enemyPrefab: {fileID: 9082106799208901903, guid: c9fc603a81cb6ce49a19dbc04d9982b2, type: 3}
-  - roleName: Master-at-arms
-    playerPrefab: {fileID: 6888493511116314572, guid: 0fe84d12f6f23d143aab8e1630b8b320, type: 3}
-    enemyPrefab: {fileID: 9082106799208901903, guid: 15c97eefd318ff94cacdf77437355c9b, type: 3}
-  - roleName: Navigator
-    playerPrefab: {fileID: 6888493511116314572, guid: 47430ce42e3bd2f4586a6a1cfecb0dc9, type: 3}
-    enemyPrefab: {fileID: 9082106799208901903, guid: 32905228f446c1141b57ad53f37ace4e, type: 3}
-  - roleName: Surgeon
-    playerPrefab: {fileID: 6888493511116314572, guid: a6d686e1a04877c469b63f0f4215de1a, type: 3}
-    enemyPrefab: {fileID: 9082106799208901903, guid: 74d276fd84d536246a5bacb780a44139, type: 3}
-  - roleName: Cook
-    playerPrefab: {fileID: 6888493511116314572, guid: 2c0f1348c2c812945895e693ce57b7cb, type: 3}
-    enemyPrefab: {fileID: 9082106799208901903, guid: c853a9a06e195134bbe241546d4185b1, type: 3}
-  - roleName: Swashbuckler
-    playerPrefab: {fileID: 6888493511116314572, guid: 865b1bc15015d494cb2016e8622d5c33, type: 3}
-    enemyPrefab: {fileID: 9082106799208901903, guid: 6b6b0b529a405b44aa024204d3d1eea1, type: 3}
-  - roleName: Deckhand
-    playerPrefab: {fileID: 6888493511116314572, guid: aec6598dfd39cac4b8f4437a45b36606, type: 3}
-    enemyPrefab: {fileID: 9082106799208901903, guid: 68332a786046d7f4fbcd3460c0587810, type: 3}
+  - role: 3
+    playerPrefab: {fileID: 6888493511116314572, guid: fe76c31b81c938b42bbe5c035067cc31, type: 3}
+    enemyPrefab: {fileID: 9082106799208901903, guid: 3c9ce1a6c2a21b64487e911447f9bb75, type: 3}
+  - role: 4
+    playerPrefab: {fileID: 6888493511116314572, guid: b85c0762b40b52f4c9fbc2eba6e39c62, type: 3}
+    enemyPrefab: {fileID: 9082106799208901903, guid: 9a64b0c059de2d240818d9e05cee3812, type: 3}
+  - role: 5
+    playerPrefab: {fileID: 6888493511116314572, guid: 7d31d8396bf90574e9f0d311e8886b26, type: 3}
+    enemyPrefab: {fileID: 9082106799208901903, guid: 320bd7fd92957944a95e27748edd3491, type: 3}
+  - role: 6
+    playerPrefab: {fileID: 6888493511116314572, guid: 75a428c5e2f6a734bace89111a40986f, type: 3}
+    enemyPrefab: {fileID: 9082106799208901903, guid: f7272a58640ae9c4bb54002d72389cff, type: 3}
+  - role: 7
+    playerPrefab: {fileID: 6888493511116314572, guid: 855400ca2ec3031488f32a4b0d7ae438, type: 3}
+    enemyPrefab: {fileID: 9082106799208901903, guid: c763028ea0ae8104fbab3ca51c3ab292, type: 3}
+  - role: 8
+    playerPrefab: {fileID: 6888493511116314572, guid: 1fb82a90c4faaad45a0a0598a7d85228, type: 3}
+    enemyPrefab: {fileID: 9082106799208901903, guid: ee09e95114fce284d91835622a99c10e, type: 3}
+  - role: 9
+    playerPrefab: {fileID: 6888493511116314572, guid: 730daf21262a4784e8164652c0a67e46, type: 3}
+    enemyPrefab: {fileID: 9082106799208901903, guid: c9a777a1a84404144af04a008a5d2fca, type: 3}
+  - role: 10
+    playerPrefab: {fileID: 6888493511116314572, guid: 307ef560a6dffc44c8f87dc1c8871e75, type: 3}
+    enemyPrefab: {fileID: 9082106799208901903, guid: 054baaed93a81a849ba9b42eb13a274c, type: 3}
+  - role: 11
+    playerPrefab: {fileID: 6888493511116314572, guid: 57c7238b11e0a0b42b7831eb22784430, type: 3}
+    enemyPrefab: {fileID: 9082106799208901903, guid: e3508a14b62c05740a35829d29a42eec, type: 3}
   defaultUnitPrefab: {fileID: 8990492157172521120, guid: 2953e3b10ae15b848912ed6a34a8796f, type: 3}
   validHoverColor: {r: 0, g: 1, b: 0, a: 1}
   invalidHoverColor: {r: 1, g: 0, b: 0, a: 1}
@@ -10431,8 +10423,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 1}
   m_AnchorMax: {x: 0, y: 1}
-  m_AnchoredPosition: {x: 117.1875, y: -350}
-  m_SizeDelta: {x: 224.375, y: 0}
+  m_AnchoredPosition: {x: 117.18751, y: -350}
+  m_SizeDelta: {x: 224.37502, y: 0}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &651747937
 MonoBehaviour:
@@ -11805,8 +11797,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 1}
   m_AnchorMax: {x: 0, y: 1}
-  m_AnchoredPosition: {x: 117.1875, y: -350}
-  m_SizeDelta: {x: 224.375, y: 0}
+  m_AnchoredPosition: {x: 117.18751, y: -350}
+  m_SizeDelta: {x: 224.37502, y: 0}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &758928750
 MonoBehaviour:
@@ -15009,7 +15001,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 957928885}
-  - component: {fileID: 957928884}
+  - component: {fileID: 957928886}
   m_Layer: 0
   m_Name: CharacterCreationManager
   m_TagString: Untagged
@@ -15017,7 +15009,22 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!114 &957928884
+--- !u!4 &957928885
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 957928883}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 352.54984, y: 267.8549, z: 21.34284}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &957928886
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -15026,9 +15033,9 @@ MonoBehaviour:
   m_GameObject: {fileID: 957928883}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 816abd86823592747ab895932a329ec4, type: 3}
+  m_Script: {fileID: 11500000, guid: ab9acbdd7493aac4fa29406a4fcf0472, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::CharacterCreationManager
+  m_EditorClassIdentifier: Assembly-CSharp::TacticalGame.Managers.CharacterCreationManager
   playerPanels:
   - roleDropdown: {fileID: 48435249}
     generateButton: {fileID: 326839077}
@@ -15046,9 +15053,9 @@ MonoBehaviour:
     weaponText: {fileID: 1382954066}
     generatedData:
       unitName: 
-      role: 
-      isPlayer: 0
-      weaponType: 
+      role: 0
+      team: 0
+      weaponType: 0
       health: 0
       morale: 0
       grit: 0
@@ -15076,9 +15083,9 @@ MonoBehaviour:
     weaponText: {fileID: 1598279996}
     generatedData:
       unitName: 
-      role: 
-      isPlayer: 0
-      weaponType: 
+      role: 0
+      team: 0
+      weaponType: 0
       health: 0
       morale: 0
       grit: 0
@@ -15106,9 +15113,9 @@ MonoBehaviour:
     weaponText: {fileID: 1485822821}
     generatedData:
       unitName: 
-      role: 
-      isPlayer: 0
-      weaponType: 
+      role: 0
+      team: 0
+      weaponType: 0
       health: 0
       morale: 0
       grit: 0
@@ -15136,9 +15143,9 @@ MonoBehaviour:
     weaponText: {fileID: 1745225464}
     generatedData:
       unitName: 
-      role: 
-      isPlayer: 0
-      weaponType: 
+      role: 0
+      team: 0
+      weaponType: 0
       health: 0
       morale: 0
       grit: 0
@@ -15167,9 +15174,9 @@ MonoBehaviour:
     weaponText: {fileID: 446349263}
     generatedData:
       unitName: 
-      role: 
-      isPlayer: 0
-      weaponType: 
+      role: 0
+      team: 0
+      weaponType: 0
       health: 0
       morale: 0
       grit: 0
@@ -15197,9 +15204,9 @@ MonoBehaviour:
     weaponText: {fileID: 874323972}
     generatedData:
       unitName: 
-      role: 
-      isPlayer: 0
-      weaponType: 
+      role: 0
+      team: 0
+      weaponType: 0
       health: 0
       morale: 0
       grit: 0
@@ -15227,9 +15234,9 @@ MonoBehaviour:
     weaponText: {fileID: 665926834}
     generatedData:
       unitName: 
-      role: 
-      isPlayer: 0
-      weaponType: 
+      role: 0
+      team: 0
+      weaponType: 0
       health: 0
       morale: 0
       grit: 0
@@ -15257,9 +15264,9 @@ MonoBehaviour:
     weaponText: {fileID: 1632824795}
     generatedData:
       unitName: 
-      role: 
-      isPlayer: 0
-      weaponType: 
+      role: 0
+      team: 0
+      weaponType: 0
       health: 0
       morale: 0
       grit: 0
@@ -15275,21 +15282,6 @@ MonoBehaviour:
   creationCanvas: {fileID: 1375831185}
   battleCanvas: {fileID: 1536150026}
   deploymentManager: {fileID: 617130190}
---- !u!4 &957928885
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 957928883}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 352.54984, y: 267.8549, z: 21.34284}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &958386954
 GameObject:
   m_ObjectHideFlags: 0
@@ -16588,12 +16580,12 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1030682493}
-  - component: {fileID: 1030682492}
-  - component: {fileID: 1030682494}
-  - component: {fileID: 1030682495}
-  - component: {fileID: 1030682496}
-  - component: {fileID: 1030682498}
   - component: {fileID: 1030682499}
+  - component: {fileID: 1030682498}
+  - component: {fileID: 1030682497}
+  - component: {fileID: 1030682496}
+  - component: {fileID: 1030682495}
+  - component: {fileID: 1030682494}
   m_Layer: 0
   m_Name: GameManager
   m_TagString: Untagged
@@ -16601,30 +16593,6 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!114 &1030682492
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1030682491}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e1f1d7f13d649f448bf5ffa3eb612519, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::HazardManager
-  gridManager: {fileID: 617130189}
-  possibleHazards:
-  - {fileID: 11400000, guid: 419d71cbda8a36644ba298eb6452ecea, type: 2}
-  - {fileID: 11400000, guid: c72fef43365bfdb42bb14093edc68979, type: 2}
-  - {fileID: 11400000, guid: 28b061642ac991d45bfd8d73fa38c07e, type: 2}
-  - {fileID: 11400000, guid: ac3a38b3b0bc94747a77ccc89ce00835, type: 2}
-  - {fileID: 11400000, guid: eda91fa59ad893b40b38f30a4b41c8eb, type: 2}
-  - {fileID: 11400000, guid: bee95c8cf86be3946b75e5054659191b, type: 2}
-  - {fileID: 11400000, guid: 9b73d0e5c4ef89943814aee4e6fde54c, type: 2}
-  - {fileID: 11400000, guid: 21cd6930e337a814bb36dcc1b543301a, type: 2}
-  minOccupiedTilesPerSide: 6
-  maxOccupiedTilesPerSide: 8
 --- !u!4 &1030682493
 Transform:
   m_ObjectHideFlags: 0
@@ -16649,15 +16617,11 @@ MonoBehaviour:
   m_GameObject: {fileID: 1030682491}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 0f9429ffcc61113448f156f794601179, type: 3}
+  m_Script: {fileID: 11500000, guid: be5cf09e8bc9b5644bb2f98136e3298a, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::BattleManager
-  gridManager: {fileID: 617130189}
-  instructionText: {fileID: 229206545}
-  energyManager: {fileID: 1030682499}
-  turnManager: {fileID: 1030682496}
-  moveRangeColor: {r: 0, g: 0, b: 1, a: 1}
-  isBattleActive: 0
+  m_EditorClassIdentifier: Assembly-CSharp::TacticalGame.Managers.EnergyManager
+  energyText: {fileID: 0}
+  grogText: {fileID: 0}
 --- !u!114 &1030682495
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -16667,43 +16631,9 @@ MonoBehaviour:
   m_GameObject: {fileID: 1030682491}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 494ee859caf71114fb43e2eed5997b3e, type: 3}
+  m_Script: {fileID: 11500000, guid: ed80203cfff505b42b4fc548eafa645a, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::EnemyManager
-  gridManager: {fileID: 617130189}
-  enemyCaptainPrefab: {fileID: 9082106799208901903, guid: 89de1d7679172b24baf085f3d4ede6af, type: 3}
-  enemyPrefab: {fileID: 9082106799208901903, guid: 49c0d911dccd77f4caaa8d4e0b9d1096, type: 3}
-  minEnemies: 4
-  maxEnemies: 4
-  captainChance: 0.7
---- !u!114 &1030682496
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1030682491}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 09e01857c2e670f42a9482beb14f38e5, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::TurnManager
-  isPlayerTurn: 0
-  currentRound: 1
-  swapsUsedThisRound: 0
-  energyManager: {fileID: 1030682499}
---- !u!114 &1030682498
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1030682491}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: fd267f6ded1fec142935f156e8650eec, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::GlobalUIManager
+  m_EditorClassIdentifier: Assembly-CSharp::TacticalGame.Managers.GlobalUIManager
   playerTeamHPSlider: {fileID: 488734787}
   playerTeamHPText: {fileID: 1562059803}
   playerTeamMoraleSlider: {fileID: 667848718}
@@ -16722,9 +16652,49 @@ MonoBehaviour:
   playerIconContainer: {fileID: 901701891}
   enemyIconContainer: {fileID: 1813562727}
   iconPrefab: {fileID: 4948046052982067616, guid: 346f829631afcef4b92f01de5ca54ffe, type: 3}
-  energyManager: {fileID: 1030682499}
-  battleManager: {fileID: 1030682494}
-  turnManager: {fileID: 1030682496}
+--- !u!114 &1030682496
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1030682491}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f967b10fce2fc8148b2c04a7b0b0d235, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::TacticalGame.Managers.TurnManager
+--- !u!114 &1030682497
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1030682491}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a8c61aee9ac2f3c49b1377ad93265c44, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::TacticalGame.Managers.EnemyManager
+  enemyCaptainPrefab: {fileID: 0}
+  enemyPrefab: {fileID: 0}
+  minEnemies: 3
+  maxEnemies: 4
+  captainChance: 0.5
+--- !u!114 &1030682498
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1030682491}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8c7248f9f0a483e4da2533fef3d24abc, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::TacticalGame.Managers.BattleManager
+  instructionText: {fileID: 229206545}
+  moveRangeColor: {r: 0, g: 0, b: 1, a: 1}
 --- !u!114 &1030682499
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -16734,14 +16704,20 @@ MonoBehaviour:
   m_GameObject: {fileID: 1030682491}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: ef886dc22efb9044eac28c35e889cf9d, type: 3}
+  m_Script: {fileID: 11500000, guid: 1b8763679ff68b348bbddd7b8f70b0bf, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::EnergyManager
-  maxEnergy: 3
-  currentEnergy: 3
-  grogTokens: 0
-  energyText: {fileID: 0}
-  grogText: {fileID: 0}
+  m_EditorClassIdentifier: Assembly-CSharp::TacticalGame.Hazards.HazardManager
+  possibleHazards:
+  - {fileID: 11400000, guid: c72fef43365bfdb42bb14093edc68979, type: 2}
+  - {fileID: 11400000, guid: 21cd6930e337a814bb36dcc1b543301a, type: 2}
+  - {fileID: 11400000, guid: 28b061642ac991d45bfd8d73fa38c07e, type: 2}
+  - {fileID: 11400000, guid: ac3a38b3b0bc94747a77ccc89ce00835, type: 2}
+  - {fileID: 11400000, guid: eda91fa59ad893b40b38f30a4b41c8eb, type: 2}
+  - {fileID: 11400000, guid: bee95c8cf86be3946b75e5054659191b, type: 2}
+  - {fileID: 11400000, guid: 9b73d0e5c4ef89943814aee4e6fde54c, type: 2}
+  - {fileID: 11400000, guid: 419d71cbda8a36644ba298eb6452ecea, type: 2}
+  minOccupiedTilesPerSide: 5
+  maxOccupiedTilesPerSide: 8
 --- !u!1 &1058338509
 GameObject:
   m_ObjectHideFlags: 0
@@ -19914,8 +19890,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 1}
   m_AnchorMax: {x: 0, y: 1}
-  m_AnchoredPosition: {x: 117.1875, y: -350}
-  m_SizeDelta: {x: 224.375, y: 0}
+  m_AnchoredPosition: {x: 117.18751, y: -350}
+  m_SizeDelta: {x: 224.37502, y: 0}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1226186341
 MonoBehaviour:
@@ -25858,7 +25834,7 @@ MonoBehaviour:
     m_PersistentCalls:
       m_Calls:
       - m_Target: {fileID: 617130190}
-        m_TargetAssemblyTypeName: DeploymentManager, Assembly-CSharp
+        m_TargetAssemblyTypeName: TacticalGame.Managers.DeploymentManager, Assembly-CSharp
         m_MethodName: FinishDeploymentAndStartBattle
         m_Mode: 1
         m_Arguments:
@@ -26508,7 +26484,7 @@ MonoBehaviour:
     m_PersistentCalls:
       m_Calls:
       - m_Target: {fileID: 1030682496}
-        m_TargetAssemblyTypeName: TurnManager, Assembly-CSharp
+        m_TargetAssemblyTypeName: TacticalGame.Managers.TurnManager, Assembly-CSharp
         m_MethodName: EndTurn
         m_Mode: 1
         m_Arguments:
@@ -32252,8 +32228,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 1}
   m_AnchorMax: {x: 0, y: 1}
-  m_AnchoredPosition: {x: 117.1875, y: -350}
-  m_SizeDelta: {x: 224.375, y: 0}
+  m_AnchoredPosition: {x: 117.18751, y: -350}
+  m_SizeDelta: {x: 224.37502, y: 0}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &2132004658
 MonoBehaviour:

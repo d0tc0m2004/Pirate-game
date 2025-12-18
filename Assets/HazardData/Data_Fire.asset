@@ -9,22 +9,22 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 67a0343649fdc9c45b1bb2895966fa23, type: 3}
+  m_Script: {fileID: 11500000, guid: ce2942713f84aad4e8dbfa50c55dc2f2, type: 3}
   m_Name: Data_Fire
   m_EditorClassIdentifier: Assembly-CSharp::HazardData
-  hazardName: Fire
+  hazardName: 
   hazardPrefab: {fileID: 1602131766584199578, guid: 5665402ab60c4f942a00409b93bb2fec, type: 3}
   isBlocking: 0
   isDestructible: 0
-  maxHealth: 0
+  maxHealth: 2
   causesDisplacement: 0
-  shapePattern: 2
-  effectType: 1
-  damageHP: 10
+  shapePattern: 0
+  effectType: 0
+  damageHP: 0
   damageMorale: 0
   effectDuration: 0
-  curseMultiplier: 0
-  standingBonusHP: 5
+  curseMultiplier: 1
+  standingBonusHP: 0
   standingBonusMorale: 0
   standingAppliesCurse: 0
   dropItem: {fileID: 0}

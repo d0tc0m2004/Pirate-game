@@ -12,7 +12,7 @@ GameObject:
   - component: {fileID: 6183819822017107087}
   - component: {fileID: 583472319077036752}
   - component: {fileID: 5037546016308018295}
-  - component: {fileID: 2785861797169111612}
+  - component: {fileID: 1003594359650324818}
   m_Layer: 0
   m_Name: CellPrefab
   m_TagString: Untagged
@@ -113,7 +113,7 @@ MeshCollider:
   m_Convex: 0
   m_CookingOptions: 30
   m_Mesh: {fileID: 10210, guid: 0000000000000000e000000000000000, type: 0}
---- !u!114 &2785861797169111612
+--- !u!114 &1003594359650324818
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -122,13 +122,16 @@ MonoBehaviour:
   m_GameObject: {fileID: 7118796748401242698}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 5ebf3818e722f8346bd0f9208f306de2, type: 3}
+  m_Script: {fileID: 11500000, guid: 624821356664c5142bd7b879cd7f9287, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::GridCell
+  m_EditorClassIdentifier: Assembly-CSharp::TacticalGame.Grid.GridCell
   xPosition: 0
   yPosition: 0
   isOccupied: 0
   isBlocked: 0
   isPlayerSide: 0
   isMiddleColumn: 0
+  currentHazardName: None
+  hasHazard: 0
+  hazardVisualObject: {fileID: 0}
   occupyingUnit: {fileID: 0}

@@ -9,19 +9,22 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 67a0343649fdc9c45b1bb2895966fa23, type: 3}
+  m_Script: {fileID: 11500000, guid: ce2942713f84aad4e8dbfa50c55dc2f2, type: 3}
   m_Name: Data_Boulder
   m_EditorClassIdentifier: Assembly-CSharp::HazardData
-  hazardName: Boulder
+  hazardName: 
   hazardPrefab: {fileID: 1934756347407776863, guid: cf3a82c5bb1f2ea49b629d13217d3ca9, type: 3}
-  isBlocking: 1
+  isBlocking: 0
   isDestructible: 0
-  maxHealth: 0
-  causesDisplacement: 1
+  maxHealth: 2
+  causesDisplacement: 0
   shapePattern: 0
   effectType: 7
   damageHP: 0
   damageMorale: 0
   effectDuration: 0
-  curseMultiplier: 0
+  curseMultiplier: 1
+  standingBonusHP: 0
+  standingBonusMorale: 0
+  standingAppliesCurse: 0
   dropItem: {fileID: 0}

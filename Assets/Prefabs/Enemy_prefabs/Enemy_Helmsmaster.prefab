@@ -622,8 +622,8 @@ GameObject:
   - component: {fileID: 5071047236113224332}
   - component: {fileID: 6810069138589767609}
   - component: {fileID: 7263327371966086884}
-  - component: {fileID: 6551587218153516711}
-  - component: {fileID: 1027839524097000306}
+  - component: {fileID: 5868457806912344300}
+  - component: {fileID: 609923812847616330}
   m_Layer: 0
   m_Name: WorldCanvas
   m_TagString: Untagged
@@ -718,7 +718,7 @@ MonoBehaviour:
   m_BlockingMask:
     serializedVersion: 2
     m_Bits: 4294967295
---- !u!114 &6551587218153516711
+--- !u!114 &5868457806912344300
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -727,10 +727,10 @@ MonoBehaviour:
   m_GameObject: {fileID: 4804784109513411523}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: a29f07ef3cb75cb4fa7490eb253fd736, type: 3}
+  m_Script: {fileID: 11500000, guid: a7c14b9206e363c48a35c7ed0d7473ab, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::Billboard
---- !u!114 &1027839524097000306
+  m_EditorClassIdentifier: Assembly-CSharp::TacticalGame.UI.Billboard
+--- !u!114 &609923812847616330
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -739,15 +739,15 @@ MonoBehaviour:
   m_GameObject: {fileID: 4804784109513411523}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 31522f0ec5b019d45bc89eccfbffdc8a, type: 3}
+  m_Script: {fileID: 11500000, guid: 98ebc0f9d44dea947a85618d978410e8, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::UnitWorldUI
-  unitStatus: {fileID: 0}
-  hpSlider: {fileID: 0}
-  moraleSlider: {fileID: 0}
+  m_EditorClassIdentifier: Assembly-CSharp::TacticalGame.UI.UnitWorldUI
+  unitStatus: {fileID: 5848143505035495560}
+  hpSlider: {fileID: 3564262204922109326}
+  moraleSlider: {fileID: 6187820845553252512}
   buzzSlider: {fileID: 0}
-  hpNumberText: {fileID: 0}
-  moraleNumberText: {fileID: 0}
+  hpNumberText: {fileID: 526971875492764110}
+  moraleNumberText: {fileID: 3885454990663881811}
   arrowText: {fileID: 0}
 --- !u!1 &5177479939285327352
 GameObject:
@@ -1112,10 +1112,9 @@ GameObject:
   - component: {fileID: 5476295089608196347}
   - component: {fileID: 5220961570577802089}
   - component: {fileID: 5666210553567701645}
-  - component: {fileID: 3442920088958587182}
-  - component: {fileID: 140358592881133908}
-  - component: {fileID: 2392426204014732187}
-  - component: {fileID: 2191029532430211089}
+  - component: {fileID: 5848143505035495560}
+  - component: {fileID: 5362783123490310855}
+  - component: {fileID: 6333140337222962687}
   m_Layer: 0
   m_Name: Enemy_Helmsmaster
   m_TagString: Unit
@@ -1218,7 +1217,7 @@ CapsuleCollider:
   m_Height: 2
   m_Direction: 1
   m_Center: {x: 0, y: 0, z: 0}
---- !u!114 &3442920088958587182
+--- !u!114 &5848143505035495560
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -1227,44 +1226,30 @@ MonoBehaviour:
   m_GameObject: {fileID: 9082106799208901903}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 0c2309b0ab9ebbc4aa2171110bea3ccc, type: 3}
+  m_Script: {fileID: 11500000, guid: e1637ea35379af848b3fc7a5c3e5ec3f, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::UnitMovement
-  moveRange: 3
-  moveAnimationSpeed: 5
-  isMoving: 0
-  hasAttacked: 0
---- !u!114 &140358592881133908
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 9082106799208901903}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 91244f8cd4d5ca84bb703a8a05400446, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::UnitStatus
+  m_EditorClassIdentifier: Assembly-CSharp::TacticalGame.Units.UnitStatus
+  unitName: 
+  role: 0
+  team: 1
+  weaponType: 0
   maxHP: 100
   currentHP: 0
   maxMorale: 100
   currentMorale: 0
-  surrenderThreshold: 20
+  grit: 0
+  buzz: 0
+  power: 0
+  aim: 0
+  proficiency: 0
+  skill: 0
+  tactics: 0
+  speed: 0
+  hull: 0
   currentBuzz: 0
-  maxBuzz: 100
-  buzzDecayPerTurn: 15
-  buzzDecayOnAttack: 25
-  maxArrows: 10
   currentArrows: 0
-  isStunned: 0
-  isTrapped: 0
-  hasSurrendered: 0
-  curseCharges: 0
   whiteFlagVisual: {fileID: 0}
-  lastAttacker: {fileID: 0}
-  mvStacks: 0
---- !u!114 &2392426204014732187
+--- !u!114 &5362783123490310855
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -1273,17 +1258,11 @@ MonoBehaviour:
   m_GameObject: {fileID: 9082106799208901903}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 31522f0ec5b019d45bc89eccfbffdc8a, type: 3}
+  m_Script: {fileID: 11500000, guid: 274af87457d3068498bd2728497d969a, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::UnitWorldUI
-  unitStatus: {fileID: 140358592881133908}
-  hpSlider: {fileID: 3564262204922109326}
-  moraleSlider: {fileID: 6187820845553252512}
-  buzzSlider: {fileID: 0}
-  hpNumberText: {fileID: 526971875492764110}
-  moraleNumberText: {fileID: 3885454990663881811}
-  arrowText: {fileID: 0}
---- !u!114 &2191029532430211089
+  m_EditorClassIdentifier: Assembly-CSharp::TacticalGame.Units.UnitMovement
+  moveRange: 3
+--- !u!114 &6333140337222962687
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -1292,9 +1271,6 @@ MonoBehaviour:
   m_GameObject: {fileID: 9082106799208901903}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: d0442059e0948f54dbad7b21d726720f, type: 3}
+  m_Script: {fileID: 11500000, guid: 899ff689f5f535c469c80a3c5585b6e4, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::UnitAttack
-  meleeDamage: 20
-  rangedDamage: 15
-  attackEnergyCost: 1
+  m_EditorClassIdentifier: Assembly-CSharp::TacticalGame.Units.UnitAttack
