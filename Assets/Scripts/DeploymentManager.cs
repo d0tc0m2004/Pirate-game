@@ -1,9 +1,18 @@
 using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.EventSystems;
+using System.Collections.Generic;
 
 public class DeploymentManager : MonoBehaviour
 {
+    [System.Serializable]
+    public struct RolePrefab
+    {
+        public string roleName;
+        public GameObject playerPrefab;
+        public GameObject enemyPrefab;
+    }
+
     [Header("References")]
     public GridManager gridManager;
     public TurnManager turnManager;
@@ -14,24 +23,23 @@ public class DeploymentManager : MonoBehaviour
     public EnemyManager enemyManager;
 
     [Header("UI Buttons")]
-    public GameObject endTurnButton; 
+    public GameObject finishDeploymentButton;
+    public GameObject endTurnButton;
 
-    [Header("Unit Settings")]
-    public GameObject captainPrefab; 
-    public GameObject unitPrefab;    
-    public int maxUnits = 4; 
-    
-    [Header("Enemy Settings")]
-    public GameObject enemyPrefab;
-    public Transform[] enemySpawnPoints;
+    [Header("Role Settings")]
+    public List<RolePrefab> rolePrefabs; 
+    public GameObject defaultUnitPrefab; 
 
-    [Header("Colors")]
+    [Header("Placement Settings")]
     public Color validHoverColor = Color.green;
     public Color invalidHoverColor = Color.red;
     public Color selectedColor = Color.yellow; 
-    private bool isDeploymentPhase = true;
-    private int currentUnitCount = 0;
-    private bool isCaptainPlaced = false; 
+    
+    // Internal State
+    private bool isDeploymentPhase = false;
+    private Queue<UnitData> unitsToPlace = new Queue<UnitData>();
+    private List<UnitData> enemyUnitsToSpawn = new List<UnitData>();
+    
     private GameObject selectedUnitToMove = null; 
     private GridCell lastHoveredCell = null;
     private Material originalMaterialAsset; 
@@ -42,17 +50,35 @@ public class DeploymentManager : MonoBehaviour
         if (turnManager == null) turnManager = FindFirstObjectByType<TurnManager>();
         if (battleManager == null) battleManager = FindFirstObjectByType<BattleManager>();
         if (globalUI == null) globalUI = FindFirstObjectByType<GlobalUIManager>();
-        if (energyManager == null) energyManager = FindFirstObjectByType<EnergyManager>();
-        if (hazardManager == null) hazardManager = FindFirstObjectByType<HazardManager>();
-        if (enemyManager == null) enemyManager = FindFirstObjectByType<EnemyManager>();
-        if (battleManager != null) battleManager.isBattleActive = false;
+        
+        if (finishDeploymentButton != null) finishDeploymentButton.SetActive(false);
         if (endTurnButton != null) endTurnButton.SetActive(false);
+    }
+
+    public void StartManualDeployment(List<UnitData> playerUnits, List<UnitData> enemyUnits)
+    {
+        unitsToPlace.Clear();
+        foreach (var u in playerUnits) unitsToPlace.Enqueue(u);
+        enemyUnitsToSpawn = enemyUnits;
+
         isDeploymentPhase = true;
+        if (battleManager) battleManager.isBattleActive = false;
+        if (endTurnButton != null) endTurnButton.SetActive(false);
     }
 
     private void Update()
     {
         if (!isDeploymentPhase) return;
+        bool deploymentComplete = (unitsToPlace.Count == 0 && selectedUnitToMove == null);
+        
+        if (finishDeploymentButton != null)
+        {
+            if (deploymentComplete && !finishDeploymentButton.activeSelf)
+                finishDeploymentButton.SetActive(true);
+            else if (!deploymentComplete && finishDeploymentButton.activeSelf)
+                finishDeploymentButton.SetActive(false);
+        }
+
         HandleMouseInteraction();
     }
 
@@ -65,86 +91,58 @@ public class DeploymentManager : MonoBehaviour
 
         if (Physics.Raycast(ray, out hit))
         {
-            GridCell cell = null;
-            if (hit.collider.CompareTag("Unit")) 
+            GridCell cell = hit.collider.GetComponent<GridCell>();
+            if (cell == null && hit.collider.CompareTag("Unit"))
             {
-                if (gridManager != null)
-                {
-                    Vector2Int pos = gridManager.WorldToGridPosition(hit.collider.transform.position);
-                    cell = gridManager.GetCell(pos.x, pos.y);
-                }
-            }
-            else
-            {
-                cell = hit.collider.GetComponent<GridCell>();
+                 if (gridManager != null)
+                 {
+                     Vector2Int pos = gridManager.WorldToGridPosition(hit.collider.transform.position);
+                     cell = gridManager.GetCell(pos.x, pos.y);
+                 }
             }
 
             if (cell != null)
             {
                 HighlightCell(cell);
-
                 if (Input.GetMouseButtonDown(0)) HandleLeftClick(cell);
-                if (Input.GetMouseButtonDown(1)) HandleRightClick(); 
+                if (Input.GetMouseButtonDown(1)) HandleRightClick();
             }
         }
     }
 
     void HandleLeftClick(GridCell cell)
     {
-        if (cell.isOccupied && cell.occupyingUnit != null)
+        if (!IsValidPlacement(cell)) return;
+        if (selectedUnitToMove != null)
         {
-            if (cell.occupyingUnit.name.Contains("Player") || cell.occupyingUnit.name.Contains("Captain"))
+            if (!cell.isOccupied)
             {
-                selectedUnitToMove = cell.occupyingUnit;
-                Debug.Log($"Picked up {selectedUnitToMove.name}");
-            }
-        }
-        else if (!cell.isOccupied && IsValidPlacement(cell))
-        {
-            if (selectedUnitToMove != null)
-            {
-                Vector2Int oldGridPos = gridManager.WorldToGridPosition(selectedUnitToMove.transform.position);
-                GridCell oldCell = gridManager.GetCell(oldGridPos.x, oldGridPos.y);
-                if (oldCell != null) oldCell.RemoveUnit();
+                Vector2Int oldPos = gridManager.WorldToGridPosition(selectedUnitToMove.transform.position);
+                GridCell oldCell = gridManager.GetCell(oldPos.x, oldPos.y);
+                
+                if (oldCell) oldCell.RemoveUnit();
 
                 selectedUnitToMove.transform.position = cell.GetWorldPosition();
                 cell.PlaceUnit(selectedUnitToMove);
+                
                 selectedUnitToMove = null; 
+                return;
             }
-            else if (currentUnitCount < maxUnits)
+        }
+        if (cell.isOccupied && cell.occupyingUnit != null)
+        {
+            string uName = cell.occupyingUnit.name;
+            if (uName.Contains("Player") || uName.Contains("Captain"))
             {
-                SpawnNewUnit(cell);
+                selectedUnitToMove = cell.occupyingUnit;
+                Debug.Log($"Selected {selectedUnitToMove.name} to move.");
+                return;
             }
         }
-    }
-
-    void SpawnNewUnit(GridCell cell)
-    {
-        GameObject prefabToSpawn;
-        string unitName = "Unit_Player_";
-
-        if (!isCaptainPlaced)
+        if (unitsToPlace.Count > 0 && !cell.isOccupied)
         {
-            prefabToSpawn = captainPrefab;
-            isCaptainPlaced = true;
-            unitName += "Captain";
-        }
-        else
-        {
-            prefabToSpawn = unitPrefab;
-            unitName += currentUnitCount;
-        }
-
-        if (prefabToSpawn != null)
-        {
-            GameObject newUnit = Instantiate(prefabToSpawn, cell.GetWorldPosition(), Quaternion.identity);
-            newUnit.name = unitName;
-            newUnit.tag = "Unit"; 
-            UnitAttack attack = newUnit.GetComponent<UnitAttack>();
-            if (attack != null) attack.SetupManagers(gridManager, energyManager);
-
-            cell.PlaceUnit(newUnit);
-            currentUnitCount++;
+            UnitData nextUnit = unitsToPlace.Dequeue();
+            SpawnSpecificUnit(cell, nextUnit);
         }
     }
 
@@ -152,10 +150,68 @@ public class DeploymentManager : MonoBehaviour
     {
         if (selectedUnitToMove != null)
         {
-            Debug.Log("Selection Cancelled");
             selectedUnitToMove = null;
-            ResetLastHighlight();
+            Debug.Log("Cancelled Move.");
         }
+    }
+
+    void SpawnSpecificUnit(GridCell cell, UnitData data)
+    {
+        GameObject prefabToUse = defaultUnitPrefab;
+        foreach (var rp in rolePrefabs)
+        {
+            if (rp.roleName == data.role)
+            {
+                prefabToUse = data.isPlayer ? rp.playerPrefab : rp.enemyPrefab;
+                break;
+            }
+        }
+        if (prefabToUse == null) prefabToUse = defaultUnitPrefab;
+
+        GameObject newUnit = Instantiate(prefabToUse, cell.GetWorldPosition(), Quaternion.identity);
+        newUnit.name = data.unitName;
+        newUnit.tag = "Unit"; 
+
+        UnitStatus status = newUnit.GetComponent<UnitStatus>();
+        if (status) status.Initialize(data);
+
+        UnitAttack attack = newUnit.GetComponent<UnitAttack>();
+        if (attack) attack.SetupManagers(gridManager, energyManager);
+
+        cell.PlaceUnit(newUnit);
+    }
+
+    public void FinishDeploymentAndStartBattle()
+    {
+        if (unitsToPlace.Count > 0) return;
+        int eRow = 0;
+        int eCol = 7; 
+        foreach (var data in enemyUnitsToSpawn)
+        {
+            GridCell cell = null;
+            if (gridManager.GetCell(eCol, eRow) != null && !gridManager.GetCell(eCol, eRow).isOccupied)
+                cell = gridManager.GetCell(eCol, eRow);
+            else if (gridManager.GetCell(eCol - 1, eRow) != null)
+                cell = gridManager.GetCell(eCol - 1, eRow);
+            
+            if (cell != null) SpawnSpecificUnit(cell, data);
+            
+            eRow++;
+            if (eRow > 7) { eRow = 0; eCol--; }
+        }
+        isDeploymentPhase = false;
+        selectedUnitToMove = null;
+        ResetLastHighlight();
+        
+        if (battleManager) battleManager.isBattleActive = true; 
+        if (turnManager) turnManager.StartGameLoop();
+        if (hazardManager) hazardManager.GenerateRandomHazards();
+        if (globalUI) globalUI.GenerateUnitIcons(); 
+        
+        if (finishDeploymentButton) finishDeploymentButton.SetActive(false); 
+        if (endTurnButton) endTurnButton.SetActive(true);
+        
+        gameObject.SetActive(false); 
     }
 
     void HighlightCell(GridCell cell)
@@ -171,7 +227,7 @@ public class DeploymentManager : MonoBehaviour
             if (selectedUnitToMove != null)
                 renderer.material.color = IsValidPlacement(cell) ? selectedColor : invalidHoverColor;
             else
-                renderer.material.color = IsValidPlacement(cell) ? validHoverColor : invalidHoverColor;
+                renderer.material.color = (IsValidPlacement(cell) && (unitsToPlace.Count > 0 || cell.isOccupied)) ? validHoverColor : invalidHoverColor;
         }
     }
 
@@ -187,51 +243,6 @@ public class DeploymentManager : MonoBehaviour
 
     bool IsValidPlacement(GridCell cell)
     {
-        return !cell.isBlocked && (cell.isPlayerSide || cell.xPosition < 4); 
-    }
-    
-    public void FinishDeploymentAndStartBattle()
-    {
-        if (!isDeploymentPhase) return;
-        
-        if (!isCaptainPlaced) { Debug.Log("Need Captain!"); return; }
-        if (currentUnitCount == 0) return;
-        isDeploymentPhase = false;
-        selectedUnitToMove = null;
-        ResetLastHighlight(); 
-        if (battleManager != null) battleManager.isBattleActive = true; 
-        if (turnManager != null) turnManager.StartGameLoop();
-        if (hazardManager != null) hazardManager.GenerateRandomHazards();
-        
-        if (enemyManager != null) enemyManager.SpawnEnemies();
-        else SpawnEnemiesInternal();
-        
-        if (globalUI != null) globalUI.GenerateUnitIcons(); 
-        if (endTurnButton != null) endTurnButton.SetActive(true);
-        
-        gameObject.SetActive(false); 
-    }
-
-    void SpawnEnemiesInternal()
-    {
-        if (enemySpawnPoints == null) return;
-        foreach (Transform spawnPoint in enemySpawnPoints)
-        {
-            if (spawnPoint != null && enemyPrefab != null)
-            {
-                GameObject enemy = Instantiate(enemyPrefab, spawnPoint.position, Quaternion.identity);
-                enemy.name = "Unit_Enemy";
-                
-                UnitAttack attack = enemy.GetComponent<UnitAttack>();
-                if (attack != null) attack.SetupManagers(gridManager, energyManager);
-
-                if (gridManager != null)
-                {
-                    Vector2Int gridPos = gridManager.WorldToGridPosition(enemy.transform.position);
-                    GridCell cell = gridManager.GetCell(gridPos.x, gridPos.y);
-                    if (cell != null) cell.PlaceUnit(enemy);
-                }
-            }
-        }
+        return !cell.isBlocked && cell.isPlayerSide; 
     }
 }

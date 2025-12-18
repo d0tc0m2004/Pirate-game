@@ -3,8 +3,6 @@ using UnityEngine;
 public class UnitAttack : MonoBehaviour
 {
     [Header("Stats")]
-    public int meleeDamage = 20;
-    public int rangedDamage = 15;
     public int attackEnergyCost = 1;
 
     private UnitStatus myStatus;
@@ -16,7 +14,6 @@ public class UnitAttack : MonoBehaviour
     {
         myStatus = GetComponent<UnitStatus>();
         myMovement = GetComponent<UnitMovement>();
-        
         energyManager = FindFirstObjectByType<EnergyManager>();
         gridManager = FindFirstObjectByType<GridManager>();
     }
@@ -31,6 +28,12 @@ public class UnitAttack : MonoBehaviour
     {
         if (!CanAct()) return;
         
+        if (myStatus.weaponType == "Ranged")
+        {
+            Debug.Log($"<color=red>{name} cannot Melee! (Equipped: Ranged)</color>");
+            return;
+        }
+
         if (energyManager == null) energyManager = FindFirstObjectByType<EnergyManager>();
         if (!energyManager.TrySpendEnergy(attackEnergyCost)) return;
 
@@ -46,19 +49,26 @@ public class UnitAttack : MonoBehaviour
             var bonuses = GetStandingBonuses();
             
             float drunkMod = myStatus.isTooDrunk ? 0.8f : 1.0f;
-            int finalDmg = Mathf.RoundToInt(meleeDamage * drunkMod);
+            int baseDmg = 10 + Mathf.RoundToInt(myStatus.power * 0.4f);
+            int finalDmg = Mathf.RoundToInt(baseDmg * drunkMod);
             
             target.TakeDamage(finalDmg, this.gameObject, true, bonuses.hp, bonuses.morale, bonuses.applyCurse);
             
             myStatus.ReduceBuzz(myStatus.buzzDecayOnAttack);
             myMovement.hasAttacked = true; 
-            GetComponent<MeshRenderer>().material.color = Color.gray;
+            if(GetComponent<MeshRenderer>()) GetComponent<MeshRenderer>().material.color = Color.gray;
         }
     }
 
     public void TryRangedAttack()
     {
         if (!CanAct()) return;
+        if (myStatus.weaponType == "Melee")
+        {
+            Debug.Log($"<color=red>{name} cannot Shoot! (Equipped: Melee)</color>");
+            return;
+        }
+
         if (myStatus.currentArrows <= 0) return;
         
         if (energyManager == null) energyManager = FindFirstObjectByType<EnergyManager>();
@@ -69,7 +79,7 @@ public class UnitAttack : MonoBehaviour
         {
             if (IsBlockedByRow(target)) 
             {
-                 Debug.Log("Attack Blocked by Obstacle in Row!");
+                 Debug.Log("Shot Blocked by Obstacle in Row!");
                  myStatus.currentArrows--; 
                  return;
             }
@@ -77,14 +87,15 @@ public class UnitAttack : MonoBehaviour
             var bonuses = GetStandingBonuses();
 
             float drunkMod = myStatus.isTooDrunk ? 0.8f : 1.0f;
-            int finalDmg = Mathf.RoundToInt(rangedDamage * drunkMod);
+            int baseDmg = 8 + Mathf.RoundToInt(myStatus.aim * 0.4f);
+            int finalDmg = Mathf.RoundToInt(baseDmg * drunkMod);
 
             myStatus.currentArrows--;
             target.TakeDamage(finalDmg, this.gameObject, false, bonuses.hp, bonuses.morale, bonuses.applyCurse);
             
             myStatus.ReduceBuzz(myStatus.buzzDecayOnAttack);
             myMovement.hasAttacked = true;
-            GetComponent<MeshRenderer>().material.color = Color.gray;
+            if(GetComponent<MeshRenderer>()) GetComponent<MeshRenderer>().material.color = Color.gray;
         }
     }
 

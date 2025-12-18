@@ -1117,7 +1117,7 @@ GameObject:
   - component: {fileID: 2392426204014732187}
   - component: {fileID: 2191029532430211089}
   m_Layer: 0
-  m_Name: Unit_Enemy
+  m_Name: Enemy_Cook
   m_TagString: Unit
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0

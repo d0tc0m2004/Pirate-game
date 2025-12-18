@@ -9,7 +9,6 @@ public class GlobalUIManager : MonoBehaviour
     public TMP_Text playerTeamHPText;
     public Slider playerTeamMoraleSlider;
     public TMP_Text playerTeamMoraleText;
-
     public Slider enemyTeamHPSlider;
     public TMP_Text enemyTeamHPText;
     public Slider enemyTeamMoraleSlider;
@@ -24,8 +23,6 @@ public class GlobalUIManager : MonoBehaviour
     public TMP_Text grogText;   
     public Button healthRumButton; 
     public Button moraleRumButton; 
-
-    [Header("NEW SWAP UI")]
     public Button swapButton; 
 
     [Header("Icon Containers")]
@@ -76,14 +73,10 @@ public class GlobalUIManager : MonoBehaviour
         {
             GameObject sel = battleManager.GetSelectedUnit();
             bool showButton = false;
-
             if (sel != null && !sel.name.Contains("Enemy"))
             {
                 UnitStatus status = sel.GetComponent<UnitStatus>();
-                if (turnManager.swapsUsedThisRound < 1 && status.swapCooldown == 0)
-                {
-                    showButton = true;
-                }
+                if (turnManager.swapsUsedThisRound < 1 && status.swapCooldown == 0) showButton = true;
             }
             swapButton.gameObject.SetActive(showButton);
         }
@@ -132,10 +125,6 @@ public class GlobalUIManager : MonoBehaviour
                 GameObject iconObj = Instantiate(iconPrefab, parent);
                 Image img = iconObj.GetComponent<Image>();
                 if (img) img.color = color;
-                if (u.name.Contains("Captain")) {
-                    LayoutElement layout = iconObj.GetComponent<LayoutElement>();
-                    if (layout != null) { layout.minWidth = 60; layout.minHeight = 60; }
-                }
             }
         }
         iconsGenerated = true;
