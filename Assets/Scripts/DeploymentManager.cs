@@ -63,12 +63,14 @@ public class DeploymentManager : MonoBehaviour
 
         isDeploymentPhase = true;
         if (battleManager) battleManager.isBattleActive = false;
+        
         if (endTurnButton != null) endTurnButton.SetActive(false);
     }
 
     private void Update()
     {
         if (!isDeploymentPhase) return;
+        
         bool deploymentComplete = (unitsToPlace.Count == 0 && selectedUnitToMove == null);
         
         if (finishDeploymentButton != null)
@@ -92,6 +94,7 @@ public class DeploymentManager : MonoBehaviour
         if (Physics.Raycast(ray, out hit))
         {
             GridCell cell = hit.collider.GetComponent<GridCell>();
+            
             if (cell == null && hit.collider.CompareTag("Unit"))
             {
                  if (gridManager != null)
@@ -105,7 +108,7 @@ public class DeploymentManager : MonoBehaviour
             {
                 HighlightCell(cell);
                 if (Input.GetMouseButtonDown(0)) HandleLeftClick(cell);
-                if (Input.GetMouseButtonDown(1)) HandleRightClick();
+                if (Input.GetMouseButtonDown(1)) HandleRightClick(); 
             }
         }
     }
@@ -135,7 +138,6 @@ public class DeploymentManager : MonoBehaviour
             if (uName.Contains("Player") || uName.Contains("Captain"))
             {
                 selectedUnitToMove = cell.occupyingUnit;
-                Debug.Log($"Selected {selectedUnitToMove.name} to move.");
                 return;
             }
         }
@@ -148,11 +150,7 @@ public class DeploymentManager : MonoBehaviour
 
     void HandleRightClick()
     {
-        if (selectedUnitToMove != null)
-        {
-            selectedUnitToMove = null;
-            Debug.Log("Cancelled Move.");
-        }
+        if (selectedUnitToMove != null) selectedUnitToMove = null;
     }
 
     void SpawnSpecificUnit(GridCell cell, UnitData data)
@@ -184,20 +182,32 @@ public class DeploymentManager : MonoBehaviour
     public void FinishDeploymentAndStartBattle()
     {
         if (unitsToPlace.Count > 0) return;
-        int eRow = 0;
-        int eCol = 7; 
+        List<GridCell> validEnemySpots = new List<GridCell>();
+        for (int x = 0; x < gridManager.gridWidth; x++) 
+        {
+            for (int y = 0; y < gridManager.gridHeight; y++)
+            {
+                GridCell c = gridManager.GetCell(x, y);
+                if (c != null && gridManager.IsEnemySide(x) && !c.isBlocked && !c.isOccupied)
+                {
+                    validEnemySpots.Add(c);
+                }
+            }
+        }
         foreach (var data in enemyUnitsToSpawn)
         {
-            GridCell cell = null;
-            if (gridManager.GetCell(eCol, eRow) != null && !gridManager.GetCell(eCol, eRow).isOccupied)
-                cell = gridManager.GetCell(eCol, eRow);
-            else if (gridManager.GetCell(eCol - 1, eRow) != null)
-                cell = gridManager.GetCell(eCol - 1, eRow);
+            if (validEnemySpots.Count == 0)
+            {
+                Debug.LogWarning("Enemy Zone is full!");
+                break;
+            }
+
+            int randomIndex = Random.Range(0, validEnemySpots.Count);
+            GridCell chosenCell = validEnemySpots[randomIndex];
+
+            SpawnSpecificUnit(chosenCell, data);
             
-            if (cell != null) SpawnSpecificUnit(cell, data);
-            
-            eRow++;
-            if (eRow > 7) { eRow = 0; eCol--; }
+            validEnemySpots.RemoveAt(randomIndex);
         }
         isDeploymentPhase = false;
         selectedUnitToMove = null;
@@ -243,6 +253,6 @@ public class DeploymentManager : MonoBehaviour
 
     bool IsValidPlacement(GridCell cell)
     {
-        return !cell.isBlocked && cell.isPlayerSide; 
+        return !cell.isBlocked && gridManager.IsPlayerSide(cell.xPosition); 
     }
 }
