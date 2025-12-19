@@ -12,10 +12,76 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ebbe5cbe5f238bd4c89fb3aa27829c63, type: 3}
   m_Name: GameConfig
   m_EditorClassIdentifier: Assembly-CSharp::TacticalGame.Config.GameConfig
+  healthLowMin: 510
+  healthLowMax: 600
+  healthMidMin: 600
+  healthMidMax: 720
+  healthHighMin: 720
+  healthHighMax: 840
+  moraleLowMin: 765
+  moraleLowMax: 900
+  moraleMidMin: 900
+  moraleMidMax: 1080
+  moraleHighMin: 1080
+  moraleHighMax: 1260
+  buzzLowMin: 80
+  buzzLowMax: 100
+  buzzMidMin: 100
+  buzzMidMax: 130
+  buzzHighMin: 130
+  buzzHighMax: 160
+  powerLowMin: 15
+  powerLowMax: 25
+  powerMidMin: 26
+  powerMidMax: 35
+  powerHighMin: 36
+  powerHighMax: 50
+  aimLowMin: 15
+  aimLowMax: 25
+  aimMidMin: 26
+  aimMidMax: 35
+  aimHighMin: 36
+  aimHighMax: 50
+  tacticsLowMin: 15
+  tacticsLowMax: 25
+  tacticsMidMin: 26
+  tacticsMidMax: 35
+  tacticsHighMin: 36
+  tacticsHighMax: 50
+  skillLowMin: 15
+  skillLowMax: 25
+  skillMidMin: 26
+  skillMidMax: 35
+  skillHighMin: 36
+  skillHighMax: 50
+  proficiencyLowMin: 105
+  proficiencyLowMax: 125
+  proficiencyMidMin: 125
+  proficiencyMidMax: 150
+  proficiencyHighMin: 150
+  proficiencyHighMax: 200
+  gritLowMin: 15
+  gritLowMax: 25
+  gritMidMin: 26
+  gritMidMax: 35
+  gritHighMin: 36
+  gritHighMax: 50
+  hullLowMin: 15
+  hullLowMax: 25
+  hullMidMin: 26
+  hullMidMax: 35
+  hullHighMin: 36
+  hullHighMax: 50
+  speedLowMin: 15
+  speedLowMax: 25
+  speedMidMin: 26
+  speedMidMax: 35
+  speedHighMin: 36
+  speedHighMax: 50
   meleeBaseDamage: 10
   rangedBaseDamage: 8
-  powerScaling: 0.4
-  aimScaling: 0.4
+  powerScaling: 1.25
+  aimScaling: 1.35
   drunkDamageMultiplier: 0.8
   rangedHPMultiplier: 1.1
   meleeMoraleMultiplier: 1.1
@@ -44,10 +110,12 @@ MonoBehaviour:
   surrenderThreshold: 20
   energyPerTurn: 3
   attackEnergyCost: 1
-  minBaseStat: 80
-  maxBaseStat: 100
-  mainStatMultiplier: 1.2
-  secondaryStatMultiplier: 1.1
+  speedToInitiative: 1
+  firstActionBonusPerSpeed: 0.002
+  firstActionBonusCap: 0.15
+  baseHull: 50
+  hullPerPoint: 10
+  hullAbsorbPercent: 0.3
   obstacleBlockDamage: 100
   enemyTurnDelay: 1.5
   moveAnimationSpeed: 5

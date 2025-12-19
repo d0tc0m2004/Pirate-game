@@ -101,11 +101,9 @@ namespace TacticalGame.Config
         public int meleeBaseDamage = 10;
         public int rangedBaseDamage = 8;
         
-        [Range(0f, 1f)]
-        public float powerScaling = 0.4f;
-        
-        [Range(0f, 1f)]
-        public float aimScaling = 0.4f;
+        [Header("Stat Scaling (from stat table)")]
+        public float powerScaling = 1.25f;  // Damage = Base + Power×1.25
+        public float aimScaling = 1.35f;    // Damage = Base + Aim×1.35
 
         [Header("Damage Modifiers")]
         [Range(0.5f, 1f)]
@@ -153,6 +151,17 @@ namespace TacticalGame.Config
         public int energyPerTurn = 3;
         public int attackEnergyCost = 1;
 
+        [Header("=== SPEED/INITIATIVE SYSTEM ===")]
+        public float speedToInitiative = 1f;        // Each +1 Speed = +1 Team Initiative
+        public float firstActionBonusPerSpeed = 0.002f;  // +0.2% damage per Speed if going first
+        public float firstActionBonusCap = 0.15f;   // Cap at 15% bonus damage
+        
+        [Header("=== HULL SYSTEM ===")]
+        public int baseHull = 50;
+        public int hullPerPoint = 10;
+        [Range(0.1f, 0.5f)]
+        public float hullAbsorbPercent = 0.30f; // Absorbs up to 30% of incoming damage
+        
         [Header("=== OBSTACLE SYSTEM ===")]
         public int obstacleBlockDamage = 100;
 

@@ -49,6 +49,10 @@ namespace TacticalGame.Units
         [Header("Ammo")]
         [SerializeField] private int currentArrows;
 
+        [Header("Hull Pool")]
+        [SerializeField] private int maxHullPool;
+        [SerializeField] private int currentHullPool;
+
         [Header("Visuals")]
         [SerializeField] private GameObject whiteFlagVisual;
 
@@ -118,6 +122,12 @@ namespace TacticalGame.Units
         // Ammo
         public int MaxArrows => GameConfig.Instance.defaultMaxArrows;
         public int CurrentArrows => currentArrows;
+
+        // Hull Pool (armor)
+        public int MaxHullPool => maxHullPool;
+        public int CurrentHullPool => currentHullPool;
+        public float HullPercent => maxHullPool > 0 ? (float)currentHullPool / maxHullPool : 0f;
+        public bool HasHull => currentHullPool > 0;
 
         // Status Flags
         public bool IsStunned => isStunned;
@@ -196,6 +206,11 @@ namespace TacticalGame.Units
             hull = data.hull;
             speed = data.speed;
 
+            // Calculate Hull pool: MaxHull = BaseHull + Hull×10
+            var config = GameConfig.Instance;
+            maxHullPool = config.baseHull + (hull * config.hullPerPoint);
+            currentHullPool = maxHullPool;
+
             currentArrows = MaxArrows;
         }
 
@@ -207,7 +222,8 @@ namespace TacticalGame.Units
         /// Take damage from an attack.
         /// </summary>
         public void TakeDamage(int rawDamage, GameObject source, bool isMelee, 
-                               int flatBonusHP = 0, int flatBonusMorale = 0, bool applyCurse = false)
+                               int flatBonusHP = 0, int flatBonusMorale = 0, bool applyCurse = false,
+                               bool isFirstAction = false)
         {
             if (hasSurrendered) return;
 
@@ -223,19 +239,38 @@ namespace TacticalGame.Units
             // Check for adjacency cover
             bool hasCover = CheckAdjacencyCover();
 
+            // Get attacker status for first-action bonus calculation
+            UnitStatus attackerStatus = source != null ? source.GetComponent<UnitStatus>() : null;
+
             // Calculate damage using DamageCalculator
             var result = DamageCalculator.Calculate(
                 rawDamage, 
                 isMelee, 
+                attackerStatus,
                 this, 
-                hasCover, 
+                hasCover,
+                isFirstAction,
                 flatBonusHP, 
                 flatBonusMorale
             );
 
             // Apply Grit damage reduction
             float gritDR = CalculateGritDamageReduction();
-            int finalHPDamage = Mathf.RoundToInt(result.FinalHPDamage * (1f - gritDR));
+            int damageAfterGrit = Mathf.RoundToInt(result.FinalHPDamage * (1f - gritDR));
+
+            // Apply Hull absorption
+            int hullAbsorbed = 0;
+            int finalHPDamage = damageAfterGrit;
+            
+            if (currentHullPool > 0)
+            {
+                var config = GameConfig.Instance;
+                // Hull absorbs up to X% of incoming damage
+                int maxAbsorb = Mathf.RoundToInt(damageAfterGrit * config.hullAbsorbPercent);
+                hullAbsorbed = Mathf.Min(currentHullPool, maxAbsorb);
+                currentHullPool -= hullAbsorbed;
+                finalHPDamage = damageAfterGrit - hullAbsorbed;
+            }
 
             // Apply HP damage
             currentHP -= finalHPDamage;
@@ -245,9 +280,10 @@ namespace TacticalGame.Units
 
             // Log damage report
             string attackerName = source != null ? source.name : "Unknown Source";
+            string hullInfo = hullAbsorbed > 0 ? $" (Hull absorbed: {hullAbsorbed}, Hull remaining: {currentHullPool})" : "";
             Debug.Log($"<color=red><b>DAMAGE REPORT: {gameObject.name}</b></color>\n" +
                       $"<b>Attacker:</b> {attackerName}\n" +
-                      $"<b>HP Lost: {finalHPDamage}</b> (Grit DR: {gritDR:P0}) [{result.HPBreakdown}]\n" +
+                      $"<b>HP Lost: {finalHPDamage}</b> (Grit DR: {gritDR:P0}){hullInfo} [{result.HPBreakdown}]\n" +
                       $"<b>Morale Lost: {result.FinalMoraleDamage}</b>  [{result.MoraleBreakdown}]");
 
             // Reduce curse charges
@@ -371,6 +407,38 @@ namespace TacticalGame.Units
         public void AddArrows(int amount)
         {
             currentArrows = Mathf.Min(MaxArrows, currentArrows + amount);
+        }
+
+        #endregion
+
+        #region Hull System
+
+        /// <summary>
+        /// Restore hull points.
+        /// </summary>
+        public void RestoreHull(int amount)
+        {
+            currentHullPool = Mathf.Min(maxHullPool, currentHullPool + amount);
+        }
+
+        /// <summary>
+        /// Damage hull directly (bypassing HP).
+        /// Some abilities can "break hull" directly.
+        /// </summary>
+        public void DamageHullDirect(int amount)
+        {
+            currentHullPool = Mathf.Max(0, currentHullPool - amount);
+        }
+
+        /// <summary>
+        /// Apply "Crack Hull" debuff - temporarily reduces hull effectiveness.
+        /// Returns the amount of hull removed (to restore later if needed).
+        /// </summary>
+        public int CrackHull(float percentRemoved = 0.5f)
+        {
+            int amountToRemove = Mathf.RoundToInt(currentHullPool * percentRemoved);
+            currentHullPool -= amountToRemove;
+            return amountToRemove;
         }
 
         #endregion

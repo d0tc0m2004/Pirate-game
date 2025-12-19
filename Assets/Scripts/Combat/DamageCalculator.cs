@@ -23,11 +23,21 @@ namespace TacticalGame.Combat
         /// <summary>
         /// Calculate damage for an attack.
         /// </summary>
+        /// <param name="baseDamage">Base damage before modifiers</param>
+        /// <param name="isMelee">True for melee, false for ranged</param>
+        /// <param name="attackerStatus">The attacking unit (for first-action bonus)</param>
+        /// <param name="targetStatus">The target unit</param>
+        /// <param name="hasCover">Does target have adjacency cover</param>
+        /// <param name="isFirstAction">Did attacker's team go first this round</param>
+        /// <param name="flatBonusHP">Flat HP damage bonus (from hazards etc)</param>
+        /// <param name="flatBonusMorale">Flat morale damage bonus</param>
         public static DamageResult Calculate(
             int baseDamage,
             bool isMelee,
+            UnitStatus attackerStatus,
             UnitStatus targetStatus,
             bool hasCover,
+            bool isFirstAction = false,
             int flatBonusHP = 0,
             int flatBonusMorale = 0)
         {
@@ -40,6 +50,21 @@ namespace TacticalGame.Combat
             // === HP DAMAGE CALCULATION ===
             float hpDamageMod = 1.0f;
             
+            // First-action bonus (Speed)
+            // Formula: min(15%, Speed × 0.2%) bonus damage if team went first
+            if (isFirstAction && attackerStatus != null)
+            {
+                float firstBonus = Mathf.Min(
+                    config.firstActionBonusCap, 
+                    attackerStatus.Speed * config.firstActionBonusPerSpeed
+                );
+                if (firstBonus > 0)
+                {
+                    hpDamageMod += firstBonus;
+                    logHP += $" +{Mathf.RoundToInt(firstBonus * 100)}%(FirstAction)";
+                }
+            }
+            
             // Cover reduction
             if (hasCover)
             {
@@ -47,7 +72,7 @@ namespace TacticalGame.Combat
                 logHP += $" -{Mathf.RoundToInt(config.adjacencyCoverReduction * 100)}%(Cover)";
             }
             
-            // Ranged bonus to HP
+            // Ranged bonus to HP (+10%)
             float hpTypeMultiplier = isMelee ? 1.0f : config.rangedHPMultiplier;
             if (!isMelee)
             {
@@ -82,6 +107,20 @@ namespace TacticalGame.Combat
             // === MORALE DAMAGE CALCULATION ===
             float moraleDamageMod = 1.0f;
             
+            // First-action bonus applies to morale too
+            if (isFirstAction && attackerStatus != null)
+            {
+                float firstBonus = Mathf.Min(
+                    config.firstActionBonusCap, 
+                    attackerStatus.Speed * config.firstActionBonusPerSpeed
+                );
+                if (firstBonus > 0)
+                {
+                    moraleDamageMod += firstBonus;
+                    logMorale += $" +{Mathf.RoundToInt(firstBonus * 100)}%(FirstAction)";
+                }
+            }
+            
             // Cover reduction (applies to morale too)
             if (hasCover)
             {
@@ -89,7 +128,7 @@ namespace TacticalGame.Combat
                 logMorale += $" -{Mathf.RoundToInt(config.adjacencyCoverReduction * 100)}%(Cover)";
             }
             
-            // Melee bonus to morale
+            // Melee bonus to morale (+10%)
             float moraleTypeMultiplier = isMelee ? config.meleeMoraleMultiplier : 1.0f;
             if (isMelee)
             {
@@ -127,7 +166,22 @@ namespace TacticalGame.Combat
         }
 
         /// <summary>
+        /// Overload for backward compatibility (no attacker/first-action info).
+        /// </summary>
+        public static DamageResult Calculate(
+            int baseDamage,
+            bool isMelee,
+            UnitStatus targetStatus,
+            bool hasCover,
+            int flatBonusHP = 0,
+            int flatBonusMorale = 0)
+        {
+            return Calculate(baseDamage, isMelee, null, targetStatus, hasCover, false, flatBonusHP, flatBonusMorale);
+        }
+
+        /// <summary>
         /// Calculate base melee damage from attacker stats.
+        /// Formula: Base + Power × 1.25
         /// </summary>
         public static int GetMeleeBaseDamage(UnitStatus attacker)
         {
@@ -139,6 +193,7 @@ namespace TacticalGame.Combat
 
         /// <summary>
         /// Calculate base ranged damage from attacker stats.
+        /// Formula: Base + Aim × 1.35
         /// </summary>
         public static int GetRangedBaseDamage(UnitStatus attacker)
         {

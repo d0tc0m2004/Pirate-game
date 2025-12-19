@@ -6,6 +6,7 @@ using TacticalGame.Config;
 using TacticalGame.Grid;
 using TacticalGame.Units;
 using TacticalGame.Enums;
+using TacticalGame.Combat;
 
 namespace TacticalGame.Managers
 {
@@ -21,6 +22,7 @@ namespace TacticalGame.Managers
 
         [Header("Selection Visuals")]
         [SerializeField] private Color moveRangeColor = Color.blue;
+        [SerializeField] private Color attackTargetColor = Color.red;
 
         #endregion
 
@@ -36,6 +38,10 @@ namespace TacticalGame.Managers
 
         private List<GridCell> validMoveTiles = new List<GridCell>();
         private Dictionary<GridCell, Material> originalMaterials = new Dictionary<GridCell, Material>();
+        
+        // Attack target highlighting
+        private GameObject currentAttackTarget;
+        private Color originalTargetColor;
 
         #endregion
 
@@ -88,7 +94,7 @@ namespace TacticalGame.Managers
 
         private void HandleInput()
         {
-            // Left click - select and move
+            // Left click - select/move
             if (Input.GetMouseButtonDown(0))
             {
                 HandleLeftClick();
@@ -190,12 +196,16 @@ namespace TacticalGame.Managers
             GridCell startCell = gridManager.GetCell(gridPos.x, gridPos.y);
             CalculateValidMoves(startCell, movement.MoveRange);
 
+            // Highlight attack target
+            HighlightAttackTarget(status);
+
             GameEvents.TriggerUnitSelected(unit);
         }
 
         private void DeselectUnit()
         {
             ResetHighlights();
+            ClearAttackTargetHighlight();
             selectedUnit = null;
             isSwapping = false;
             validMoveTiles.Clear();
@@ -441,6 +451,44 @@ namespace TacticalGame.Managers
                 }
             }
             originalMaterials.Clear();
+        }
+
+        #endregion
+
+        #region Attack Target Highlighting
+
+        private void HighlightAttackTarget(UnitStatus attacker)
+        {
+            // Clear previous target highlight
+            ClearAttackTargetHighlight();
+
+            // Find nearest enemy using TargetFinder
+            UnitStatus target = TargetFinder.FindNearestEnemy(attacker);
+            
+            if (target == null) return;
+
+            currentAttackTarget = target.gameObject;
+
+            // Highlight the target unit
+            MeshRenderer renderer = currentAttackTarget.GetComponent<MeshRenderer>();
+            if (renderer != null)
+            {
+                originalTargetColor = renderer.material.color;
+                renderer.material.color = attackTargetColor;
+            }
+        }
+
+        private void ClearAttackTargetHighlight()
+        {
+            if (currentAttackTarget != null)
+            {
+                MeshRenderer renderer = currentAttackTarget.GetComponent<MeshRenderer>();
+                if (renderer != null)
+                {
+                    renderer.material.color = originalTargetColor;
+                }
+                currentAttackTarget = null;
+            }
         }
 
         #endregion

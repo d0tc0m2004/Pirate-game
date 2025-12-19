@@ -19,11 +19,13 @@ namespace TacticalGame.UI
         [SerializeField] private Slider hpSlider;
         [SerializeField] private Slider moraleSlider;
         [SerializeField] private Slider buzzSlider;
+        [SerializeField] private Slider hullSlider;
 
         [Header("Text Numbers")]
         [SerializeField] private TMP_Text hpNumberText;
         [SerializeField] private TMP_Text moraleNumberText;
         [SerializeField] private TMP_Text arrowText;
+        [SerializeField] private TMP_Text hullNumberText;
 
         #endregion
 
@@ -56,6 +58,7 @@ namespace TacticalGame.UI
             UpdateHPBar();
             UpdateMoraleBar();
             UpdateBuzzBar();
+            UpdateHullBar();
             UpdateTexts();
         }
 
@@ -92,6 +95,14 @@ namespace TacticalGame.UI
             }
         }
 
+        private void UpdateHullBar()
+        {
+            if (hullSlider == null) return;
+            
+            hullSlider.maxValue = unitStatus.MaxHullPool;
+            hullSlider.value = unitStatus.CurrentHullPool;
+        }
+
         private void UpdateTexts()
         {
             if (hpNumberText != null)
@@ -107,6 +118,11 @@ namespace TacticalGame.UI
             if (arrowText != null)
             {
                 arrowText.text = unitStatus.CurrentArrows.ToString();
+            }
+
+            if (hullNumberText != null)
+            {
+                hullNumberText.text = unitStatus.CurrentHullPool.ToString();
             }
         }
 

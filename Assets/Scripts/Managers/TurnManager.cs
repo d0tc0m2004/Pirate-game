@@ -5,6 +5,8 @@ using TacticalGame.Config;
 using TacticalGame.Grid;
 using TacticalGame.Hazards;
 using TacticalGame.Units;
+using TacticalGame.Combat;
+using TacticalGame.Enums;
 
 namespace TacticalGame.Managers
 {
@@ -18,6 +20,7 @@ namespace TacticalGame.Managers
         private bool isPlayerTurn = true;
         private int currentRound = 1;
         private int swapsUsedThisRound = 0;
+        private bool playerWentFirst = true; // Track who went first this round
         private EnergyManager energyManager;
         private GridManager gridManager;
 
@@ -28,6 +31,12 @@ namespace TacticalGame.Managers
         public bool IsPlayerTurn => isPlayerTurn;
         public int CurrentRound => currentRound;
         public int SwapsUsedThisRound => swapsUsedThisRound;
+        
+        /// <summary>
+        /// Returns true if the current acting team went first this round.
+        /// Used for first-action damage bonus.
+        /// </summary>
+        public bool IsFirstActionTeam => (isPlayerTurn && playerWentFirst) || (!isPlayerTurn && !playerWentFirst);
 
         #endregion
 
@@ -59,8 +68,12 @@ namespace TacticalGame.Managers
         public void StartGameLoop()
         {
             currentRound = 1;
-            isPlayerTurn = true;
             swapsUsedThisRound = 0;
+
+            // Calculate initiative to determine who goes first
+            var initiative = InitiativeSystem.CalculateInitiative();
+            playerWentFirst = (initiative.FirstTeam == Team.Player);
+            isPlayerTurn = playerWentFirst;
 
             if (energyManager != null)
             {
@@ -71,7 +84,16 @@ namespace TacticalGame.Managers
             
             GameEvents.TriggerBattleStart();
             GameEvents.TriggerRoundStart(currentRound);
-            GameEvents.TriggerPlayerTurnStart();
+            
+            if (isPlayerTurn)
+            {
+                GameEvents.TriggerPlayerTurnStart();
+            }
+            else
+            {
+                GameEvents.TriggerEnemyTurnStart();
+                StartCoroutine(AutoSkipEnemyTurn());
+            }
         }
 
         /// <summary>
@@ -100,15 +122,23 @@ namespace TacticalGame.Managers
             // Toggle turn
             isPlayerTurn = !isPlayerTurn;
 
-            if (isPlayerTurn)
+            // Check if we've completed a full round (both teams have acted)
+            bool roundComplete = (isPlayerTurn == playerWentFirst);
+
+            if (roundComplete)
             {
                 // New round begins
                 currentRound++;
                 swapsUsedThisRound = 0;
                 
+                // Recalculate initiative for the new round
+                var initiative = InitiativeSystem.CalculateInitiative();
+                playerWentFirst = (initiative.FirstTeam == Team.Player);
+                isPlayerTurn = playerWentFirst;
+                
                 Debug.Log($"Round {currentRound} Start! Swap limit reset.");
 
-                if (energyManager != null)
+                if (energyManager != null && isPlayerTurn)
                 {
                     energyManager.StartTurn();
                 }
@@ -116,16 +146,22 @@ namespace TacticalGame.Managers
                 ResetUnitsForNewTurn();
                 
                 GameEvents.TriggerRoundStart(currentRound);
+            }
+
+            if (isPlayerTurn)
+            {
+                if (!roundComplete && energyManager != null)
+                {
+                    energyManager.StartTurn();
+                }
+                ResetUnitsForNewTurn();
                 GameEvents.TriggerPlayerTurnStart();
             }
             else
             {
-                // Enemy turn
-                Debug.Log($"Enemy Turn. Skipping in {GameConfig.Instance.enemyTurnDelay}s...");
                 ResetUnitsForNewTurn();
-                
                 GameEvents.TriggerEnemyTurnStart();
-                
+                Debug.Log($"Enemy Turn. Skipping in {GameConfig.Instance.enemyTurnDelay}s...");
                 StartCoroutine(AutoSkipEnemyTurn());
             }
         }

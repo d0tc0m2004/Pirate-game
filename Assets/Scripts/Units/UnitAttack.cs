@@ -20,6 +20,7 @@ namespace TacticalGame.Units
         private UnitMovement movement;
         private EnergyManager energyManager;
         private GridManager gridManager;
+        private TurnManager turnManager;
 
         #endregion
 
@@ -58,6 +59,10 @@ namespace TacticalGame.Units
             if (energyManager == null)
             {
                 energyManager = ServiceLocator.Get<EnergyManager>();
+            }
+            if (turnManager == null)
+            {
+                turnManager = ServiceLocator.Get<TurnManager>();
             }
         }
 
@@ -173,6 +178,7 @@ namespace TacticalGame.Units
         private void ExecuteAttack(UnitStatus target, bool isMelee)
         {
             var config = GameConfig.Instance;
+            CacheManagerReferences();
             
             // Get standing bonuses from current tile
             var bonuses = GetStandingBonuses();
@@ -182,14 +188,18 @@ namespace TacticalGame.Units
                 ? DamageCalculator.GetMeleeBaseDamage(status)
                 : DamageCalculator.GetRangedBaseDamage(status);
 
-            // Apply damage to target
+            // Check if this is the first-action team (for Speed bonus)
+            bool isFirstAction = turnManager != null && turnManager.IsFirstActionTeam;
+
+            // Apply damage to target (pass first-action info)
             target.TakeDamage(
                 baseDamage, 
                 gameObject, 
                 isMelee, 
                 bonuses.hp, 
                 bonuses.morale, 
-                bonuses.applyCurse
+                bonuses.applyCurse,
+                isFirstAction
             );
 
             // Post-attack effects
