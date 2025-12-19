@@ -18,11 +18,11 @@ MonoBehaviour:
   isDestructible: 0
   maxHealth: 2
   causesDisplacement: 0
-  shapePattern: 0
-  effectType: 0
+  shapePattern: 4
+  effectType: 5
   damageHP: 0
   damageMorale: 0
-  effectDuration: 0
+  effectDuration: 1
   curseMultiplier: 1
   standingBonusHP: 0
   standingBonusMorale: 0

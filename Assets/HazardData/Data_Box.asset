@@ -14,12 +14,12 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::HazardData
   hazardName: 
   hazardPrefab: {fileID: 1776223160548118709, guid: 1ec6fc75ebca91845844d7028512226f, type: 3}
-  isBlocking: 0
-  isDestructible: 0
+  isBlocking: 1
+  isDestructible: 1
   maxHealth: 2
-  causesDisplacement: 0
+  causesDisplacement: 1
   shapePattern: 0
-  effectType: 0
+  effectType: 8
   damageHP: 0
   damageMorale: 0
   effectDuration: 0

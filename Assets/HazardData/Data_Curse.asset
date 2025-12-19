@@ -19,12 +19,12 @@ MonoBehaviour:
   maxHealth: 2
   causesDisplacement: 0
   shapePattern: 0
-  effectType: 0
+  effectType: 6
   damageHP: 0
-  damageMorale: 0
+  damageMorale: 15
   effectDuration: 0
   curseMultiplier: 1
   standingBonusHP: 0
   standingBonusMorale: 0
-  standingAppliesCurse: 0
+  standingAppliesCurse: 1
   dropItem: {fileID: 0}

@@ -20,24 +20,30 @@ namespace TacticalGame.Units
         [SerializeField] private Team team;
         [SerializeField] private WeaponType weaponType;
 
+        [Header("Primary/Secondary Stats")]
+        [SerializeField] private StatType primaryStat;
+        [SerializeField] private StatType secondaryPrimaryStat; // Captain only
+        [SerializeField] private StatType secondaryStat;
+        [SerializeField] private bool hasTwoPrimaryStats;
+
         [Header("Health & Morale")]
-        [SerializeField] private int maxHP = 100;
+        [SerializeField] private int maxHP = 600;
         [SerializeField] private int currentHP;
-        [SerializeField] private int maxMorale = 100;
+        [SerializeField] private int maxMorale = 900;
         [SerializeField] private int currentMorale;
 
         [Header("Core Stats")]
-        [SerializeField] private int grit;
-        [SerializeField] private int buzz;
         [SerializeField] private int power;
         [SerializeField] private int aim;
-        [SerializeField] private int proficiency;
-        [SerializeField] private int skill;
         [SerializeField] private int tactics;
-        [SerializeField] private int speed;
+        [SerializeField] private int skill;
+        [SerializeField] private int proficiency; // Stored as percentage (150 = 1.5x)
+        [SerializeField] private int grit;
         [SerializeField] private int hull;
+        [SerializeField] private int speed;
 
         [Header("Buzz System")]
+        [SerializeField] private int maxBuzz = 100; // Buzz capacity from stats
         [SerializeField] private int currentBuzz = 0;
 
         [Header("Ammo")]
@@ -79,6 +85,12 @@ namespace TacticalGame.Units
         public WeaponType WeaponType => weaponType;
         public bool IsCaptain => role == UnitRole.Captain;
 
+        // Primary/Secondary tracking
+        public StatType PrimaryStat => primaryStat;
+        public StatType SecondaryPrimaryStat => secondaryPrimaryStat;
+        public StatType SecondaryStat => secondaryStat;
+        public bool HasTwoPrimaryStats => hasTwoPrimaryStats;
+
         // Health & Morale
         public int MaxHP => maxHP;
         public int CurrentHP => currentHP;
@@ -88,20 +100,20 @@ namespace TacticalGame.Units
         public float MoralePercent => maxMorale > 0 ? (float)currentMorale / maxMorale : 0f;
 
         // Stats
-        public int Grit => grit;
-        public int Buzz => buzz;
         public int Power => power;
         public int Aim => aim;
-        public int Proficiency => proficiency;
-        public int Skill => skill;
         public int Tactics => tactics;
-        public int Speed => speed;
+        public int Skill => skill;
+        public int Proficiency => proficiency;
+        public float ProficiencyMultiplier => proficiency / 100f;
+        public int Grit => grit;
         public int Hull => hull;
+        public int Speed => speed;
 
         // Buzz System
         public int CurrentBuzz => currentBuzz;
-        public int MaxBuzz => GameConfig.Instance.maxBuzz;
-        public bool IsTooDrunk => currentBuzz >= MaxBuzz;
+        public int MaxBuzz => maxBuzz;
+        public bool IsTooDrunk => currentBuzz >= maxBuzz;
 
         // Ammo
         public int MaxArrows => GameConfig.Instance.defaultMaxArrows;
@@ -161,20 +173,28 @@ namespace TacticalGame.Units
             team = data.team;
             weaponType = data.weaponType;
 
+            // Primary/Secondary stat tracking
+            primaryStat = data.primaryStat;
+            secondaryPrimaryStat = data.secondaryPrimaryStat;
+            secondaryStat = data.secondaryStat;
+            hasTwoPrimaryStats = data.hasTwoPrimaryStats;
+
+            // Set stats from data
             maxHP = data.health;
             currentHP = maxHP;
             maxMorale = data.morale;
             currentMorale = maxMorale;
+            maxBuzz = data.buzz; // Buzz is now capacity
+            currentBuzz = 0;
             
-            grit = data.grit;
-            buzz = data.buzz;
             power = data.power;
             aim = data.aim;
-            proficiency = data.proficiency;
-            skill = data.skill;
             tactics = data.tactics;
-            speed = data.speed;
+            skill = data.skill;
+            proficiency = data.proficiency;
+            grit = data.grit;
             hull = data.hull;
+            speed = data.speed;
 
             currentArrows = MaxArrows;
         }
@@ -213,8 +233,12 @@ namespace TacticalGame.Units
                 flatBonusMorale
             );
 
+            // Apply Grit damage reduction
+            float gritDR = CalculateGritDamageReduction();
+            int finalHPDamage = Mathf.RoundToInt(result.FinalHPDamage * (1f - gritDR));
+
             // Apply HP damage
-            currentHP -= result.FinalHPDamage;
+            currentHP -= finalHPDamage;
 
             // Apply morale damage
             ApplyMoraleDamage(result.FinalMoraleDamage);
@@ -223,20 +247,37 @@ namespace TacticalGame.Units
             string attackerName = source != null ? source.name : "Unknown Source";
             Debug.Log($"<color=red><b>DAMAGE REPORT: {gameObject.name}</b></color>\n" +
                       $"<b>Attacker:</b> {attackerName}\n" +
-                      $"<b>HP Lost: {result.FinalHPDamage}</b>  [{result.HPBreakdown}]\n" +
+                      $"<b>HP Lost: {finalHPDamage}</b> (Grit DR: {gritDR:P0}) [{result.HPBreakdown}]\n" +
                       $"<b>Morale Lost: {result.FinalMoraleDamage}</b>  [{result.MoraleBreakdown}]");
 
             // Reduce curse charges
             if (curseCharges > 0) curseCharges--;
 
             // Fire event
-            GameEvents.TriggerUnitDamaged(gameObject, result.FinalHPDamage);
+            GameEvents.TriggerUnitDamaged(gameObject, finalHPDamage);
 
             // Check death
             if (currentHP <= 0)
             {
                 Die();
             }
+        }
+
+        /// <summary>
+        /// Calculate Grit-based damage reduction.
+        /// Formula: GritFactor = ((1 - HP%) × 0.50 + Morale% × 0.40)
+        /// DR = GritFactor × (Grit / 100), capped at 40%
+        /// </summary>
+        private float CalculateGritDamageReduction()
+        {
+            float hpPercent = HPPercent;
+            float moralePercent = MoralePercent;
+            
+            float gritFactor = ((1f - hpPercent) * 0.50f) + (moralePercent * 0.40f);
+            float damageReduction = gritFactor * (grit / 100f);
+            
+            // Cap at 40%
+            return Mathf.Clamp(damageReduction, 0f, 0.40f);
         }
 
         /// <summary>
@@ -290,7 +331,7 @@ namespace TacticalGame.Units
             var config = GameConfig.Instance;
             
             currentBuzz += config.buzzPerDrink;
-            if (currentBuzz > MaxBuzz) currentBuzz = MaxBuzz;
+            if (currentBuzz > maxBuzz) currentBuzz = maxBuzz;
 
             if (type == "Health")
             {
@@ -574,6 +615,28 @@ namespace TacticalGame.Units
             {
                 originalColor = meshRenderer.material.color;
             }
+        }
+
+        #endregion
+
+        #region Stat Helpers
+
+        /// <summary>
+        /// Check if a stat is this unit's primary stat.
+        /// </summary>
+        public bool IsPrimaryStat(StatType stat)
+        {
+            if (stat == primaryStat) return true;
+            if (hasTwoPrimaryStats && stat == secondaryPrimaryStat) return true;
+            return false;
+        }
+
+        /// <summary>
+        /// Check if a stat is this unit's secondary stat.
+        /// </summary>
+        public bool IsSecondaryStat(StatType stat)
+        {
+            return stat == secondaryStat;
         }
 
         #endregion

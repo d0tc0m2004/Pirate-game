@@ -18,13 +18,13 @@ MonoBehaviour:
   isDestructible: 0
   maxHealth: 2
   causesDisplacement: 0
-  shapePattern: 0
-  effectType: 0
+  shapePattern: 3
+  effectType: 3
   damageHP: 0
-  damageMorale: 0
+  damageMorale: 15
   effectDuration: 0
   curseMultiplier: 1
   standingBonusHP: 0
-  standingBonusMorale: 0
+  standingBonusMorale: 10
   standingAppliesCurse: 0
   dropItem: {fileID: 0}

@@ -19,7 +19,7 @@ MonoBehaviour:
   maxHealth: 2
   causesDisplacement: 0
   shapePattern: 0
-  effectType: 0
+  effectType: 2
   damageHP: 0
   damageMorale: 0
   effectDuration: 0
