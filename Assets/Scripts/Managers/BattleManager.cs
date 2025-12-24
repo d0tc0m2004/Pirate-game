@@ -22,7 +22,8 @@ namespace TacticalGame.Managers
 
         [Header("Selection Visuals")]
         [SerializeField] private Color moveRangeColor = Color.blue;
-        [SerializeField] private Color attackTargetColor = Color.red;
+        [SerializeField] private Color attackTargetColor = Color.yellow;
+        [SerializeField] private float pulseSpeed = 3f;
 
         #endregion
 
@@ -42,6 +43,8 @@ namespace TacticalGame.Managers
         // Attack target highlighting
         private GameObject currentAttackTarget;
         private Color originalTargetColor;
+        private MeshRenderer targetRenderer;
+        private bool isPulsing = false;
 
         #endregion
 
@@ -86,6 +89,7 @@ namespace TacticalGame.Managers
             if (!isBattleActive) return;
 
             HandleInput();
+            UpdateAttackTargetPulse();
         }
 
         #endregion
@@ -469,26 +473,34 @@ namespace TacticalGame.Managers
 
             currentAttackTarget = target.gameObject;
 
-            // Highlight the target unit
-            MeshRenderer renderer = currentAttackTarget.GetComponent<MeshRenderer>();
-            if (renderer != null)
+            // Get renderer and store original color
+            targetRenderer = currentAttackTarget.GetComponent<MeshRenderer>();
+            if (targetRenderer != null)
             {
-                originalTargetColor = renderer.material.color;
-                renderer.material.color = attackTargetColor;
+                originalTargetColor = targetRenderer.material.color;
+                isPulsing = true;
             }
+        }
+
+        private void UpdateAttackTargetPulse()
+        {
+            if (!isPulsing || targetRenderer == null) return;
+
+            // Pulse between original color and highlight color using sine wave
+            float pulse = (Mathf.Sin(Time.time * pulseSpeed) + 1f) / 2f; // 0 to 1
+            targetRenderer.material.color = Color.Lerp(originalTargetColor, attackTargetColor, pulse);
         }
 
         private void ClearAttackTargetHighlight()
         {
-            if (currentAttackTarget != null)
+            if (currentAttackTarget != null && targetRenderer != null)
             {
-                MeshRenderer renderer = currentAttackTarget.GetComponent<MeshRenderer>();
-                if (renderer != null)
-                {
-                    renderer.material.color = originalTargetColor;
-                }
-                currentAttackTarget = null;
+                targetRenderer.material.color = originalTargetColor;
             }
+            
+            currentAttackTarget = null;
+            targetRenderer = null;
+            isPulsing = false;
         }
 
         #endregion
