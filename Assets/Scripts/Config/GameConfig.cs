@@ -97,13 +97,27 @@ namespace TacticalGame.Config
 
         [Header("=== COMBAT BALANCE ===")]
         
-        [Header("Base Damage")]
+        [Header("Base Damage (from weapons)")]
         public int meleeBaseDamage = 10;
         public int rangedBaseDamage = 8;
         
         [Header("Stat Scaling (from stat table)")]
-        public float powerScaling = 1.25f;  // Damage = Base + Power×1.25
-        public float aimScaling = 1.35f;    // Damage = Base + Aim×1.35
+        [Tooltip("MeleeOutput = Base × (1 + Power × 0.03)")]
+        public float powerScalingPercent = 0.03f;  // +3% per Power point
+        
+        [Tooltip("RangedOutput = Base × (1 + Aim × 0.03)")]
+        public float aimScalingPercent = 0.03f;    // +3% per Aim point
+        
+        [Tooltip("Potency = Base × (1 + Tactics × 0.04) for heals/buffs/debuffs")]
+        public float tacticsScalingPercent = 0.04f; // +4% per Tactics point
+        
+        [Header("Skill - Combo System")]
+        [Tooltip("ComboStep = clamp(Skill × skillComboMultiplier, comboStepMin, comboStepMax)")]
+        public float skillComboMultiplier = 0.003f;
+        public float comboStepMin = 0.02f;   // 2% minimum combo bonus
+        public float comboStepMax = 0.12f;   // 12% maximum combo bonus
+        [Tooltip("Maximum combo chain count (recommended n ≤ 6)")]
+        public int maxComboChain = 6;
 
         [Header("Damage Modifiers")]
         [Range(0.5f, 1f)]
@@ -155,6 +169,15 @@ namespace TacticalGame.Config
         public float speedToInitiative = 1f;        // Each +1 Speed = +1 Team Initiative
         public float firstActionBonusPerSpeed = 0.002f;  // +0.2% damage per Speed if going first
         public float firstActionBonusCap = 0.15f;   // Cap at 15% bonus damage
+        
+        [Header("=== GRIT SYSTEM (Damage Reduction) ===")]
+        [Tooltip("GritFactor = (1-HP%) × gritLowHPWeight + (Morale%) × gritMoraleWeight")]
+        public float gritLowHPWeight = 0.50f;      // 50% weight for low HP
+        public float gritMoraleWeight = 0.40f;     // 40% weight for morale
+        [Tooltip("DR = min(DRCap, GritFactor × (Grit/100))")]
+        public float gritDRCap = 0.40f;            // 40% max damage reduction
+        [Tooltip("+1% of GritFactor per Grit point")]
+        public float gritPerPointPercent = 0.01f;  // Each Grit adds 1% of GritFactor to DR
         
         [Header("=== HULL SYSTEM ===")]
         public int baseHull = 50;

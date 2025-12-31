@@ -1,0 +1,27 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 471230a83d236d949837c03e7ecb977c, type: 3}
+  m_Name: RoleEffectsDatabase
+  m_EditorClassIdentifier: Assembly-CSharp::TacticalGame.Equipment.RoleEffectsDatabase
+  allRoleEffects:
+  - {fileID: 11400000, guid: 20d9c555beb3e7a449db08e4de66ed35, type: 2}
+  - {fileID: 11400000, guid: bf7499bd086faa042a0102d2dc3d8765, type: 2}
+  - {fileID: 11400000, guid: e5c2e4174811ee54ea154aeb6be03b0b, type: 2}
+  - {fileID: 11400000, guid: 5a955becc618c4047959f6420f7f727c, type: 2}
+  - {fileID: 11400000, guid: 7ae1cf54705933c4f832d7fe58738475, type: 2}
+  - {fileID: 11400000, guid: 37f6684480d7eac4ba17fcc604a795ca, type: 2}
+  - {fileID: 11400000, guid: 9b14e8faa73219b439cac8478cb3ca95, type: 2}
+  - {fileID: 11400000, guid: 049b04b36ddba3d449fc248a1c6e31c3, type: 2}
+  - {fileID: 11400000, guid: 9d37c7abf0d4a894796bd31cd15e339f, type: 2}
+  - {fileID: 11400000, guid: c48f251f22c02f54b8e10da3fec5a0e5, type: 2}
+  - {fileID: 11400000, guid: 5d078c5ddb102d14eb5f91ebad60ae76, type: 2}
+  - {fileID: 11400000, guid: c39159400abbfe14eb84845fb9d328b7, type: 2}

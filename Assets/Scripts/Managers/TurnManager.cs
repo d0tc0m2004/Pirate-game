@@ -241,6 +241,13 @@ namespace TacticalGame.Managers
                 {
                     status.OnTurnStart();
                 }
+
+                // Reset combo counter for Skill system
+                UnitAttack attack = unit.GetComponent<UnitAttack>();
+                if (attack != null)
+                {
+                    attack.ResetCombo();
+                }
             }
         }
 

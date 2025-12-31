@@ -1,26 +1,31 @@
 using System;
+using TacticalGame.Equipment;
 using TacticalGame.Enums;
 
 namespace TacticalGame.Units
 {
     /// <summary>
-    /// Data container for unit stats. Used during character creation and initialization.
+    /// Data container for a unit's stats and equipment.
     /// </summary>
     [Serializable]
     public class UnitData
     {
+        // Identity
         public string unitName;
         public UnitRole role;
         public Team team;
+
+        // Weapon
         public WeaponType weaponType;
+        public WeaponFamily weaponFamily;
 
-        // Primary and Secondary stat tracking
+        // Primary/Secondary tracking
         public StatType primaryStat;
-        public StatType secondaryPrimaryStat; // Only used for Captain (second primary)
+        public StatType secondaryPrimaryStat;
         public StatType secondaryStat;
-        public bool hasTwoPrimaryStats; // True for Captain
+        public bool hasTwoPrimaryStats;
 
-        // Core Stats
+        // Stats
         public int health;
         public int morale;
         public int buzz;
@@ -28,48 +33,18 @@ namespace TacticalGame.Units
         public int aim;
         public int tactics;
         public int skill;
-        public int proficiency; // Stored as percentage (e.g., 150 = 1.5x)
+        public int proficiency;
         public int grit;
         public int hull;
         public int speed;
 
-        /// <summary>
-        /// Get proficiency as a multiplier (e.g., 1.5 for 150%).
-        /// </summary>
-        public float ProficiencyMultiplier => proficiency / 100f;
+        // Equipment - the default weapon relic from character creation
+        [NonSerialized] public WeaponRelic defaultWeaponRelic;
+        
+        // Full equipment data (6 slots with jewels)
+        [NonSerialized] public UnitEquipmentData equipment;
 
-        /// <summary>
-        /// Create a copy of this unit data.
-        /// </summary>
-        public UnitData Clone()
-        {
-            return new UnitData
-            {
-                unitName = this.unitName,
-                role = this.role,
-                team = this.team,
-                weaponType = this.weaponType,
-                primaryStat = this.primaryStat,
-                secondaryPrimaryStat = this.secondaryPrimaryStat,
-                secondaryStat = this.secondaryStat,
-                hasTwoPrimaryStats = this.hasTwoPrimaryStats,
-                health = this.health,
-                morale = this.morale,
-                buzz = this.buzz,
-                power = this.power,
-                aim = this.aim,
-                tactics = this.tactics,
-                skill = this.skill,
-                proficiency = this.proficiency,
-                grit = this.grit,
-                hull = this.hull,
-                speed = this.speed
-            };
-        }
-
-        /// <summary>
-        /// Get a display name for the role.
-        /// </summary>
+        // Display Helpers
         public string GetRoleDisplayName()
         {
             return role switch
@@ -80,12 +55,40 @@ namespace TacticalGame.Units
             };
         }
 
-        /// <summary>
-        /// Get the stat value by StatType.
-        /// </summary>
-        public int GetStat(StatType statType)
+        public string GetWeaponFamilyDisplayName()
         {
-            return statType switch
+            return weaponFamily switch
+            {
+                WeaponFamily.BoardingPike => "Boarding Pike",
+                WeaponFamily.CursedBird => "Cursed Bird",
+                WeaponFamily.CursedMonkey => "Cursed Monkey",
+                _ => weaponFamily.ToString()
+            };
+        }
+
+        public float GetProficiencyMultiplier() => proficiency / 100f;
+
+        public void SetStat(StatType stat, int value)
+        {
+            switch (stat)
+            {
+                case StatType.Health: health = value; break;
+                case StatType.Morale: morale = value; break;
+                case StatType.Buzz: buzz = value; break;
+                case StatType.Power: power = value; break;
+                case StatType.Aim: aim = value; break;
+                case StatType.Tactics: tactics = value; break;
+                case StatType.Skill: skill = value; break;
+                case StatType.Proficiency: proficiency = value; break;
+                case StatType.Grit: grit = value; break;
+                case StatType.Hull: hull = value; break;
+                case StatType.Speed: speed = value; break;
+            }
+        }
+
+        public int GetStat(StatType stat)
+        {
+            return stat switch
             {
                 StatType.Health => health,
                 StatType.Morale => morale,
@@ -102,25 +105,9 @@ namespace TacticalGame.Units
             };
         }
 
-        /// <summary>
-        /// Set the stat value by StatType.
-        /// </summary>
-        public void SetStat(StatType statType, int value)
+        public bool HasRoleMatchingRelic()
         {
-            switch (statType)
-            {
-                case StatType.Health: health = value; break;
-                case StatType.Morale: morale = value; break;
-                case StatType.Buzz: buzz = value; break;
-                case StatType.Power: power = value; break;
-                case StatType.Aim: aim = value; break;
-                case StatType.Tactics: tactics = value; break;
-                case StatType.Skill: skill = value; break;
-                case StatType.Proficiency: proficiency = value; break;
-                case StatType.Grit: grit = value; break;
-                case StatType.Hull: hull = value; break;
-                case StatType.Speed: speed = value; break;
-            }
+            return defaultWeaponRelic != null && defaultWeaponRelic.MatchesRole(role);
         }
     }
 }

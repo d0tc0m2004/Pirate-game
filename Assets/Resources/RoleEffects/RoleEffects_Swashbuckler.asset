@@ -1,0 +1,38 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2d20672a8e7a3c748aee93cc35d62eac, type: 3}
+  m_Name: RoleEffects_Swashbuckler
+  m_EditorClassIdentifier: Assembly-CSharp::TacticalGame.Equipment.RoleWeaponEffects
+  role: 10
+  effect1Name: Quick Strike
+  effect1Description: 'On-hit: If the weapon attacks first in a turn its cost is
+    0'
+  effect1Type: 31
+  effect1Value1: 0
+  effect1Value2: 0
+  effect1Duration: 0
+  effect2Name: Speed Advantage
+  effect2Description: 'On-hit: Does 20% bonus damage if the target has lower speed
+    stat'
+  effect2Type: 32
+  effect2Value1: 0.2
+  effect2Value2: 0
+  effect2Duration: 0
+  effect2BonusDamage: 0.2
+  effect3Name: First Blood
+  effect3Description: 'On-hit: If the unit attacks first in a turn it does 50% increased
+    damage'
+  effect3Type: 33
+  effect3Value1: 0.5
+  effect3Value2: 0
+  effect3Duration: 0
+  effect3BonusDamage: 0.4

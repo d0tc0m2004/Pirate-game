@@ -1,0 +1,37 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2d20672a8e7a3c748aee93cc35d62eac, type: 3}
+  m_Name: RoleEffects_Quartermaster
+  m_EditorClassIdentifier: Assembly-CSharp::TacticalGame.Equipment.RoleWeaponEffects
+  role: 1
+  effect1Name: Morale Theft
+  effect1Description: 'On-hit: Steals 50 morale'
+  effect1Type: 4
+  effect1Value1: 50
+  effect1Value2: 0
+  effect1Duration: 0
+  effect2Name: Morale Pressure
+  effect2Description: 'On-hit: Does 20% extra damage if the target has lower current
+    morale than this unit'
+  effect2Type: 5
+  effect2Value1: 0.2
+  effect2Value2: 0
+  effect2Duration: 0
+  effect2BonusDamage: 0.2
+  effect3Name: Rally Cry
+  effect3Description: 'On-hit: Restores morale to all allied units based on 20% from
+    this unit''s current morale'
+  effect3Type: 6
+  effect3Value1: 0.2
+  effect3Value2: 0
+  effect3Duration: 0
+  effect3BonusDamage: 0.4

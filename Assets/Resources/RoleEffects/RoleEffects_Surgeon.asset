@@ -1,0 +1,37 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2d20672a8e7a3c748aee93cc35d62eac, type: 3}
+  m_Name: RoleEffects_Surgeon
+  m_EditorClassIdentifier: Assembly-CSharp::TacticalGame.Equipment.RoleWeaponEffects
+  role: 8
+  effect1Name: Combat Medic
+  effect1Description: 'On-hit: Restores 150 health to closest ally unit'
+  effect1Type: 25
+  effect1Value1: 150
+  effect1Value2: 0
+  effect1Duration: 0
+  effect2Name: Wound
+  effect2Description: 'On-hit: Applies a debuff - for 2 turns the target can''t restore
+    health or morale'
+  effect2Type: 26
+  effect2Value1: 0
+  effect2Value2: 0
+  effect2Duration: 2
+  effect2BonusDamage: 0.2
+  effect3Name: Team Synergy
+  effect3Description: 'On-hit: Does 20% increased damage for each allied unit in
+    1 tile radius'
+  effect3Type: 27
+  effect3Value1: 0.2
+  effect3Value2: 1
+  effect3Duration: 0
+  effect3BonusDamage: 0.4

@@ -60,6 +60,10 @@ namespace TacticalGame.Managers
 
         [Header("References")]
         [SerializeField] private DeploymentManager deploymentManager;
+        
+        [Header("Equipment UI (Code-Built)")]
+        [Tooltip("Leave empty - will be created automatically if not assigned")]
+        [SerializeField] private EquipmentUIBuilder equipmentUIBuilder;
 
         [Header("Display Settings")]
         [SerializeField] private Color primaryStatColor = new Color(0.2f, 1f, 0.2f);   // Green
@@ -102,11 +106,38 @@ namespace TacticalGame.Managers
 
             if (creationCanvas != null) creationCanvas.SetActive(true);
             if (battleCanvas != null) battleCanvas.SetActive(false);
+            
+            // Create EquipmentUIBuilder if not assigned
+            SetupEquipmentUI();
         }
 
         #endregion
 
-        #region Panel Setup
+        #region Setup
+
+        private void SetupEquipmentUI()
+        {
+            // Find existing or create new
+            if (equipmentUIBuilder == null)
+            {
+                equipmentUIBuilder = FindObjectOfType<EquipmentUIBuilder>();
+            }
+            
+            if (equipmentUIBuilder == null)
+            {
+                // Create a new GameObject with EquipmentUIBuilder
+                GameObject equipmentUIObject = new GameObject("EquipmentUI");
+                equipmentUIBuilder = equipmentUIObject.AddComponent<EquipmentUIBuilder>();
+                Debug.Log("Created EquipmentUIBuilder automatically");
+            }
+            
+            // Set up callbacks
+            equipmentUIBuilder.onBackClicked = OnEquipmentBackClicked;
+            equipmentUIBuilder.onStartBattle = OnEquipmentStartBattle;
+            
+            // Hide it initially
+            equipmentUIBuilder.gameObject.SetActive(false);
+        }
 
         private void SetupPanels(List<UnitGenerationPanel> panels, Team team)
         {
@@ -185,10 +216,10 @@ namespace TacticalGame.Managers
                 panel.proficiencyText.text = $"Proficiency: {multiplier:F2}x{suffix}";
             }
 
-            // Weapon type
+            // Weapon family and type
             if (panel.weaponText != null)
             {
-                panel.weaponText.text = $"Weapon: {data.weaponType}";
+                panel.weaponText.text = $"Weapon: {data.GetWeaponFamilyDisplayName()} ({data.weaponType})";
             }
 
             // Primary stat info
@@ -256,7 +287,7 @@ namespace TacticalGame.Managers
 
         #endregion
 
-        #region Game Start
+        #region Game Flow
 
         private void OnStartGameClicked()
         {
@@ -276,12 +307,56 @@ namespace TacticalGame.Managers
                 return;
             }
 
+            // Hide creation canvas and open equipment UI
             if (creationCanvas != null) creationCanvas.SetActive(false);
+            
+            if (equipmentUIBuilder != null)
+            {
+                equipmentUIBuilder.Open(playerUnits, enemyUnits);
+            }
+            else
+            {
+                // Fallback: go directly to deployment
+                Debug.LogWarning("EquipmentUIBuilder not found! Going directly to deployment.");
+                GoToDeployment(playerUnits, enemyUnits);
+            }
+        }
+
+        private void OnEquipmentBackClicked()
+        {
+            // Close equipment UI and show creation canvas
+            if (equipmentUIBuilder != null)
+            {
+                equipmentUIBuilder.Close();
+            }
+            
+            if (creationCanvas != null) creationCanvas.SetActive(true);
+        }
+
+        private void OnEquipmentStartBattle(List<UnitData> playerUnits, List<UnitData> enemyUnits)
+        {
+            // Close equipment UI
+            if (equipmentUIBuilder != null)
+            {
+                equipmentUIBuilder.Close();
+            }
+            
+            // Go to deployment
+            GoToDeployment(playerUnits, enemyUnits);
+        }
+
+        private void GoToDeployment(List<UnitData> playerUnits, List<UnitData> enemyUnits)
+        {
             if (battleCanvas != null) battleCanvas.SetActive(true);
 
             if (deploymentManager != null)
             {
+                deploymentManager.gameObject.SetActive(true);
                 deploymentManager.StartManualDeployment(playerUnits, enemyUnits);
+            }
+            else
+            {
+                Debug.LogError("DeploymentManager not assigned!");
             }
         }
 

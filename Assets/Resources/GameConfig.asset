@@ -80,8 +80,13 @@ MonoBehaviour:
   speedHighMax: 50
   meleeBaseDamage: 10
   rangedBaseDamage: 8
-  powerScaling: 1.25
-  aimScaling: 1.35
+  powerScalingPercent: 0.03
+  aimScalingPercent: 0.03
+  tacticsScalingPercent: 0.04
+  skillComboMultiplier: 0.003
+  comboStepMin: 0.02
+  comboStepMax: 0.12
+  maxComboChain: 6
   drunkDamageMultiplier: 0.8
   rangedHPMultiplier: 1.1
   meleeMoraleMultiplier: 1.1
@@ -113,6 +118,10 @@ MonoBehaviour:
   speedToInitiative: 1
   firstActionBonusPerSpeed: 0.002
   firstActionBonusCap: 0.15
+  gritLowHPWeight: 0.5
+  gritMoraleWeight: 0.4
+  gritDRCap: 0.4
+  gritPerPointPercent: 0.01
   baseHull: 50
   hullPerPoint: 10
   hullAbsorbPercent: 0.3

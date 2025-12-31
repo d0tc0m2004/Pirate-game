@@ -1,0 +1,32 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7b3f4fbdc6d5f5145a94757ecaec3491, type: 3}
+  m_Name: Weapon_Hammer
+  m_EditorClassIdentifier: Assembly-CSharp::TacticalGame.Equipment.WeaponData
+  weaponName: Hammer
+  family: 4
+  subType: 1
+  attackType: 0
+  cardCopies: 2
+  energyCost: 2
+  baseDamage: 75
+  scalingStat: 0
+  scalingCoefficient: 1.25
+  defaultTarget: 0
+  defaultArea: 0
+  effectType: 5
+  effectDescription: 'Concuss - Apply Daze (1 Turn): Target does -20% damage next
+    round'
+  effectValue1: 0.2
+  effectValue2: 0
+  effectDuration: 1
+  weaponIcon: {fileID: 0}

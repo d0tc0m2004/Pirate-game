@@ -223,7 +223,7 @@ namespace TacticalGame.Units
         /// </summary>
         public void TakeDamage(int rawDamage, GameObject source, bool isMelee, 
                                int flatBonusHP = 0, int flatBonusMorale = 0, bool applyCurse = false,
-                               bool isFirstAction = false)
+                               bool isFirstAction = false, int comboCount = 1)
         {
             if (hasSurrendered) return;
 
@@ -239,10 +239,10 @@ namespace TacticalGame.Units
             // Check for adjacency cover
             bool hasCover = CheckAdjacencyCover();
 
-            // Get attacker status for first-action bonus calculation
+            // Get attacker status for first-action bonus and combo calculation
             UnitStatus attackerStatus = source != null ? source.GetComponent<UnitStatus>() : null;
 
-            // Calculate damage using DamageCalculator
+            // Calculate damage using DamageCalculator (includes combo scaling)
             var result = DamageCalculator.Calculate(
                 rawDamage, 
                 isMelee, 
@@ -250,6 +250,7 @@ namespace TacticalGame.Units
                 this, 
                 hasCover,
                 isFirstAction,
+                comboCount,
                 flatBonusHP, 
                 flatBonusMorale
             );
@@ -281,8 +282,9 @@ namespace TacticalGame.Units
             // Log damage report
             string attackerName = source != null ? source.name : "Unknown Source";
             string hullInfo = hullAbsorbed > 0 ? $" (Hull absorbed: {hullAbsorbed}, Hull remaining: {currentHullPool})" : "";
+            string comboInfo = comboCount > 1 ? $" [Combo x{comboCount}]" : "";
             Debug.Log($"<color=red><b>DAMAGE REPORT: {gameObject.name}</b></color>\n" +
-                      $"<b>Attacker:</b> {attackerName}\n" +
+                      $"<b>Attacker:</b> {attackerName}{comboInfo}\n" +
                       $"<b>HP Lost: {finalHPDamage}</b> (Grit DR: {gritDR:P0}){hullInfo} [{result.HPBreakdown}]\n" +
                       $"<b>Morale Lost: {result.FinalMoraleDamage}</b>  [{result.MoraleBreakdown}]");
 
@@ -302,18 +304,12 @@ namespace TacticalGame.Units
         /// <summary>
         /// Calculate Grit-based damage reduction.
         /// Formula: GritFactor = ((1 - HP%) × 0.50 + Morale% × 0.40)
-        /// DR = GritFactor × (Grit / 100), capped at 40%
+        /// DR = min(DRCap, GritFactor × (Grit / 100))
         /// </summary>
         private float CalculateGritDamageReduction()
         {
-            float hpPercent = HPPercent;
-            float moralePercent = MoralePercent;
-            
-            float gritFactor = ((1f - hpPercent) * 0.50f) + (moralePercent * 0.40f);
-            float damageReduction = gritFactor * (grit / 100f);
-            
-            // Cap at 40%
-            return Mathf.Clamp(damageReduction, 0f, 0.40f);
+            // Use the centralized calculation from DamageCalculator
+            return DamageCalculator.GetGritDamageReduction(this);
         }
 
         /// <summary>

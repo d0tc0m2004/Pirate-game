@@ -1,235 +1,248 @@
 using UnityEngine;
+using TacticalGame.Equipment;
 using TacticalGame.Enums;
-using TacticalGame.Config;
-using TacticalGame.Core;
-using TacticalGame.Combat;
+using TacticalGame.Units;
 using TacticalGame.Grid;
-using TacticalGame.Hazards;
 using TacticalGame.Managers;
+using TacticalGame.Hazards;
 
 namespace TacticalGame.Units
 {
     /// <summary>
-    /// Handles unit attack actions (melee and ranged).
+    /// Handles unit attack logic with weapon relic integration.
     /// </summary>
     public class UnitAttack : MonoBehaviour
     {
-        #region Cached References
-        
-        private UnitStatus status;
-        private UnitMovement movement;
+        [Header("Stats")]
+        [SerializeField] private int attackEnergyCost = 1;
+
+        private UnitStatus myStatus;
+        private UnitMovement myMovement;
         private EnergyManager energyManager;
         private GridManager gridManager;
-        private TurnManager turnManager;
 
-        #endregion
-
-        #region Unity Lifecycle
-
-        private void Awake()
-        {
-            status = GetComponent<UnitStatus>();
-            movement = GetComponent<UnitMovement>();
-        }
+        [Header("Weapon Relic")]
+        private WeaponRelic equippedWeaponRelic;
+        private int attacksThisTurn = 0;
+        private int comboCount = 0;
 
         private void Start()
         {
-            CacheManagerReferences();
+            myStatus = GetComponent<UnitStatus>();
+            myMovement = GetComponent<UnitMovement>();
+            energyManager = FindFirstObjectByType<EnergyManager>();
+            gridManager = FindFirstObjectByType<GridManager>();
         }
 
-        #endregion
-
-        #region Setup
-
-        /// <summary>
-        /// Manually set manager references (called during deployment).
-        /// </summary>
         public void SetupManagers(GridManager grid, EnergyManager energy)
         {
-            gridManager = grid;
-            energyManager = energy;
+            this.gridManager = grid;
+            this.energyManager = energy;
         }
-
-        private void CacheManagerReferences()
-        {
-            if (gridManager == null)
-            {
-                gridManager = ServiceLocator.Get<GridManager>();
-            }
-            if (energyManager == null)
-            {
-                energyManager = ServiceLocator.Get<EnergyManager>();
-            }
-            if (turnManager == null)
-            {
-                turnManager = ServiceLocator.Get<TurnManager>();
-            }
-        }
-
-        #endregion
-
-        #region Public Attack Methods
 
         /// <summary>
-        /// Attempt a melee attack on the nearest enemy.
+        /// Set the weapon relic for this unit (called during deployment).
         /// </summary>
+        public void SetWeaponRelic(WeaponRelic relic)
+        {
+            equippedWeaponRelic = relic;
+            if (relic != null)
+            {
+                Debug.Log($"<color=cyan>{gameObject.name} equipped: {relic.relicName}</color>");
+            }
+        }
+
+        /// <summary>
+        /// Get the equipped weapon relic.
+        /// </summary>
+        public WeaponRelic GetWeaponRelic()
+        {
+            return equippedWeaponRelic;
+        }
+
+        /// <summary>
+        /// Reset combo counter at start of turn.
+        /// </summary>
+        public void ResetCombo()
+        {
+            comboCount = 0;
+            attacksThisTurn = 0;
+        }
+
+        /// <summary>
+        /// Reset attacks at start of turn.
+        /// </summary>
+        public void ResetForNewTurn()
+        {
+            attacksThisTurn = 0;
+            comboCount = 0;
+        }
+
         public void TryMeleeAttack()
         {
-            if (!CanAttack()) return;
+            if (!CanAct()) return;
+
+            // Check weapon type using enum
+            if (myStatus.WeaponType == WeaponType.Ranged)
+            {
+                Debug.Log($"<color=red>{name} cannot Melee! (Equipped: Ranged)</color>");
+                return;
+            }
+
+            if (energyManager == null) energyManager = FindFirstObjectByType<EnergyManager>();
+            if (!energyManager.TrySpendEnergy(attackEnergyCost)) return;
+
+            UnitStatus target = FindNearestEnemy();
+            if (target != null)
+            {
+                if (IsBlockedByRow(target))
+                {
+                    Debug.Log("Attack Blocked by Obstacle in Row!");
+                    return;
+                }
+
+                ExecuteAttack(target, true);
+            }
+        }
+
+        public void TryRangedAttack()
+        {
+            if (!CanAct()) return;
             
-            if (status.WeaponType == WeaponType.Ranged)
+            // Check weapon type using enum
+            if (myStatus.WeaponType == WeaponType.Melee)
             {
-                Debug.Log($"<color=red>{gameObject.name} cannot Melee! (Equipped: Ranged)</color>");
+                Debug.Log($"<color=red>{name} cannot Shoot! (Equipped: Melee)</color>");
                 return;
             }
 
-            if (!TrySpendAttackEnergy()) return;
+            if (myStatus.CurrentArrows <= 0) return;
 
-            UnitStatus target = TargetFinder.FindNearestEnemy(status);
-            if (target == null)
+            if (energyManager == null) energyManager = FindFirstObjectByType<EnergyManager>();
+            if (!energyManager.TrySpendEnergy(attackEnergyCost)) return;
+
+            UnitStatus target = FindNearestEnemy();
+            if (target != null)
             {
-                Debug.Log("No valid target found!");
-                return;
-            }
+                if (IsBlockedByRow(target))
+                {
+                    Debug.Log("Shot Blocked by Obstacle in Row!");
+                    myStatus.UseArrow();
+                    return;
+                }
 
-            if (IsBlockedByObstacle(target))
-            {
-                Debug.Log("Attack Blocked by Obstacle in Row!");
-                return;
+                myStatus.UseArrow();
+                ExecuteAttack(target, false);
             }
-
-            ExecuteAttack(target, true);
         }
 
         /// <summary>
-        /// Attempt a ranged attack on the nearest enemy.
+        /// Execute the attack with weapon relic effects.
         /// </summary>
-        public void TryRangedAttack()
-        {
-            if (!CanAttack()) return;
-            
-            if (status.WeaponType == WeaponType.Melee)
-            {
-                Debug.Log($"<color=red>{gameObject.name} cannot Shoot! (Equipped: Melee)</color>");
-                return;
-            }
-
-            if (status.CurrentArrows <= 0)
-            {
-                Debug.Log("No arrows remaining!");
-                return;
-            }
-
-            if (!TrySpendAttackEnergy()) return;
-
-            UnitStatus target = TargetFinder.FindNearestEnemy(status);
-            if (target == null)
-            {
-                Debug.Log("No valid target found!");
-                return;
-            }
-
-            // Use arrow regardless of hit
-            status.UseArrow();
-
-            if (IsBlockedByObstacle(target))
-            {
-                Debug.Log("Shot Blocked by Obstacle in Row!");
-                return;
-            }
-
-            ExecuteAttack(target, false);
-        }
-
-        #endregion
-
-        #region Private Attack Logic
-
-        private bool CanAttack()
-        {
-            if (!status.CanAct())
-            {
-                Debug.Log($"{gameObject.name} cannot act (surrendered or stunned)");
-                return false;
-            }
-
-            if (movement != null && movement.HasAttacked)
-            {
-                Debug.Log($"{gameObject.name} has already attacked this turn");
-                return false;
-            }
-
-            return true;
-        }
-
-        private bool TrySpendAttackEnergy()
-        {
-            CacheManagerReferences();
-            
-            if (energyManager == null)
-            {
-                Debug.LogError("EnergyManager not found!");
-                return false;
-            }
-
-            return energyManager.TrySpendEnergy(GameConfig.Instance.attackEnergyCost);
-        }
-
         private void ExecuteAttack(UnitStatus target, bool isMelee)
         {
-            var config = GameConfig.Instance;
-            CacheManagerReferences();
-            
-            // Get standing bonuses from current tile
+            attacksThisTurn++;
+            comboCount++;
+            bool isFirstAttack = (attacksThisTurn == 1);
+
             var bonuses = GetStandingBonuses();
 
-            // Calculate base damage
-            int baseDamage = isMelee 
-                ? DamageCalculator.GetMeleeBaseDamage(status)
-                : DamageCalculator.GetRangedBaseDamage(status);
-
-            // Check if this is the first-action team (for Speed bonus)
-            bool isFirstAction = turnManager != null && turnManager.IsFirstActionTeam;
-
-            // Apply damage to target (pass first-action info)
-            target.TakeDamage(
-                baseDamage, 
-                gameObject, 
-                isMelee, 
-                bonuses.hp, 
-                bonuses.morale, 
-                bonuses.applyCurse,
-                isFirstAction
-            );
-
-            // Post-attack effects
-            status.ReduceBuzz(config.buzzDecayOnAttack);
+            // Calculate base damage using properties
+            float drunkMod = myStatus.IsTooDrunk ? 0.8f : 1.0f;
+            int baseDmg;
             
-            if (movement != null)
+            if (isMelee)
             {
-                movement.MarkAsAttacked();
+                baseDmg = 10 + Mathf.RoundToInt(myStatus.Power * 0.4f);
             }
+            else
+            {
+                baseDmg = 8 + Mathf.RoundToInt(myStatus.Aim * 0.4f);
+            }
+
+            // Apply weapon relic damage bonus
+            float relicMultiplier = 1.0f;
+            if (equippedWeaponRelic != null)
+            {
+                // Add weapon base damage from relic
+                baseDmg += equippedWeaponRelic.GetTotalBaseDamage();
+
+                // Calculate bonus damage from relic effects
+                relicMultiplier = WeaponRelicEffectHandler.CalculateBonusDamageMultiplier(
+                    myStatus,
+                    target,
+                    equippedWeaponRelic,
+                    isFirstAttack,
+                    false, // TODO: track if attacker moved last turn
+                    false  // TODO: track if target moved last turn
+                );
+            }
+
+            int finalDmg = Mathf.RoundToInt(baseDmg * drunkMod * relicMultiplier);
+
+            // Store target HP before damage
+            int targetHPBefore = target.CurrentHP;
+
+            // Deal damage with combo count
+            target.TakeDamage(finalDmg, this.gameObject, isMelee, bonuses.hp, bonuses.morale, bonuses.applyCurse, isFirstAttack, comboCount);
+
+            // Check if target died
+            bool targetDied = target.CurrentHP <= 0 || target.HasSurrendered;
+
+            // Apply weapon relic on-hit effects
+            if (equippedWeaponRelic != null)
+            {
+                WeaponRelicEffectHandler.ApplyOnHitEffect(
+                    myStatus,
+                    target,
+                    equippedWeaponRelic,
+                    finalDmg,
+                    targetDied
+                );
+            }
+
+            // Post-attack cleanup
+            myStatus.ReduceBuzz(TacticalGame.Config.GameConfig.Instance.buzzDecayOnAttack);
+            myMovement.MarkAsAttacked();
             
-            status.SetActedVisual();
-            
-            // Fire event
-            GameEvents.TriggerUnitAttack(gameObject, target.gameObject);
+            MeshRenderer meshRenderer = GetComponent<MeshRenderer>();
+            if (meshRenderer != null) meshRenderer.material.color = Color.gray;
         }
 
-        #endregion
-
-        #region Obstacle Blocking
-
-        private bool IsBlockedByObstacle(UnitStatus target)
+        (int hp, int morale, bool applyCurse) GetStandingBonuses()
         {
-            CacheManagerReferences();
-            
+            int totalHP = 0;
+            int totalMorale = 0;
+            bool applyCurse = false;
+
+            if (gridManager == null) gridManager = FindFirstObjectByType<GridManager>();
+            if (gridManager != null)
+            {
+                Vector2Int pos = gridManager.WorldToGridPosition(transform.position);
+                GridCell cell = gridManager.GetCell(pos.x, pos.y);
+
+                if (cell != null && cell.HasHazard && cell.HazardVisualObject != null)
+                {
+                    HazardInstance hazardInst = cell.HazardVisualObject.GetComponent<HazardInstance>();
+                    if (hazardInst != null && hazardInst.Data != null)
+                    {
+                        totalHP += hazardInst.Data.standingBonusHP;
+                        totalMorale += hazardInst.Data.standingBonusMorale;
+                        if (hazardInst.Data.standingAppliesCurse) applyCurse = true;
+                    }
+                }
+            }
+            return (totalHP, totalMorale, applyCurse);
+        }
+
+        bool IsBlockedByRow(UnitStatus target)
+        {
+            if (gridManager == null) gridManager = FindFirstObjectByType<GridManager>();
             if (gridManager == null) return false;
 
             Vector2Int myPos = gridManager.WorldToGridPosition(transform.position);
             Vector2Int targetPos = gridManager.WorldToGridPosition(target.transform.position);
 
-            // Only check horizontal blocking (same row)
             if (myPos.y != targetPos.y) return false;
 
             int startX = Mathf.Min(myPos.x, targetPos.x) + 1;
@@ -243,52 +256,48 @@ namespace TacticalGame.Units
                     HazardInstance hazard = cell.HazardVisualObject.GetComponent<HazardInstance>();
                     if (hazard != null && (hazard.IsHardObstacle || hazard.IsSoftObstacle))
                     {
-                        // Damage the obstacle
-                        hazard.TakeObstacleDamage(GameConfig.Instance.obstacleBlockDamage);
-                        
-                        GameEvents.TriggerAttackBlocked(gameObject, hazard.gameObject, hazard == null);
+                        hazard.TakeObstacleDamage(100);
                         return true;
                     }
                 }
             }
-            
             return false;
         }
 
-        #endregion
-
-        #region Standing Bonuses
-
-        private (int hp, int morale, bool applyCurse) GetStandingBonuses()
+        UnitStatus FindNearestEnemy()
         {
-            int totalHP = 0;
-            int totalMorale = 0;
-            bool applyCurse = false;
+            GameObject[] allUnits = GameObject.FindGameObjectsWithTag("Unit");
+            UnitStatus nearest = null;
+            float minDistance = float.MaxValue;
 
-            CacheManagerReferences();
-            
-            if (gridManager == null) return (totalHP, totalMorale, applyCurse);
-
-            Vector2Int pos = gridManager.WorldToGridPosition(transform.position);
-            GridCell cell = gridManager.GetCell(pos.x, pos.y);
-
-            if (cell != null && cell.HasHazard && cell.HazardVisualObject != null)
+            foreach (GameObject unitObj in allUnits)
             {
-                HazardInstance hazardInst = cell.HazardVisualObject.GetComponent<HazardInstance>();
-                if (hazardInst != null && hazardInst.Data != null)
+                if (unitObj == this.gameObject) continue;
+                UnitStatus status = unitObj.GetComponent<UnitStatus>();
+                if (status == null) continue;
+                if (status.HasSurrendered) continue;
+
+                // Check if enemy using Team enum
+                bool isMyEnemy = (myStatus.Team == Team.Player && status.Team == Team.Enemy) ||
+                                 (myStatus.Team == Team.Enemy && status.Team == Team.Player);
+
+                if (isMyEnemy)
                 {
-                    totalHP += hazardInst.Data.standingBonusHP;
-                    totalMorale += hazardInst.Data.standingBonusMorale;
-                    if (hazardInst.Data.standingAppliesCurse)
-                    {
-                        applyCurse = true;
-                    }
+                    float distX = Mathf.Abs(transform.position.x - unitObj.transform.position.x);
+                    float distZ = Mathf.Abs(transform.position.z - unitObj.transform.position.z);
+                    float dist = distX + distZ;
+                    if (dist < minDistance) { minDistance = dist; nearest = status; }
                 }
             }
-
-            return (totalHP, totalMorale, applyCurse);
+            return nearest;
         }
 
-        #endregion
+        bool CanAct()
+        {
+            if (myStatus.HasSurrendered) return false;
+            if (myStatus.IsStunned) return false;
+            if (myMovement.HasAttacked) return false;
+            return true;
+        }
     }
 }

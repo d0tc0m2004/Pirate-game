@@ -8,6 +8,7 @@ using TacticalGame.Grid;
 using TacticalGame.Units;
 using TacticalGame.Hazards;
 using TacticalGame.Enums;
+using TacticalGame.Combat;
 
 namespace TacticalGame.Managers
 {
@@ -271,6 +272,18 @@ namespace TacticalGame.Managers
             if (attack != null)
             {
                 attack.SetupManagers(gridManager, energyManager);
+                
+                // Set the weapon relic from UnitData
+                if (data.defaultWeaponRelic != null)
+                {
+                    attack.SetWeaponRelic(data.defaultWeaponRelic);
+                }
+            }
+
+            // Add StatusEffectManager if not present
+            if (newUnit.GetComponent<StatusEffectManager>() == null)
+            {
+                newUnit.AddComponent<StatusEffectManager>();
             }
 
             cell.PlaceUnit(newUnit);

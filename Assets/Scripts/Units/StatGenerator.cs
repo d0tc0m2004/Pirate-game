@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using TacticalGame.Enums;
 using TacticalGame.Config;
+using TacticalGame.Equipment;
 
 namespace TacticalGame.Units
 {
@@ -106,10 +107,72 @@ namespace TacticalGame.Units
                 data.SetStat(stat, value);
             }
 
-            // Determine weapon type based on role
-            data.weaponType = DetermineWeaponType(role);
+            // Assign weapon - first determine type based on role, then pick specific weapon
+            AssignWeapon(data, role);
+
+            // Generate the default weapon relic (weapon + role effect)
+            AssignWeaponRelic(data);
 
             return data;
+        }
+
+        /// <summary>
+        /// Assign a specific weapon to the unit based on role restrictions.
+        /// </summary>
+        private static void AssignWeapon(UnitData data, UnitRole role)
+        {
+            // Step 1: Determine weapon type based on role
+            WeaponType weaponType;
+            switch (role)
+            {
+                case UnitRole.MasterAtArms:
+                    weaponType = WeaponType.Melee;  // Melee only
+                    break;
+                case UnitRole.MasterGunner:
+                    weaponType = WeaponType.Ranged; // Ranged only
+                    break;
+                default:
+                    weaponType = Random.value > 0.5f ? WeaponType.Melee : WeaponType.Ranged;
+                    break;
+            }
+
+            data.weaponType = weaponType;
+
+            // Step 2: Get a random weapon of that type from the database
+            var database = WeaponDatabase.Instance;
+            if (database != null)
+            {
+                WeaponData weapon = database.GetRandomWeaponByType(weaponType);
+                if (weapon != null)
+                {
+                    data.weaponFamily = weapon.family;
+                }
+                else
+                {
+                    // Fallback if no weapon found
+                    data.weaponFamily = weaponType == WeaponType.Melee ? WeaponFamily.Cutlass : WeaponFamily.Pistol;
+                }
+            }
+            else
+            {
+                // Fallback if database not found
+                data.weaponFamily = weaponType == WeaponType.Melee ? WeaponFamily.Cutlass : WeaponFamily.Pistol;
+                Debug.LogWarning("WeaponDatabase not found! Using fallback weapon.");
+            }
+        }
+
+        /// <summary>
+        /// Generate the default weapon relic for the unit.
+        /// Combines the weapon family with a random effect tier from the unit's role.
+        /// </summary>
+        private static void AssignWeaponRelic(UnitData data)
+        {
+            data.defaultWeaponRelic = WeaponRelicGenerator.GenerateDefaultWeaponRelic(data);
+            
+            if (data.defaultWeaponRelic != null)
+            {
+                Debug.Log($"Generated weapon relic: {data.defaultWeaponRelic.relicName}");
+            }
         }
 
         /// <summary>
@@ -161,19 +224,6 @@ namespace TacticalGame.Units
                 StatType.Hull => config.GetHullRange(rangeType),
                 StatType.Speed => config.GetSpeedRange(rangeType),
                 _ => (0, 0)
-            };
-        }
-
-        /// <summary>
-        /// Determine weapon type based on role.
-        /// </summary>
-        private static WeaponType DetermineWeaponType(UnitRole role)
-        {
-            return role switch
-            {
-                UnitRole.MasterAtArms => WeaponType.Melee,      // Melee only
-                UnitRole.MasterGunner => WeaponType.Ranged,     // Ranged only
-                _ => Random.value > 0.5f ? WeaponType.Melee : WeaponType.Ranged  // Random for others
             };
         }
 

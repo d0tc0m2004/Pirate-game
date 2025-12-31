@@ -1,0 +1,37 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2d20672a8e7a3c748aee93cc35d62eac, type: 3}
+  m_Name: RoleEffects_Deckhand
+  m_EditorClassIdentifier: Assembly-CSharp::TacticalGame.Equipment.RoleWeaponEffects
+  role: 11
+  effect1Name: Hull Repair
+  effect1Description: 'On-hit: Restore 30 Hull'
+  effect1Type: 34
+  effect1Value1: 30
+  effect1Value2: 0
+  effect1Duration: 0
+  effect2Name: Hull Breaker
+  effect2Description: 'On-hit: If the attack destroys enemy hull shield next turn
+    the enemy has 1 less energy'
+  effect2Type: 35
+  effect2Value1: 1
+  effect2Value2: 0
+  effect2Duration: 1
+  effect2BonusDamage: 0.2
+  effect3Name: Exposed Target
+  effect3Description: 'On-hit: Does bonus 40% increased damage to targets with no
+    hull shield'
+  effect3Type: 36
+  effect3Value1: 0.4
+  effect3Value2: 0
+  effect3Duration: 0
+  effect3BonusDamage: 0.4

@@ -6,6 +6,13 @@ namespace TacticalGame.Combat
 {
     /// <summary>
     /// Handles all damage calculations. Extracted from UnitStatus for single responsibility.
+    /// 
+    /// FORMULAS FROM STAT TABLE:
+    /// - Power: MeleeOutput = Base × (1 + Power × 0.03)
+    /// - Aim: RangedOutput = Base × (1 + Aim × 0.03)
+    /// - Skill: ComboMult(n) = 1 + (n-1) × ComboStep, where ComboStep = clamp(Skill × 0.003, 0.02, 0.12)
+    /// - Tactics: Potency = Base × (1 + Tactics × 0.04) [for heals/buffs]
+    /// - Grit: DR = min(0.40, GritFactor × Grit/100), GritFactor = (1-HP%)×0.50 + Morale%×0.40
     /// </summary>
     public static class DamageCalculator
     {
@@ -16,6 +23,8 @@ namespace TacticalGame.Combat
         {
             public int FinalHPDamage;
             public int FinalMoraleDamage;
+            public int HullDamageAbsorbed;
+            public float GritDRApplied;
             public string HPBreakdown;
             public string MoraleBreakdown;
         }
@@ -23,14 +32,6 @@ namespace TacticalGame.Combat
         /// <summary>
         /// Calculate damage for an attack.
         /// </summary>
-        /// <param name="baseDamage">Base damage before modifiers</param>
-        /// <param name="isMelee">True for melee, false for ranged</param>
-        /// <param name="attackerStatus">The attacking unit (for first-action bonus)</param>
-        /// <param name="targetStatus">The target unit</param>
-        /// <param name="hasCover">Does target have adjacency cover</param>
-        /// <param name="isFirstAction">Did attacker's team go first this round</param>
-        /// <param name="flatBonusHP">Flat HP damage bonus (from hazards etc)</param>
-        /// <param name="flatBonusMorale">Flat morale damage bonus</param>
         public static DamageResult Calculate(
             int baseDamage,
             bool isMelee,
@@ -38,6 +39,7 @@ namespace TacticalGame.Combat
             UnitStatus targetStatus,
             bool hasCover,
             bool isFirstAction = false,
+            int comboCount = 1,
             int flatBonusHP = 0,
             int flatBonusMorale = 0)
         {
@@ -51,7 +53,6 @@ namespace TacticalGame.Combat
             float hpDamageMod = 1.0f;
             
             // First-action bonus (Speed)
-            // Formula: min(15%, Speed × 0.2%) bonus damage if team went first
             if (isFirstAction && attackerStatus != null)
             {
                 float firstBonus = Mathf.Min(
@@ -62,6 +63,17 @@ namespace TacticalGame.Combat
                 {
                     hpDamageMod += firstBonus;
                     logHP += $" +{Mathf.RoundToInt(firstBonus * 100)}%(FirstAction)";
+                }
+            }
+            
+            // Combo bonus (Skill)
+            if (comboCount > 1 && attackerStatus != null)
+            {
+                float comboMult = GetComboMultiplier(attackerStatus.Skill, comboCount, config);
+                if (comboMult > 1f)
+                {
+                    hpDamageMod *= comboMult;
+                    logHP += $" x{comboMult:F2}(Combo x{comboCount})";
                 }
             }
             
@@ -93,9 +105,9 @@ namespace TacticalGame.Combat
                 logHP += $" +{Mathf.RoundToInt((config.exposedDamageMultiplier - 1) * 100)}%(Exposed)";
             }
             
-            // Calculate final HP damage
+            // Calculate HP damage before DR
             int calculatedHPDamage = Mathf.RoundToInt(baseDamage * hpDamageMod * hpTypeMultiplier * curseMultiplier * exposedMultiplier);
-            result.FinalHPDamage = calculatedHPDamage + flatBonusHP;
+            calculatedHPDamage += flatBonusHP;
             
             if (flatBonusHP > 0)
             {
@@ -103,6 +115,7 @@ namespace TacticalGame.Combat
             }
             
             result.HPBreakdown = logHP;
+            result.FinalHPDamage = calculatedHPDamage;
             
             // === MORALE DAMAGE CALCULATION ===
             float moraleDamageMod = 1.0f;
@@ -121,7 +134,18 @@ namespace TacticalGame.Combat
                 }
             }
             
-            // Cover reduction (applies to morale too)
+            // Combo bonus applies to morale too
+            if (comboCount > 1 && attackerStatus != null)
+            {
+                float comboMult = GetComboMultiplier(attackerStatus.Skill, comboCount, config);
+                if (comboMult > 1f)
+                {
+                    moraleDamageMod *= comboMult;
+                    logMorale += $" x{comboMult:F2}(Combo x{comboCount})";
+                }
+            }
+            
+            // Cover reduction
             if (hasCover)
             {
                 moraleDamageMod -= config.adjacencyCoverReduction;
@@ -153,7 +177,7 @@ namespace TacticalGame.Combat
             int calculatedMoraleDamage = Mathf.RoundToInt(
                 baseDamage * moraleDamageMod * moraleTypeMultiplier * (1.0f + focusFireBonus) * exposedMultiplier
             );
-            result.FinalMoraleDamage = calculatedMoraleDamage + flatBonusMorale;
+            calculatedMoraleDamage += flatBonusMorale;
             
             if (flatBonusMorale > 0)
             {
@@ -161,12 +185,13 @@ namespace TacticalGame.Combat
             }
             
             result.MoraleBreakdown = logMorale;
+            result.FinalMoraleDamage = calculatedMoraleDamage;
             
             return result;
         }
 
         /// <summary>
-        /// Overload for backward compatibility (no attacker/first-action info).
+        /// Overload for backward compatibility.
         /// </summary>
         public static DamageResult Calculate(
             int baseDamage,
@@ -176,31 +201,118 @@ namespace TacticalGame.Combat
             int flatBonusHP = 0,
             int flatBonusMorale = 0)
         {
-            return Calculate(baseDamage, isMelee, null, targetStatus, hasCover, false, flatBonusHP, flatBonusMorale);
+            return Calculate(baseDamage, isMelee, null, targetStatus, hasCover, false, 1, flatBonusHP, flatBonusMorale);
         }
 
         /// <summary>
         /// Calculate base melee damage from attacker stats.
-        /// Formula: Base + Power × 1.25
+        /// Formula: Base × (1 + Power × 0.03)
         /// </summary>
-        public static int GetMeleeBaseDamage(UnitStatus attacker)
+        public static int GetMeleeBaseDamage(UnitStatus attacker, int weaponBaseDamage = 0)
         {
             var config = GameConfig.Instance;
+            
+            int baseDmg = weaponBaseDamage > 0 ? weaponBaseDamage : config.meleeBaseDamage;
+            
+            // Apply Power scaling: Base × (1 + Power × 0.03)
+            float powerMultiplier = 1f + (attacker.Power * config.powerScalingPercent);
+            int scaledDamage = Mathf.RoundToInt(baseDmg * powerMultiplier);
+            
+            // Apply drunk penalty
             float drunkMod = attacker.IsTooDrunk ? config.drunkDamageMultiplier : 1.0f;
-            int baseDmg = config.meleeBaseDamage + Mathf.RoundToInt(attacker.Power * config.powerScaling);
-            return Mathf.RoundToInt(baseDmg * drunkMod);
+            
+            return Mathf.RoundToInt(scaledDamage * drunkMod);
         }
 
         /// <summary>
         /// Calculate base ranged damage from attacker stats.
-        /// Formula: Base + Aim × 1.35
+        /// Formula: Base × (1 + Aim × 0.03)
         /// </summary>
-        public static int GetRangedBaseDamage(UnitStatus attacker)
+        public static int GetRangedBaseDamage(UnitStatus attacker, int weaponBaseDamage = 0)
         {
             var config = GameConfig.Instance;
+            
+            int baseDmg = weaponBaseDamage > 0 ? weaponBaseDamage : config.rangedBaseDamage;
+            
+            // Apply Aim scaling: Base × (1 + Aim × 0.03)
+            float aimMultiplier = 1f + (attacker.Aim * config.aimScalingPercent);
+            int scaledDamage = Mathf.RoundToInt(baseDmg * aimMultiplier);
+            
+            // Apply drunk penalty
             float drunkMod = attacker.IsTooDrunk ? config.drunkDamageMultiplier : 1.0f;
-            int baseDmg = config.rangedBaseDamage + Mathf.RoundToInt(attacker.Aim * config.aimScaling);
-            return Mathf.RoundToInt(baseDmg * drunkMod);
+            
+            return Mathf.RoundToInt(scaledDamage * drunkMod);
+        }
+
+        /// <summary>
+        /// Calculate combo multiplier based on Skill stat.
+        /// Formula: ComboMult(n) = 1 + (n-1) × ComboStep
+        /// Where: ComboStep = clamp(Skill × 0.003, 0.02, 0.12)
+        /// </summary>
+        public static float GetComboMultiplier(int skill, int comboCount, GameConfig config = null)
+        {
+            if (config == null) config = GameConfig.Instance;
+            
+            // Clamp combo count
+            int n = Mathf.Clamp(comboCount, 1, config.maxComboChain);
+            
+            if (n <= 1) return 1f;
+            
+            // Calculate ComboStep
+            float comboStep = Mathf.Clamp(
+                skill * config.skillComboMultiplier,
+                config.comboStepMin,
+                config.comboStepMax
+            );
+            
+            // ComboMult(n) = 1 + (n-1) × ComboStep
+            float comboMult = 1f + ((n - 1) * comboStep);
+            
+            return comboMult;
+        }
+
+        /// <summary>
+        /// Calculate Grit damage reduction.
+        /// Formula: 
+        ///   GritFactor = (1-HP%) × 0.50 + Morale% × 0.40
+        ///   DR = min(0.40, GritFactor × (Grit/100))
+        /// </summary>
+        public static float GetGritDamageReduction(UnitStatus target, GameConfig config = null)
+        {
+            if (config == null) config = GameConfig.Instance;
+            
+            float hpPercent = target.HPPercent;
+            float moralePercent = target.MoralePercent;
+            
+            // GritFactor rewards low HP but high morale
+            float gritFactor = ((1f - hpPercent) * config.gritLowHPWeight) + 
+                               (moralePercent * config.gritMoraleWeight);
+            
+            // DR = GritFactor × (Grit / 100)
+            float dr = gritFactor * (target.Grit * config.gritPerPointPercent);
+            
+            // Cap at max DR
+            return Mathf.Min(dr, config.gritDRCap);
+        }
+
+        /// <summary>
+        /// Calculate Tactics potency multiplier for heals/buffs/debuffs.
+        /// Formula: Potency = Base × (1 + Tactics × 0.04)
+        /// </summary>
+        public static float GetTacticsPotencyMultiplier(int tactics, GameConfig config = null)
+        {
+            if (config == null) config = GameConfig.Instance;
+            
+            return 1f + (tactics * config.tacticsScalingPercent);
+        }
+
+        /// <summary>
+        /// Apply Tactics scaling to a base value (for heals, shields, buffs, etc.)
+        /// </summary>
+        public static int ApplyTacticsScaling(int baseValue, int tactics)
+        {
+            float multiplier = GetTacticsPotencyMultiplier(tactics);
+            return Mathf.RoundToInt(baseValue * multiplier);
         }
     }
 }
