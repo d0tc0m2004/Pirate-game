@@ -9,11 +9,14 @@ using TacticalGame.Units;
 using TacticalGame.Hazards;
 using TacticalGame.Enums;
 using TacticalGame.Combat;
+using TacticalGame.Equipment;
+using TacticalGame.UI;
 
 namespace TacticalGame.Managers
 {
     /// <summary>
     /// Manages the unit deployment phase before battle.
+    /// Updated to attach UnitDataHolder for card-based combat UI.
     /// </summary>
     public class DeploymentManager : MonoBehaviour
     {
@@ -262,6 +265,10 @@ namespace TacticalGame.Managers
             newUnit.name = data.unitName;
             newUnit.tag = "Unit";
 
+            // === IMPORTANT: Attach UnitDataHolder for card UI ===
+            UnitDataHolder dataHolder = newUnit.AddComponent<UnitDataHolder>();
+            dataHolder.unitData = data;
+
             UnitStatus status = newUnit.GetComponent<UnitStatus>();
             if (status != null)
             {
@@ -273,8 +280,13 @@ namespace TacticalGame.Managers
             {
                 attack.SetupManagers(gridManager, energyManager);
                 
-                // Set the weapon relic from UnitData
-                if (data.defaultWeaponRelic != null)
+                // Set the default weapon relic from slot 0
+                WeaponRelic defaultRelic = data.equipment?.GetWeaponRelic(0);
+                if (defaultRelic != null)
+                {
+                    attack.SetWeaponRelic(defaultRelic);
+                }
+                else if (data.defaultWeaponRelic != null)
                 {
                     attack.SetWeaponRelic(data.defaultWeaponRelic);
                 }

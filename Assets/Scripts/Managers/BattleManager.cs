@@ -11,7 +11,8 @@ using TacticalGame.Combat;
 namespace TacticalGame.Managers
 {
     /// <summary>
-    /// Manages battle interactions: unit selection, movement, attacks, and swapping.
+    /// Manages battle interactions: unit selection, movement, and swapping.
+    /// Attacks are now handled by the RelicCardUI (card-based system).
     /// </summary>
     public class BattleManager : MonoBehaviour
     {
@@ -110,18 +111,8 @@ namespace TacticalGame.Managers
                 DeselectUnit();
             }
 
-            // Attack hotkeys
-            if (selectedUnit != null && !isSwapping)
-            {
-                if (Input.GetKeyDown(KeyCode.C))
-                {
-                    TryMeleeAttack();
-                }
-                if (Input.GetKeyDown(KeyCode.X))
-                {
-                    TryRangedAttack();
-                }
-            }
+            // Note: Keyboard attacks (C and X) are removed
+            // Attacks are now handled by clicking cards in RelicCardUI
         }
 
         private void HandleLeftClick()
@@ -190,9 +181,10 @@ namespace TacticalGame.Managers
             selectedUnit = unit;
             isSwapping = false;
 
+            // Updated instruction text for card-based combat
             if (instructionText != null)
             {
-                instructionText.text = "Click Blue Tile to Move\nPress 'C' Melee | 'X' Ranged";
+                instructionText.text = "Click Blue Tile to Move | Press 'X' to Show Attack Cards";
             }
 
             // Calculate and highlight valid move tiles
@@ -248,7 +240,17 @@ namespace TacticalGame.Managers
             movement.MoveToCell(targetCell);
             targetCell.PlaceUnit(selectedUnit);
 
-            DeselectUnit();
+            // Don't deselect after moving - player may want to attack
+            // Just refresh the move tiles
+            ResetHighlights();
+            validMoveTiles.Clear();
+            
+            // Re-highlight attack target after move
+            UnitStatus status = selectedUnit.GetComponent<UnitStatus>();
+            if (status != null)
+            {
+                HighlightAttackTarget(status);
+            }
         }
 
         private void CalculateValidMoves(GridCell startCell, int range)
@@ -292,30 +294,6 @@ namespace TacticalGame.Managers
                         HighlightTile(neighbor);
                     }
                 }
-            }
-        }
-
-        #endregion
-
-        #region Attacks
-
-        private void TryMeleeAttack()
-        {
-            UnitAttack attacker = selectedUnit.GetComponent<UnitAttack>();
-            if (attacker != null)
-            {
-                attacker.TryMeleeAttack();
-                DeselectUnit();
-            }
-        }
-
-        private void TryRangedAttack()
-        {
-            UnitAttack attacker = selectedUnit.GetComponent<UnitAttack>();
-            if (attacker != null)
-            {
-                attacker.TryRangedAttack();
-                DeselectUnit();
             }
         }
 
