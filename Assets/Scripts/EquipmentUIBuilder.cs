@@ -267,8 +267,9 @@ namespace TacticalGame.Managers
             
             relicSlotContainer = slotsArea.transform;
             
-            string[] slotLabels = { "R1", "R2", "R3", "R4", "ULT", "PAS" };
-            for (int i = 0; i < 6; i++)
+            // 7 slots: R1-R5 (mixed/equipable), ULT (ultimate), PAS (passive)
+            string[] slotLabels = { "R1", "R2", "R3", "R4", "R5", "ULT", "PAS" };
+            for (int i = 0; i < 7; i++)
             {
                 CreateRelicSlot(slotsArea.transform, slotLabels[i], i);
             }
@@ -516,9 +517,19 @@ namespace TacticalGame.Managers
             unequipRt.anchorMin = new Vector2(0.5f, 0);
             unequipRt.anchorMax = new Vector2(0.5f, 0);
             unequipRt.pivot = new Vector2(0.5f, 0);
-            unequipRt.anchoredPosition = new Vector2(0, 15);
+            unequipRt.anchoredPosition = new Vector2(-100, 15);
             unequipButton.onClick.AddListener(OnUnequipAll);
             unequipButton.GetComponent<Image>().color = new Color(0.5f, 0.2f, 0.2f);
+            
+            // Auto Equip Enemies button
+            Button autoEquipButton = CreateButton(equipmentPanel.transform, "AutoEquipButton", "Auto Equip Enemies", new Vector2(180, 45));
+            RectTransform autoEquipRt = autoEquipButton.GetComponent<RectTransform>();
+            autoEquipRt.anchorMin = new Vector2(0.5f, 0);
+            autoEquipRt.anchorMax = new Vector2(0.5f, 0);
+            autoEquipRt.pivot = new Vector2(0.5f, 0);
+            autoEquipRt.anchoredPosition = new Vector2(100, 15);
+            autoEquipButton.onClick.AddListener(OnAutoEquipEnemies);
+            autoEquipButton.GetComponent<Image>().color = new Color(0.5f, 0.3f, 0.2f);
             
             Button startButton = CreateButton(equipmentPanel.transform, "StartButton", "Start Battle ->", new Vector2(170, 45));
             RectTransform startRt = startButton.GetComponent<RectTransform>();
@@ -945,7 +956,7 @@ namespace TacticalGame.Managers
         
         private void RefreshSlots(UnitData unit)
         {
-            for (int i = 0; i < 6; i++)
+            for (int i = 0; i < 7; i++)
             {
                 RefreshSlot(i, unit);
             }
@@ -1113,12 +1124,80 @@ namespace TacticalGame.Managers
             
             unit.equipment?.UnequipAll();
             
+            // Equip default relic to R1 slot (index 0)
             if (unit.defaultWeaponRelic != null)
-                unit.equipment.EquipWeaponRelic(0, unit.defaultWeaponRelic);
+                unit.equipment.EquipWeaponRelic(UnitEquipmentData.SLOT_R1, unit.defaultWeaponRelic);
             
             RefreshSlots(unit);
             UpdateJewelBudget(unit);
             UpdateInfoPanel();
+        }
+        
+        /// <summary>
+        /// Auto-equip all enemy units with random relics matching their weapon family.
+        /// </summary>
+        private void OnAutoEquipEnemies()
+        {
+            foreach (UnitData enemy in enemyUnits)
+            {
+                if (enemy.equipment == null)
+                    enemy.equipment = new UnitEquipmentData();
+                
+                // Make sure default relic is in R1 slot
+                if (enemy.defaultWeaponRelic != null)
+                {
+                    enemy.equipment.EquipWeaponRelic(UnitEquipmentData.SLOT_R1, enemy.defaultWeaponRelic);
+                }
+                
+                // Generate random relics for R2-R5 slots
+                for (int slot = UnitEquipmentData.SLOT_R2; slot <= UnitEquipmentData.SLOT_R5; slot++)
+                {
+                    // 70% chance to fill each slot
+                    if (UnityEngine.Random.value > 0.7f) continue;
+                    
+                    // Generate a random relic that matches the enemy's weapon family
+                    WeaponRelic randomRelic = GenerateRandomRelicForUnit(enemy);
+                    if (randomRelic != null)
+                    {
+                        enemy.equipment.EquipWeaponRelic(slot, randomRelic);
+                    }
+                }
+            }
+            
+            // Refresh UI if an enemy is currently selected
+            if (selectedUnitIndex >= 0 && !IsSelectedUnitPlayer())
+            {
+                UnitData selectedEnemy = GetUnitByIndex(selectedUnitIndex);
+                if (selectedEnemy != null)
+                {
+                    RefreshSlots(selectedEnemy);
+                    UpdateJewelBudget(selectedEnemy);
+                }
+            }
+            
+            Debug.Log($"<color=orange>Auto-equipped {enemyUnits.Count} enemy units with random relics!</color>");
+        }
+        
+        /// <summary>
+        /// Generate a random weapon relic for a unit (matching their weapon family).
+        /// </summary>
+        private WeaponRelic GenerateRandomRelicForUnit(UnitData unit)
+        {
+            // Get all roles
+            UnitRole[] allRoles = (UnitRole[])System.Enum.GetValues(typeof(UnitRole));
+            
+            // Pick random role
+            UnitRole randomRole = allRoles[UnityEngine.Random.Range(0, allRoles.Length)];
+            
+            // Pick random effect tier (weighted: 50% common, 35% uncommon, 15% rare)
+            int tier;
+            float roll = UnityEngine.Random.value;
+            if (roll < 0.50f) tier = 1;
+            else if (roll < 0.85f) tier = 2;
+            else tier = 3;
+            
+            // Generate the relic
+            return WeaponRelicGenerator.GenerateWeaponRelic(unit.weaponFamily, randomRole, tier);
         }
         
         private void OnStartBattle()

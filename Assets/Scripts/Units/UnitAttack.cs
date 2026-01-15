@@ -222,6 +222,19 @@ public class UnitAttack : MonoBehaviour
         float effectBonusPercent = (effectMultiplier - 1f) * 100f;
         damageLog.AppendLine($"<color=cyan>║ [4] Relic Effect ({effectName}): ×{effectMultiplier:F2} (+{effectBonusPercent:F0}%)</color>");
 
+        // === WEAPON BASE EFFECT BONUS ===
+        float weaponEffectBonus = 1.0f;
+        string weaponEffectName = "None";
+        if (relic?.baseWeaponData != null && relic.baseWeaponData.effectType != WeaponEffectType.None)
+        {
+            weaponEffectName = relic.baseWeaponData.effectType.ToString();
+            weaponEffectBonus = WeaponEffectHandler.CalculatePreAttackBonus(myStatus, target, relic.baseWeaponData, isFirstAttack);
+        }
+        if (weaponEffectBonus > 1f)
+        {
+            damageLog.AppendLine($"<color=red>║ [4b] Weapon Effect ({weaponEffectName}): ×{weaponEffectBonus:F2}</color>");
+        }
+
         // === PROFICIENCY BONUS (if role matches) ===
         float proficiencyBonus = 1.0f;
         bool roleMatches = relic != null && relic.MatchesRole(myStatus.Role);
@@ -247,14 +260,14 @@ public class UnitAttack : MonoBehaviour
         }
 
         // === CALCULATE FINAL DAMAGE ===
-        float totalMultiplier = (1f + rarityBonus) * effectMultiplier * drunkMod * proficiencyBonus;
+        float totalMultiplier = (1f + rarityBonus) * effectMultiplier * weaponEffectBonus * drunkMod * proficiencyBonus;
         int finalDmg = Mathf.RoundToInt(scaledDamage * totalMultiplier);
 
         damageLog.AppendLine($"<color=yellow>╠══════════════════════════════════════════════════════════════╣</color>");
         damageLog.AppendLine($"<color=yellow>║ FINAL CALCULATION:</color>");
-        damageLog.AppendLine($"<color=yellow>║ {scaledDamage} × (1+{rarityBonus:F2}) × {effectMultiplier:F2} × {drunkMod:F2} × {proficiencyBonus:F2}</color>");
+        damageLog.AppendLine($"<color=yellow>║ {scaledDamage} × (1+{rarityBonus:F2}) × {effectMultiplier:F2} × {weaponEffectBonus:F2} × {drunkMod:F2} × {proficiencyBonus:F2}</color>");
         damageLog.AppendLine($"<color=yellow>║ = {scaledDamage} × {totalMultiplier:F2} = <b>{finalDmg} RAW DAMAGE</b></color>");
-        damageLog.AppendLine($"<color=yellow>╚══════════════════════════════════════════════════════════════╝</color>");
+        damageLog.AppendLine($"<color=yellow>╚══════════════════════════════════════════════════════════════╝</color>");;
 
         Debug.Log(damageLog.ToString());
 
@@ -280,11 +293,24 @@ public class UnitAttack : MonoBehaviour
         // === APPLY ON-HIT EFFECTS ===
         if (relic != null)
         {
-            Debug.Log($"<color=cyan>║ Applying On-Hit Effect: {relic.effectData.effectName} ({relic.effectData.effectType})</color>");
+            Debug.Log($"<color=cyan>║ Applying Relic On-Hit Effect: {relic.effectData.effectName} ({relic.effectData.effectType})</color>");
             WeaponRelicEffectHandler.ApplyOnHitEffect(
                 myStatus,
                 target,
                 relic,
+                finalDmg,
+                targetDied
+            );
+        }
+        
+        // === APPLY WEAPON BASE EFFECT ===
+        if (relic?.baseWeaponData != null && relic.baseWeaponData.effectType != WeaponEffectType.None)
+        {
+            Debug.Log($"<color=red>║ Applying Weapon Effect: {relic.baseWeaponData.effectType}</color>");
+            WeaponEffectHandler.ApplyPostAttackEffect(
+                myStatus,
+                target,
+                relic.baseWeaponData,
                 finalDmg,
                 targetDied
             );

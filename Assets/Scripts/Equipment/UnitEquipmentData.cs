@@ -7,14 +7,24 @@ namespace TacticalGame.Equipment
 {
     /// <summary>
     /// Stores all equipment data for a single unit.
-    /// 6 relic slots, each with 3 jewel sockets = 18 total jewel slots.
+    /// 7 relic slots: R1-R5 (mixed/equipable), ULT (ultimate), PAS (passive)
+    /// Each slot has 3 jewel sockets = 21 total jewel slots.
     /// </summary>
     [Serializable]
     public class UnitEquipmentData
     {
-        public const int TOTAL_SLOTS = 6;
-        public const int MIXED_SLOTS = 4;
+        public const int TOTAL_SLOTS = 7;
+        public const int MIXED_SLOTS = 5;        // R1-R5
         public const int JEWELS_PER_SLOT = 3;
+        
+        // Slot indices
+        public const int SLOT_R1 = 0;
+        public const int SLOT_R2 = 1;
+        public const int SLOT_R3 = 2;
+        public const int SLOT_R4 = 3;
+        public const int SLOT_R5 = 4;
+        public const int SLOT_ULTIMATE = 5;      // ULT
+        public const int SLOT_PASSIVE = 6;       // PAS
 
         private WeaponRelic[] weaponRelics = new WeaponRelic[TOTAL_SLOTS];
         private RelicData[] relics = new RelicData[TOTAL_SLOTS];
@@ -35,7 +45,22 @@ namespace TacticalGame.Equipment
 
         public static string GetSlotName(int slotIndex)
         {
-            return slotIndex switch { 0 => "R1", 1 => "R2", 2 => "R3", 3 => "R4", 4 => "ULT", 5 => "PAS", _ => "?" };
+            return slotIndex switch 
+            { 
+                0 => "R1", 
+                1 => "R2", 
+                2 => "R3", 
+                3 => "R4", 
+                4 => "R5",
+                5 => "ULT", 
+                6 => "PAS", 
+                _ => "?" 
+            };
+        }
+        
+        public static bool IsMixedSlot(int slotIndex)
+        {
+            return slotIndex >= SLOT_R1 && slotIndex <= SLOT_R5;
         }
 
         // Weapon Relic Methods
@@ -131,11 +156,12 @@ namespace TacticalGame.Equipment
             return count;
         }
 
-        // Jewel Budget: matching relics x 3
+        // Jewel Budget: matching relics in mixed slots (R1-R5) x 3
         public int GetJewelBudget(UnitRole unitRole)
         {
             int matchingCount = 0;
-            for (int i = 0; i < MIXED_SLOTS; i++)
+            // Only count mixed slots (R1-R5)
+            for (int i = SLOT_R1; i <= SLOT_R5; i++)
             {
                 if (weaponRelics[i] != null && weaponRelics[i].MatchesRole(unitRole))
                     matchingCount++;
@@ -148,7 +174,7 @@ namespace TacticalGame.Equipment
         public int GetRoleMatchingRelicCount(UnitRole unitRole)
         {
             int count = 0;
-            for (int i = 0; i < MIXED_SLOTS; i++)
+            for (int i = SLOT_R1; i <= SLOT_R5; i++)
             {
                 if (weaponRelics[i] != null && weaponRelics[i].MatchesRole(unitRole))
                     count++;
@@ -161,6 +187,20 @@ namespace TacticalGame.Equipment
         public void UnequipAll()
         {
             for (int i = 0; i < TOTAL_SLOTS; i++)
+            {
+                weaponRelics[i] = null;
+                relics[i] = null;
+                for (int j = 0; j < JEWELS_PER_SLOT; j++)
+                    jewels[i, j] = null;
+            }
+        }
+        
+        /// <summary>
+        /// Unequip only the mixed slots (R1-R5), keeping ULT and PAS.
+        /// </summary>
+        public void UnequipMixedSlots()
+        {
+            for (int i = SLOT_R1; i <= SLOT_R5; i++)
             {
                 weaponRelics[i] = null;
                 relics[i] = null;

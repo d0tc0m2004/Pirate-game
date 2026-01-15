@@ -235,10 +235,10 @@ namespace TacticalGame.UI
             containerRt.anchorMax = new Vector2(0.5f, 0);
             containerRt.pivot = new Vector2(0.5f, 0);
             containerRt.anchoredPosition = new Vector2(0, bottomOffset);
-            containerRt.sizeDelta = new Vector2(1000, cardHeight + 50);
+            containerRt.sizeDelta = new Vector2(1200, cardHeight + 50);
             
-            // Create 6 cards
-            for (int i = 0; i < 6; i++)
+            // Create 7 cards (DEF + R1-R4 + ULT + PAS)
+            for (int i = 0; i < 7; i++)
             {
                 CreateCard(i);
             }
@@ -553,13 +553,16 @@ namespace TacticalGame.UI
         
         private void PopulateCards()
         {
-            for (int i = 0; i < 6; i++)
+            for (int i = 0; i < 7; i++)
             {
                 RelicCard card = cards[i];
                 WeaponRelic relic = currentUnit.equipment?.GetWeaponRelic(i);
                 
                 card.relic = relic;
                 card.isEmpty = (relic == null);
+                
+                // Get slot name for label
+                string slotName = UnitEquipmentData.GetSlotName(i);
                 
                 if (relic != null)
                 {
@@ -608,7 +611,7 @@ namespace TacticalGame.UI
         
         private void PositionCards()
         {
-            int cardCount = 6;
+            int cardCount = 7;
             float totalWidth = (cardCount - 1) * (cardWidth + cardSpacing);
             float startX = -totalWidth / 2f;
             
@@ -662,7 +665,7 @@ namespace TacticalGame.UI
                     hasAttacked = movement.HasAttacked;
             }
             
-            for (int i = 0; i < 6; i++)
+            for (int i = 0; i < 7; i++)
             {
                 RelicCard card = cards[i];
                 
@@ -824,8 +827,9 @@ namespace TacticalGame.UI
                 1 => "R2",
                 2 => "R3",
                 3 => "R4",
-                4 => "ULT",
-                5 => "PAS",
+                4 => "R5",
+                5 => "ULT",
+                6 => "PAS",
                 _ => $"Slot {index}"
             };
         }
