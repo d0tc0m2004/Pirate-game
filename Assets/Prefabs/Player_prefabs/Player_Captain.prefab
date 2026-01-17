@@ -1511,6 +1511,10 @@ GameObject:
   - component: {fileID: 6167906041568862755}
   - component: {fileID: 124647761238907364}
   - component: {fileID: 7589837826439877113}
+  - component: {fileID: 1801859950649960446}
+  - component: {fileID: -6098543551727752343}
+  - component: {fileID: 6638943268088710264}
+  - component: {fileID: 7603110669950666604}
   m_Layer: 0
   m_Name: Player_Captain
   m_TagString: Unit
@@ -1630,6 +1634,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 899ff689f5f535c469c80a3c5585b6e4, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::TacticalGame.Units.UnitAttack
+  attackEnergyCost: 1
 --- !u!114 &124647761238907364
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1646,21 +1651,27 @@ MonoBehaviour:
   role: 0
   team: 0
   weaponType: 0
+  primaryStat: 0
+  secondaryPrimaryStat: 0
+  secondaryStat: 0
+  hasTwoPrimaryStats: 0
   maxHP: 100
   currentHP: 0
   maxMorale: 100
   currentMorale: 0
-  grit: 0
-  buzz: 0
   power: 0
   aim: 0
-  proficiency: 0
-  skill: 0
   tactics: 0
-  speed: 0
+  skill: 0
+  proficiency: 0
+  grit: 0
   hull: 0
+  speed: 0
+  maxBuzz: 100
   currentBuzz: 0
   currentArrows: 0
+  maxHullPool: 0
+  currentHullPool: 0
   whiteFlagVisual: {fileID: 0}
 --- !u!114 &7589837826439877113
 MonoBehaviour:
@@ -1675,6 +1686,737 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::TacticalGame.Units.UnitMovement
   moveRange: 3
+--- !u!114 &1801859950649960446
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6888493511116314572}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fe50c80d82257cb4e80f55d76de9eb8e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::TacticalGame.Equipment.PassiveRelicManager
+--- !u!114 &-6098543551727752343
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6888493511116314572}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2704eeeb306fbc848a70a29587602cd9, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::TacticalGame.Equipment.RelicSystemTester
+  testRelicRole: 0
+--- !u!114 &6638943268088710264
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6888493511116314572}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 00a63546e5b7aca4793c4889d73c91b7, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::TacticalGame.Equipment.CardDeckManager
+  availableCards:
+  - cardName: Captain Gloves
+    category: 2
+    roleTag: 0
+    energyCost: 1
+    effectType: 13
+    sourceRelic:
+      category: 2
+      roleTag: 0
+      effectData:
+        category: 2
+        roleTag: 0
+        copies: 2
+        energyCost: 1
+        isPassive: 0
+        effectType: 13
+        description: Attack with default weapon, enemy draws 1 less next turn
+        value1: 0
+        value2: 1
+        duration: 1
+        tileRange: 1
+      relicName: Captain Gloves
+      fullDescription: "Captain Gloves\n2 copies \u2022 1 Energy\nAttack with default
+        weapon, enemy draws 1 less next turn"
+    sourceWeaponRelic:
+      weaponFamily: 0
+      baseWeaponData: {fileID: 0}
+      roleTag: 0
+      effectTier: 0
+      effectData:
+        effectName: 
+        description: 
+        effectType: 0
+        value1: 0
+        value2: 0
+        duration: 0
+        bonusDamagePercent: 0
+        rarity: 0
+      relicName: 
+      fullDescription: 
+  - cardName: Captain Boots
+    category: 1
+    roleTag: 0
+    energyCost: 1
+    effectType: 1
+    sourceRelic:
+      category: 1
+      roleTag: 0
+      effectData:
+        category: 1
+        roleTag: 0
+        copies: 2
+        energyCost: 1
+        isPassive: 0
+        effectType: 1
+        description: Swap location with another unit
+        value1: 0
+        value2: 0
+        duration: 0
+        tileRange: 1
+      relicName: Captain Boots
+      fullDescription: "Captain Boots\n2 copies \u2022 1 Energy\nSwap location with
+        another unit"
+    sourceWeaponRelic:
+      weaponFamily: 0
+      baseWeaponData: {fileID: 0}
+      roleTag: 0
+      effectTier: 0
+      effectData:
+        effectName: 
+        description: 
+        effectType: 0
+        value1: 0
+        value2: 0
+        duration: 0
+        bonusDamagePercent: 0
+        rarity: 0
+      relicName: 
+      fullDescription: 
+  - cardName: Captain Hat
+    category: 3
+    roleTag: 0
+    energyCost: 1
+    effectType: 25
+    sourceRelic:
+      category: 3
+      roleTag: 0
+      effectData:
+        category: 3
+        roleTag: 0
+        copies: 2
+        energyCost: 1
+        isPassive: 0
+        effectType: 25
+        description: Draw 2 cards, take 200% damage for 2 turns
+        value1: 2
+        value2: 2
+        duration: 2
+        tileRange: 1
+      relicName: Captain Hat
+      fullDescription: "Captain Hat\n2 copies \u2022 1 Energy\nDraw 2 cards, take
+        200% damage for 2 turns"
+    sourceWeaponRelic:
+      weaponFamily: 0
+      baseWeaponData: {fileID: 0}
+      roleTag: 0
+      effectTier: 0
+      effectData:
+        effectName: 
+        description: 
+        effectType: 0
+        value1: 0
+        value2: 0
+        duration: 0
+        bonusDamagePercent: 0
+        rarity: 0
+      relicName: 
+      fullDescription: 
+  - cardName: Captain Coat
+    category: 4
+    roleTag: 0
+    energyCost: 1
+    effectType: 37
+    sourceRelic:
+      category: 4
+      roleTag: 0
+      effectData:
+        category: 4
+        roleTag: 0
+        copies: 2
+        energyCost: 1
+        isPassive: 0
+        effectType: 37
+        description: Allies in 1 tile gain +20% Aim and Power for 2 turns
+        value1: 0
+        value2: 0.2
+        duration: 2
+        tileRange: 1
+      relicName: Captain Coat
+      fullDescription: "Captain Coat\n2 copies \u2022 1 Energy\nAllies in 1 tile
+        gain +20% Aim and Power for 2 turns"
+    sourceWeaponRelic:
+      weaponFamily: 0
+      baseWeaponData: {fileID: 0}
+      roleTag: 0
+      effectTier: 0
+      effectData:
+        effectName: 
+        description: 
+        effectType: 0
+        value1: 0
+        value2: 0
+        duration: 0
+        bonusDamagePercent: 0
+        rarity: 0
+      relicName: 
+      fullDescription: 
+  - cardName: Captain Hat
+    category: 3
+    roleTag: 0
+    energyCost: 1
+    effectType: 25
+    sourceRelic:
+      category: 3
+      roleTag: 0
+      effectData:
+        category: 3
+        roleTag: 0
+        copies: 2
+        energyCost: 1
+        isPassive: 0
+        effectType: 25
+        description: Draw 2 cards, take 200% damage for 2 turns
+        value1: 2
+        value2: 2
+        duration: 2
+        tileRange: 1
+      relicName: Captain Hat
+      fullDescription: "Captain Hat\n2 copies \u2022 1 Energy\nDraw 2 cards, take
+        200% damage for 2 turns"
+    sourceWeaponRelic:
+      weaponFamily: 0
+      baseWeaponData: {fileID: 0}
+      roleTag: 0
+      effectTier: 0
+      effectData:
+        effectName: 
+        description: 
+        effectType: 0
+        value1: 0
+        value2: 0
+        duration: 0
+        bonusDamagePercent: 0
+        rarity: 0
+      relicName: 
+      fullDescription: 
+  - cardName: Captain Boots
+    category: 1
+    roleTag: 0
+    energyCost: 1
+    effectType: 1
+    sourceRelic:
+      category: 1
+      roleTag: 0
+      effectData:
+        category: 1
+        roleTag: 0
+        copies: 2
+        energyCost: 1
+        isPassive: 0
+        effectType: 1
+        description: Swap location with another unit
+        value1: 0
+        value2: 0
+        duration: 0
+        tileRange: 1
+      relicName: Captain Boots
+      fullDescription: "Captain Boots\n2 copies \u2022 1 Energy\nSwap location with
+        another unit"
+    sourceWeaponRelic:
+      weaponFamily: 0
+      baseWeaponData: {fileID: 0}
+      roleTag: 0
+      effectTier: 0
+      effectData:
+        effectName: 
+        description: 
+        effectType: 0
+        value1: 0
+        value2: 0
+        duration: 0
+        bonusDamagePercent: 0
+        rarity: 0
+      relicName: 
+      fullDescription: 
+  - cardName: 
+    category: 0
+    roleTag: 0
+    energyCost: 1
+    effectType: 0
+    sourceRelic:
+      category: 0
+      roleTag: 0
+      effectData:
+        category: 0
+        roleTag: 0
+        copies: 2
+        energyCost: 1
+        isPassive: 0
+        effectType: 0
+        description: 
+        value1: 0
+        value2: 0
+        duration: 0
+        tileRange: 1
+      relicName: 
+      fullDescription: 
+    sourceWeaponRelic:
+      weaponFamily: 0
+      baseWeaponData: {fileID: 0}
+      roleTag: 0
+      effectTier: 0
+      effectData:
+        effectName: 
+        description: 
+        effectType: 0
+        value1: 0
+        value2: 0
+        duration: 0
+        bonusDamagePercent: 0
+        rarity: 0
+      relicName: 
+      fullDescription: 
+  - cardName: 
+    category: 0
+    roleTag: 0
+    energyCost: 1
+    effectType: 0
+    sourceRelic:
+      category: 0
+      roleTag: 0
+      effectData:
+        category: 0
+        roleTag: 0
+        copies: 2
+        energyCost: 1
+        isPassive: 0
+        effectType: 0
+        description: 
+        value1: 0
+        value2: 0
+        duration: 0
+        tileRange: 1
+      relicName: 
+      fullDescription: 
+    sourceWeaponRelic:
+      weaponFamily: 0
+      baseWeaponData: {fileID: 0}
+      roleTag: 0
+      effectTier: 0
+      effectData:
+        effectName: 
+        description: 
+        effectType: 0
+        value1: 0
+        value2: 0
+        duration: 0
+        bonusDamagePercent: 0
+        rarity: 0
+      relicName: 
+      fullDescription: 
+  spentCards: []
+  hand:
+  - cardName: Captain Totem
+    category: 6
+    roleTag: 0
+    energyCost: 1
+    effectType: 61
+    sourceRelic:
+      category: 6
+      roleTag: 0
+      effectData:
+        category: 6
+        roleTag: 0
+        copies: 2
+        energyCost: 1
+        isPassive: 0
+        effectType: 61
+        description: Summon cannon (250 HP) that attacks random enemy each turn
+        value1: 250
+        value2: 0
+        duration: 0
+        tileRange: 1
+      relicName: Captain Totem
+      fullDescription: "Captain Totem\n2 copies \u2022 1 Energy\nSummon cannon (250
+        HP) that attacks random enemy each turn"
+    sourceWeaponRelic:
+      weaponFamily: 0
+      baseWeaponData: {fileID: 0}
+      roleTag: 0
+      effectTier: 0
+      effectData:
+        effectName: 
+        description: 
+        effectType: 0
+        value1: 0
+        value2: 0
+        duration: 0
+        bonusDamagePercent: 0
+        rarity: 0
+      relicName: 
+      fullDescription: 
+  - cardName: Captain Coat
+    category: 4
+    roleTag: 0
+    energyCost: 1
+    effectType: 37
+    sourceRelic:
+      category: 4
+      roleTag: 0
+      effectData:
+        category: 4
+        roleTag: 0
+        copies: 2
+        energyCost: 1
+        isPassive: 0
+        effectType: 37
+        description: Allies in 1 tile gain +20% Aim and Power for 2 turns
+        value1: 0
+        value2: 0.2
+        duration: 2
+        tileRange: 1
+      relicName: Captain Coat
+      fullDescription: "Captain Coat\n2 copies \u2022 1 Energy\nAllies in 1 tile
+        gain +20% Aim and Power for 2 turns"
+    sourceWeaponRelic:
+      weaponFamily: 0
+      baseWeaponData: {fileID: 0}
+      roleTag: 0
+      effectTier: 0
+      effectData:
+        effectName: 
+        description: 
+        effectType: 0
+        value1: 0
+        value2: 0
+        duration: 0
+        bonusDamagePercent: 0
+        rarity: 0
+      relicName: 
+      fullDescription: 
+  - cardName: Captain Gloves
+    category: 2
+    roleTag: 0
+    energyCost: 1
+    effectType: 13
+    sourceRelic:
+      category: 2
+      roleTag: 0
+      effectData:
+        category: 2
+        roleTag: 0
+        copies: 2
+        energyCost: 1
+        isPassive: 0
+        effectType: 13
+        description: Attack with default weapon, enemy draws 1 less next turn
+        value1: 0
+        value2: 1
+        duration: 1
+        tileRange: 1
+      relicName: Captain Gloves
+      fullDescription: "Captain Gloves\n2 copies \u2022 1 Energy\nAttack with default
+        weapon, enemy draws 1 less next turn"
+    sourceWeaponRelic:
+      weaponFamily: 0
+      baseWeaponData: {fileID: 0}
+      roleTag: 0
+      effectTier: 0
+      effectData:
+        effectName: 
+        description: 
+        effectType: 0
+        value1: 0
+        value2: 0
+        duration: 0
+        bonusDamagePercent: 0
+        rarity: 0
+      relicName: 
+      fullDescription: 
+  - cardName: Captain Totem
+    category: 6
+    roleTag: 0
+    energyCost: 1
+    effectType: 61
+    sourceRelic:
+      category: 6
+      roleTag: 0
+      effectData:
+        category: 6
+        roleTag: 0
+        copies: 2
+        energyCost: 1
+        isPassive: 0
+        effectType: 61
+        description: Summon cannon (250 HP) that attacks random enemy each turn
+        value1: 250
+        value2: 0
+        duration: 0
+        tileRange: 1
+      relicName: Captain Totem
+      fullDescription: "Captain Totem\n2 copies \u2022 1 Energy\nSummon cannon (250
+        HP) that attacks random enemy each turn"
+    sourceWeaponRelic:
+      weaponFamily: 0
+      baseWeaponData: {fileID: 0}
+      roleTag: 0
+      effectTier: 0
+      effectData:
+        effectName: 
+        description: 
+        effectType: 0
+        value1: 0
+        value2: 0
+        duration: 0
+        bonusDamagePercent: 0
+        rarity: 0
+      relicName: 
+      fullDescription: 
+  - cardName: Captain Ultimate
+    category: 7
+    roleTag: 0
+    energyCost: 3
+    effectType: 73
+    sourceRelic:
+      category: 7
+      roleTag: 0
+      effectData:
+        category: 7
+        roleTag: 0
+        copies: 1
+        energyCost: 3
+        isPassive: 0
+        effectType: 73
+        description: 'Fire ship cannon at 3 random enemy locations: 200 damage +
+          fire hazard'
+        value1: 200
+        value2: 3
+        duration: 0
+        tileRange: 1
+      relicName: Captain Ultimate
+      fullDescription: "Captain Ultimate\n1 copies \u2022 3 Energy\nFire ship cannon
+        at 3 random enemy locations: 200 damage + fire hazard"
+    sourceWeaponRelic:
+      weaponFamily: 0
+      baseWeaponData: {fileID: 0}
+      roleTag: 0
+      effectTier: 0
+      effectData:
+        effectName: 
+        description: 
+        effectType: 0
+        value1: 0
+        value2: 0
+        duration: 0
+        bonusDamagePercent: 0
+        rarity: 0
+      relicName: 
+      fullDescription: 
+  cardsPerTurn: 5
+  maxHandSize: 7
+--- !u!114 &7603110669950666604
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6888493511116314572}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9c122fb44c323e748856d188adb9fb32, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::TacticalGame.Equipment.UnitEquipmentUpdated
+  unitRole: 0
+  weaponFamily: 0
+  weaponRelic:
+    weaponFamily: 0
+    baseWeaponData: {fileID: 0}
+    roleTag: 0
+    effectTier: 0
+    effectData:
+      effectName: 
+      description: 
+      effectType: 0
+      value1: 0
+      value2: 0
+      duration: 0
+      bonusDamagePercent: 0
+      rarity: 0
+    relicName: 
+    fullDescription: 
+  bootsRelic:
+    category: 1
+    roleTag: 0
+    effectData:
+      category: 1
+      roleTag: 0
+      copies: 2
+      energyCost: 1
+      isPassive: 0
+      effectType: 1
+      description: Swap location with another unit
+      value1: 0
+      value2: 0
+      duration: 0
+      tileRange: 1
+    relicName: Captain Boots
+    fullDescription: "Captain Boots\n2 copies \u2022 1 Energy\nSwap location with
+      another unit"
+  glovesRelic:
+    category: 2
+    roleTag: 0
+    effectData:
+      category: 2
+      roleTag: 0
+      copies: 2
+      energyCost: 1
+      isPassive: 0
+      effectType: 13
+      description: Attack with default weapon, enemy draws 1 less next turn
+      value1: 0
+      value2: 1
+      duration: 1
+      tileRange: 1
+    relicName: Captain Gloves
+    fullDescription: "Captain Gloves\n2 copies \u2022 1 Energy\nAttack with default
+      weapon, enemy draws 1 less next turn"
+  hatRelic:
+    category: 3
+    roleTag: 0
+    effectData:
+      category: 3
+      roleTag: 0
+      copies: 2
+      energyCost: 1
+      isPassive: 0
+      effectType: 25
+      description: Draw 2 cards, take 200% damage for 2 turns
+      value1: 2
+      value2: 2
+      duration: 2
+      tileRange: 1
+    relicName: Captain Hat
+    fullDescription: "Captain Hat\n2 copies \u2022 1 Energy\nDraw 2 cards, take 200%
+      damage for 2 turns"
+  coatRelic:
+    category: 4
+    roleTag: 0
+    effectData:
+      category: 4
+      roleTag: 0
+      copies: 2
+      energyCost: 1
+      isPassive: 0
+      effectType: 37
+      description: Allies in 1 tile gain +20% Aim and Power for 2 turns
+      value1: 0
+      value2: 0.2
+      duration: 2
+      tileRange: 1
+    relicName: Captain Coat
+    fullDescription: "Captain Coat\n2 copies \u2022 1 Energy\nAllies in 1 tile gain
+      +20% Aim and Power for 2 turns"
+  trinketRelic:
+    category: 5
+    roleTag: 0
+    effectData:
+      category: 5
+      roleTag: 0
+      copies: 0
+      energyCost: 0
+      isPassive: 1
+      effectType: 49
+      description: 'Passive: Weapon damage +20% per card in hand'
+      value1: 0
+      value2: 0.2
+      duration: 0
+      tileRange: 1
+    relicName: Captain Trinket
+    fullDescription: 'Captain Trinket
+
+      Passive
+
+      Passive: Weapon damage
+      +20% per card in hand'
+  totemRelic:
+    category: 6
+    roleTag: 0
+    effectData:
+      category: 6
+      roleTag: 0
+      copies: 2
+      energyCost: 1
+      isPassive: 0
+      effectType: 61
+      description: Summon cannon (250 HP) that attacks random enemy each turn
+      value1: 250
+      value2: 0
+      duration: 0
+      tileRange: 1
+    relicName: Captain Totem
+    fullDescription: "Captain Totem\n2 copies \u2022 1 Energy\nSummon cannon (250
+      HP) that attacks random enemy each turn"
+  ultimateRelic:
+    category: 7
+    roleTag: 0
+    effectData:
+      category: 7
+      roleTag: 0
+      copies: 1
+      energyCost: 3
+      isPassive: 0
+      effectType: 73
+      description: 'Fire ship cannon at 3 random enemy locations: 200 damage + fire
+        hazard'
+      value1: 200
+      value2: 3
+      duration: 0
+      tileRange: 1
+    relicName: Captain Ultimate
+    fullDescription: "Captain Ultimate\n1 copies \u2022 3 Energy\nFire ship cannon
+      at 3 random enemy locations: 200 damage + fire hazard"
+  passiveUniqueRelic:
+    category: 8
+    roleTag: 0
+    effectData:
+      category: 8
+      roleTag: 0
+      copies: 0
+      energyCost: 0
+      isPassive: 1
+      effectType: 85
+      description: 'Passive: Start each turn with +1 maximum energy'
+      value1: 1
+      value2: 0
+      duration: 0
+      tileRange: 1
+    relicName: Captain PassiveUnique
+    fullDescription: 'Captain PassiveUnique
+
+      Passive
+
+      Passive: Start
+      each turn with +1 maximum energy'
 --- !u!1 &7108589934813182009
 GameObject:
   m_ObjectHideFlags: 0
@@ -1961,9 +2703,11 @@ MonoBehaviour:
   hpSlider: {fileID: 1448385738745759682}
   moraleSlider: {fileID: 8555329093321514294}
   buzzSlider: {fileID: 4047873766637727200}
+  hullSlider: {fileID: 0}
   hpNumberText: {fileID: 182401608769952675}
   moraleNumberText: {fileID: 1284809055380433698}
   arrowText: {fileID: 3780084775801384333}
+  hullNumberText: {fileID: 0}
 --- !u!1 &8221647655260838262
 GameObject:
   m_ObjectHideFlags: 0

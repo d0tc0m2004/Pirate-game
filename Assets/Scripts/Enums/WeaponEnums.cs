@@ -81,7 +81,9 @@ namespace TacticalGame.Enums
         Hat,        // Resource manipulation, defensive
         Coat,       // Defensive bursts, barriers, rally
         Trinket,    // Passive effects, utility
-        Totem       // Cursed artifacts, summons, on-death triggers
+        Totem,       // Cursed artifacts, summons, on-death triggers
+        Ultimate,
+        PassiveUnique
     }
 
     /// <summary>

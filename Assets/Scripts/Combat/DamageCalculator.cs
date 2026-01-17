@@ -1,11 +1,13 @@
 using UnityEngine;
 using TacticalGame.Config;
 using TacticalGame.Units;
+using TacticalGame.Equipment;
 
 namespace TacticalGame.Combat
 {
     /// <summary>
     /// Handles all damage calculations. Extracted from UnitStatus for single responsibility.
+    /// Now includes passive relic modifiers.
     /// 
     /// FORMULAS FROM STAT TABLE:
     /// - Power: MeleeOutput = Base × (1 + Power × 0.03)
@@ -82,6 +84,36 @@ namespace TacticalGame.Combat
             {
                 hpDamageMod -= config.adjacencyCoverReduction;
                 logHP += $" -{Mathf.RoundToInt(config.adjacencyCoverReduction * 100)}%(Cover)";
+            }
+            
+            // === PASSIVE RELIC OUTGOING DAMAGE MODIFIER ===
+            if (attackerStatus != null)
+            {
+                var attackerPassive = attackerStatus.GetComponent<PassiveRelicManager>();
+                if (attackerPassive != null)
+                {
+                    float passiveOutgoing = attackerPassive.GetOutgoingDamageModifier(targetStatus);
+                    if (passiveOutgoing != 1f)
+                    {
+                        hpDamageMod *= passiveOutgoing;
+                        logHP += $" x{passiveOutgoing:F2}(PassiveRelic)";
+                    }
+                }
+            }
+            
+            // === PASSIVE RELIC INCOMING DAMAGE MODIFIER ===
+            if (targetStatus != null)
+            {
+                var targetPassive = targetStatus.GetComponent<PassiveRelicManager>();
+                if (targetPassive != null)
+                {
+                    float passiveIncoming = targetPassive.GetIncomingDamageModifier(attackerStatus);
+                    if (passiveIncoming != 1f)
+                    {
+                        hpDamageMod *= passiveIncoming;
+                        logHP += $" x{passiveIncoming:F2}(DefensiveRelic)";
+                    }
+                }
             }
             
             // Ranged bonus to HP (+10%)
@@ -314,5 +346,47 @@ namespace TacticalGame.Combat
             float multiplier = GetTacticsPotencyMultiplier(tactics);
             return Mathf.RoundToInt(baseValue * multiplier);
         }
+
+        #region Passive Relic Helpers
+        
+        /// <summary>
+        /// Get the surrender threshold for a unit (checks for Boatswain passive).
+        /// </summary>
+        public static float GetSurrenderThreshold(UnitStatus unit)
+        {
+            if (unit == null) return 0.2f;
+            
+            var passiveManager = unit.GetComponent<PassiveRelicManager>();
+            if (passiveManager != null)
+            {
+                return passiveManager.GetSurrenderThreshold();
+            }
+            
+            return 0.2f; // Default 20%
+        }
+
+        /// <summary>
+        /// Check if unit is immune to morale focus fire (Helmsman trinket).
+        /// </summary>
+        public static bool IsImmuneMoraleFocusFire(UnitStatus unit)
+        {
+            if (unit == null) return false;
+            
+            var passiveManager = unit.GetComponent<PassiveRelicManager>();
+            return passiveManager != null && passiveManager.IsImmuneMoraleFocusFire();
+        }
+
+        /// <summary>
+        /// Check if unit has no buzz downside (Shipwright passive).
+        /// </summary>
+        public static bool HasNoBuzzDownside(UnitStatus unit)
+        {
+            if (unit == null) return false;
+            
+            var passiveManager = unit.GetComponent<PassiveRelicManager>();
+            return passiveManager != null && passiveManager.HasNoBuzzDownside();
+        }
+        
+        #endregion
     }
 }
