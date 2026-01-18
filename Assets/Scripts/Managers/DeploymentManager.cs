@@ -10,13 +10,12 @@ using TacticalGame.Hazards;
 using TacticalGame.Enums;
 using TacticalGame.Combat;
 using TacticalGame.Equipment;
-using TacticalGame.UI;
 
 namespace TacticalGame.Managers
 {
     /// <summary>
     /// Manages the unit deployment phase before battle.
-    /// Updated to attach UnitDataHolder for card-based combat UI.
+    /// Now includes relic transfer from UnitData to runtime components.
     /// </summary>
     public class DeploymentManager : MonoBehaviour
     {
@@ -265,30 +264,24 @@ namespace TacticalGame.Managers
             newUnit.name = data.unitName;
             newUnit.tag = "Unit";
 
-            // === IMPORTANT: Attach UnitDataHolder for card UI ===
-            UnitDataHolder dataHolder = newUnit.AddComponent<UnitDataHolder>();
-            dataHolder.unitData = data;
-
+            // Initialize UnitStatus
             UnitStatus status = newUnit.GetComponent<UnitStatus>();
             if (status != null)
             {
                 status.Initialize(data);
             }
 
+            // Initialize UnitAttack with weapon relic
             UnitAttack attack = newUnit.GetComponent<UnitAttack>();
             if (attack != null)
             {
                 attack.SetupManagers(gridManager, energyManager);
                 
-                // Set the default weapon relic from slot 0
-                WeaponRelic defaultRelic = data.equipment?.GetWeaponRelic(0);
-                if (defaultRelic != null)
+                // Set the primary weapon relic from UnitData
+                WeaponRelic primaryWeapon = data.GetWeaponRelic(0) ?? data.defaultWeaponRelic;
+                if (primaryWeapon != null)
                 {
-                    attack.SetWeaponRelic(defaultRelic);
-                }
-                else if (data.defaultWeaponRelic != null)
-                {
-                    attack.SetWeaponRelic(data.defaultWeaponRelic);
+                    attack.SetWeaponRelic(primaryWeapon);
                 }
             }
 
@@ -298,7 +291,66 @@ namespace TacticalGame.Managers
                 newUnit.AddComponent<StatusEffectManager>();
             }
 
+            // === NEW: Setup UnitEquipmentUpdated with ALL relics ===
+            SetupUnitEquipment(newUnit, data);
+            
+            // === NEW: Setup CardDeckManager ===
+            SetupCardDeck(newUnit);
+
             cell.PlaceUnit(newUnit);
+            
+            Debug.Log($"<color=green>Spawned {data.unitName} with {data.GetAllWeaponRelics().Count} weapon relics and {data.GetAllCategoryRelics().Count} category relics</color>");
+        }
+
+        /// <summary>
+        /// Setup the runtime equipment component with relics from UnitData.
+        /// </summary>
+        private void SetupUnitEquipment(GameObject unitObj, UnitData data)
+        {
+            // Get or add UnitEquipmentUpdated
+            UnitEquipmentUpdated equipment = unitObj.GetComponent<UnitEquipmentUpdated>();
+            if (equipment == null)
+            {
+                equipment = unitObj.AddComponent<UnitEquipmentUpdated>();
+            }
+            
+            // Initialize with role and weapon family
+            equipment.Initialize(data.role, data.weaponFamily);
+            
+            // Transfer weapon relic (primary)
+            WeaponRelic primaryWeapon = data.GetWeaponRelic(0) ?? data.defaultWeaponRelic;
+            if (primaryWeapon != null)
+            {
+                equipment.EquipWeaponRelic(primaryWeapon);
+                Debug.Log($"<color=cyan>  Equipped weapon: {primaryWeapon.relicName}</color>");
+            }
+            
+            // Transfer category relics
+            if (data.categoryRelics != null)
+            {
+                foreach (var categoryRelic in data.categoryRelics)
+                {
+                    if (categoryRelic != null)
+                    {
+                        equipment.EquipRelic(categoryRelic);
+                        Debug.Log($"<color=cyan>  Equipped {categoryRelic.category}: {categoryRelic.relicName}</color>");
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// Setup the card deck manager for battle.
+        /// </summary>
+        private void SetupCardDeck(GameObject unitObj)
+        {
+            CardDeckManager deck = unitObj.GetComponent<CardDeckManager>();
+            if (deck == null)
+            {
+                deck = unitObj.AddComponent<CardDeckManager>();
+            }
+            
+            // Deck will build itself in Start() using UnitEquipmentUpdated
         }
 
         private GameObject GetPrefabForRole(UnitRole role, Team team)

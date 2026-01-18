@@ -14,10 +14,14 @@ namespace TacticalGame.Equipment
         public RelicCategory category;
         public UnitRole roleTag;
         
+        [Header("Display Info")]
+        public string effectName;           // Display name like "Captain Boots"
+        public RelicRarity rarity = RelicRarity.Common;
+        
         [Header("Card Info")]
-        public int copies = 2;          // How many cards in deck
-        public int energyCost = 1;      // Cost to play
-        public bool isPassive = false;  // If true, always active (no card)
+        public int copies = 2;              // How many cards in deck
+        public int energyCost = 1;          // Cost to play
+        public bool isPassive = false;      // If true, always active (no card)
         
         [Header("Effect")]
         public RelicEffectType effectType;
@@ -25,16 +29,19 @@ namespace TacticalGame.Equipment
         public string description;
         
         [Header("Values")]
-        public float value1;            // Primary value (damage %, tiles, etc.)
-        public float value2;            // Secondary value
-        public int duration;            // Effect duration in turns
-        public int tileRange = 1;       // Tile radius for AoE effects
+        public float value1;                // Primary value (damage %, tiles, etc.)
+        public float value2;                // Secondary value
+        public int duration;                // Effect duration in turns
+        public int tileRange = 1;           // Tile radius for AoE effects
         
         /// <summary>
         /// Get display name like "Captain Boots"
         /// </summary>
         public string GetDisplayName()
         {
+            if (!string.IsNullOrEmpty(effectName))
+                return effectName;
+                
             string roleName = roleTag switch
             {
                 UnitRole.MasterGunner => "Master Gunner",

@@ -10,13 +10,15 @@ using TacticalGame.Equipment;
 using TacticalGame.Enums;
 using TacticalGame.Core;
 using TacticalGame.Managers;
+using TacticalGame.Grid;
 
 namespace TacticalGame.UI
 {
     /// <summary>
     /// Manages the relic card hand UI during combat.
-    /// When a player unit is selected, 6 relic cards fan out at the bottom.
-    /// Clicking a card executes an attack using that relic.
+    /// When a player unit is selected and X is pressed, 7 relic cards fan out at the bottom.
+    /// Cards display the unit's equipped relics (can be WeaponRelics or CategoryRelics).
+    /// Clicking a card executes the relic's effect.
     /// </summary>
     public class RelicCardUI : MonoBehaviour
     {
@@ -29,7 +31,7 @@ namespace TacticalGame.UI
         
         #region Events
         
-        public event Action<int> OnCardPlayed; // Card index (0-5)
+        public event Action<int> OnCardPlayed; // Card index (0-6)
         
         #endregion
         
@@ -39,7 +41,7 @@ namespace TacticalGame.UI
         [SerializeField] private float cardWidth = 140f;
         [SerializeField] private float cardHeight = 200f;
         [SerializeField] private float cardSpacing = 10f;
-        [SerializeField] private float fanAngle = 3f; // Degrees of rotation per card from center
+        [SerializeField] private float fanAngle = 3f;
         [SerializeField] private float hoverLift = 40f;
         [SerializeField] private float hoverScale = 1.15f;
         [SerializeField] private float animationSpeed = 8f;
@@ -57,6 +59,8 @@ namespace TacticalGame.UI
         [SerializeField] private Color commonColor = new Color(0.6f, 0.6f, 0.6f);
         [SerializeField] private Color uncommonColor = new Color(0.3f, 0.8f, 0.3f);
         [SerializeField] private Color rareColor = new Color(0.4f, 0.6f, 1f);
+        [SerializeField] private Color uniqueColor = new Color(1f, 0.5f, 0.1f);
+        [SerializeField] private Color weaponColor = new Color(0.8f, 0.3f, 0.3f); // Red tint for weapons
         
         #endregion
         
@@ -89,18 +93,24 @@ namespace TacticalGame.UI
             public Image background;
             public Image border;
             public Image rarityBar;
-            public TMP_Text weaponText;
-            public TMP_Text effectText;
-            public TMP_Text roleText;
-            public TMP_Text costText;
-            public TMP_Text matchText;
+            public TMP_Text typeText;       // "Weapon" or category name
+            public TMP_Text effectText;     // Effect/weapon name
+            public TMP_Text roleText;       // Role tag
+            public TMP_Text costText;       // Energy cost
+            public TMP_Text matchText;      // Match indicator
+            public TMP_Text copiesText;     // Number of copies
             public GameObject disabledOverlay;
             public Button button;
             
-            public WeaponRelic relic;
+            // Can be either type
+            public WeaponRelic weaponRelic;
+            public EquippedRelic categoryRelic;
+            
             public int slotIndex;
             public bool isEmpty;
             public bool isDisabled;
+            public bool isPassive;
+            public bool isWeapon;           // True if this slot has a weapon relic
             
             // Animation state
             public Vector2 basePosition;
@@ -161,12 +171,10 @@ namespace TacticalGame.UI
                 {
                     if (isVisible)
                     {
-                        // If cards are showing, hide them
                         Hide();
                     }
                     else
                     {
-                        // Show cards for the selected unit
                         ShowCards();
                     }
                 }
@@ -185,18 +193,15 @@ namespace TacticalGame.UI
             {
                 if (card.root == null) continue;
                 
-                // Smooth position
                 Vector2 currentPos = card.rectTransform.anchoredPosition;
                 Vector2 newPos = Vector2.Lerp(currentPos, card.targetPosition, Time.deltaTime * animationSpeed);
                 card.rectTransform.anchoredPosition = newPos;
                 
-                // Smooth rotation
                 float currentRot = card.rectTransform.localEulerAngles.z;
                 if (currentRot > 180) currentRot -= 360;
                 float newRot = Mathf.Lerp(currentRot, card.targetRotation, Time.deltaTime * animationSpeed);
                 card.rectTransform.localEulerAngles = new Vector3(0, 0, newRot);
                 
-                // Smooth scale
                 float currentScale = card.rectTransform.localScale.x;
                 float newScale = Mathf.Lerp(currentScale, card.targetScale, Time.deltaTime * animationSpeed);
                 card.rectTransform.localScale = Vector3.one * newScale;
@@ -210,7 +215,7 @@ namespace TacticalGame.UI
         private void CreateUI()
         {
             // Find or create canvas
-            Canvas existingCanvas = FindObjectOfType<Canvas>();
+            Canvas existingCanvas = FindFirstObjectByType<Canvas>();
             if (existingCanvas != null)
             {
                 canvasRoot = existingCanvas.gameObject;
@@ -220,24 +225,23 @@ namespace TacticalGame.UI
                 canvasRoot = new GameObject("RelicCardCanvas");
                 Canvas canvas = canvasRoot.AddComponent<Canvas>();
                 canvas.renderMode = RenderMode.ScreenSpaceOverlay;
-                canvas.sortingOrder = 100; // On top
+                canvas.sortingOrder = 100;
                 canvasRoot.AddComponent<CanvasScaler>();
                 canvasRoot.AddComponent<GraphicRaycaster>();
             }
             
-            // Create card container
+            // Create container for cards
             cardContainer = new GameObject("CardContainer");
             cardContainer.transform.SetParent(canvasRoot.transform, false);
-            RectTransform containerRt = cardContainer.AddComponent<RectTransform>();
             
-            // Anchor to bottom center
-            containerRt.anchorMin = new Vector2(0.5f, 0);
-            containerRt.anchorMax = new Vector2(0.5f, 0);
-            containerRt.pivot = new Vector2(0.5f, 0);
-            containerRt.anchoredPosition = new Vector2(0, bottomOffset);
-            containerRt.sizeDelta = new Vector2(1200, cardHeight + 50);
+            RectTransform containerRect = cardContainer.AddComponent<RectTransform>();
+            containerRect.anchorMin = new Vector2(0.5f, 0);
+            containerRect.anchorMax = new Vector2(0.5f, 0);
+            containerRect.pivot = new Vector2(0.5f, 0);
+            containerRect.anchoredPosition = new Vector2(0, bottomOffset);
+            containerRect.sizeDelta = new Vector2(1000, cardHeight + 50);
             
-            // Create 7 cards (DEF + R1-R4 + ULT + PAS)
+            // Create 7 card slots
             for (int i = 0; i < 7; i++)
             {
                 CreateCard(i);
@@ -257,175 +261,187 @@ namespace TacticalGame.UI
             card.rectTransform.sizeDelta = new Vector2(cardWidth, cardHeight);
             card.rectTransform.pivot = new Vector2(0.5f, 0);
             
-            // Border (slightly larger background)
-            GameObject borderObj = new GameObject("Border");
-            borderObj.transform.SetParent(card.root.transform, false);
-            RectTransform borderRt = borderObj.AddComponent<RectTransform>();
-            borderRt.anchorMin = Vector2.zero;
-            borderRt.anchorMax = Vector2.one;
-            borderRt.offsetMin = new Vector2(-3, -3);
-            borderRt.offsetMax = new Vector2(3, 3);
-            card.border = borderObj.AddComponent<Image>();
-            card.border.color = cardBorderColor;
-            
             // Background
             GameObject bgObj = new GameObject("Background");
             bgObj.transform.SetParent(card.root.transform, false);
-            RectTransform bgRt = bgObj.AddComponent<RectTransform>();
-            bgRt.anchorMin = Vector2.zero;
-            bgRt.anchorMax = Vector2.one;
-            bgRt.offsetMin = Vector2.zero;
-            bgRt.offsetMax = Vector2.zero;
             card.background = bgObj.AddComponent<Image>();
             card.background.color = cardBackgroundColor;
+            RectTransform bgRect = bgObj.GetComponent<RectTransform>();
+            bgRect.anchorMin = Vector2.zero;
+            bgRect.anchorMax = Vector2.one;
+            bgRect.sizeDelta = Vector2.zero;
             
-            // Rarity bar (top)
+            // Border
+            GameObject borderObj = new GameObject("Border");
+            borderObj.transform.SetParent(card.root.transform, false);
+            card.border = borderObj.AddComponent<Image>();
+            card.border.color = cardBorderColor;
+            card.border.raycastTarget = false;
+            RectTransform borderRect = borderObj.GetComponent<RectTransform>();
+            borderRect.anchorMin = Vector2.zero;
+            borderRect.anchorMax = Vector2.one;
+            borderRect.sizeDelta = new Vector2(4, 4);
+            borderRect.anchoredPosition = Vector2.zero;
+            
+            // Rarity bar at top
             GameObject rarityObj = new GameObject("RarityBar");
             rarityObj.transform.SetParent(card.root.transform, false);
-            RectTransform rarityRt = rarityObj.AddComponent<RectTransform>();
-            rarityRt.anchorMin = new Vector2(0, 1);
-            rarityRt.anchorMax = new Vector2(1, 1);
-            rarityRt.pivot = new Vector2(0.5f, 1);
-            rarityRt.anchoredPosition = Vector2.zero;
-            rarityRt.sizeDelta = new Vector2(0, 6);
             card.rarityBar = rarityObj.AddComponent<Image>();
             card.rarityBar.color = commonColor;
+            card.rarityBar.raycastTarget = false;
+            RectTransform rarityRect = rarityObj.GetComponent<RectTransform>();
+            rarityRect.anchorMin = new Vector2(0, 1);
+            rarityRect.anchorMax = new Vector2(1, 1);
+            rarityRect.pivot = new Vector2(0.5f, 1);
+            rarityRect.sizeDelta = new Vector2(0, 6);
+            rarityRect.anchoredPosition = Vector2.zero;
             
-            // Weapon name (top)
-            card.weaponText = CreateCardText(card.root.transform, "WeaponText", 
-                new Vector2(0, -14), new Vector2(-10, 22), 11, FontStyles.Normal);
-            card.weaponText.color = new Color(0.6f, 0.8f, 1f);
+            // Type text (top) - "Weapon" or category like "Boots"
+            card.typeText = CreateText(card.root.transform, "TypeText", "", 12, TextAlignmentOptions.Center);
+            RectTransform typeRect = card.typeText.GetComponent<RectTransform>();
+            typeRect.anchorMin = new Vector2(0, 1);
+            typeRect.anchorMax = new Vector2(1, 1);
+            typeRect.pivot = new Vector2(0.5f, 1);
+            typeRect.anchoredPosition = new Vector2(0, -12);
+            typeRect.sizeDelta = new Vector2(-10, 20);
+            card.typeText.fontStyle = FontStyles.Bold;
             
-            // Effect name (center, larger)
-            card.effectText = CreateCardText(card.root.transform, "EffectText",
-                new Vector2(0, -45), new Vector2(-10, 50), 13, FontStyles.Bold);
-            card.effectText.alignment = TextAlignmentOptions.Center;
+            // Effect/weapon name (middle)
+            card.effectText = CreateText(card.root.transform, "EffectText", "", 11, TextAlignmentOptions.Center);
+            RectTransform effectRect = card.effectText.GetComponent<RectTransform>();
+            effectRect.anchorMin = new Vector2(0, 0.4f);
+            effectRect.anchorMax = new Vector2(1, 0.75f);
+            effectRect.sizeDelta = new Vector2(-10, 0);
+            effectRect.anchoredPosition = Vector2.zero;
+            card.effectText.textWrappingMode = TextWrappingModes.Normal;
+            card.effectText.overflowMode = TextOverflowModes.Ellipsis;
             
             // Role text (below effect)
-            card.roleText = CreateCardText(card.root.transform, "RoleText",
-                new Vector2(0, -100), new Vector2(-10, 22), 10, FontStyles.Italic);
+            card.roleText = CreateText(card.root.transform, "RoleText", "", 10, TextAlignmentOptions.Center);
+            RectTransform roleRect = card.roleText.GetComponent<RectTransform>();
+            roleRect.anchorMin = new Vector2(0, 0.25f);
+            roleRect.anchorMax = new Vector2(1, 0.4f);
+            roleRect.sizeDelta = new Vector2(-10, 0);
+            roleRect.anchoredPosition = Vector2.zero;
             card.roleText.color = new Color(0.7f, 0.7f, 0.7f);
             
             // Match indicator
-            card.matchText = CreateCardText(card.root.transform, "MatchText",
-                new Vector2(0, -125), new Vector2(-10, 22), 11, FontStyles.Bold);
+            card.matchText = CreateText(card.root.transform, "MatchText", "", 10, TextAlignmentOptions.Center);
+            RectTransform matchRect = card.matchText.GetComponent<RectTransform>();
+            matchRect.anchorMin = new Vector2(0, 0.1f);
+            matchRect.anchorMax = new Vector2(1, 0.25f);
+            matchRect.sizeDelta = new Vector2(-10, 0);
+            matchRect.anchoredPosition = Vector2.zero;
             card.matchText.color = matchColor;
-            card.matchText.text = "";
+            card.matchText.fontStyle = FontStyles.Bold;
             
-            // Cost (bottom left)
-            GameObject costContainer = new GameObject("CostContainer");
-            costContainer.transform.SetParent(card.root.transform, false);
-            RectTransform costContRt = costContainer.AddComponent<RectTransform>();
-            costContRt.anchorMin = new Vector2(0, 0);
-            costContRt.anchorMax = new Vector2(0, 0);
-            costContRt.pivot = new Vector2(0, 0);
-            costContRt.anchoredPosition = new Vector2(8, 8);
-            costContRt.sizeDelta = new Vector2(35, 35);
+            // Cost text (bottom left)
+            card.costText = CreateText(card.root.transform, "CostText", "1", 16, TextAlignmentOptions.Center);
+            RectTransform costRect = card.costText.GetComponent<RectTransform>();
+            costRect.anchorMin = new Vector2(0, 0);
+            costRect.anchorMax = new Vector2(0, 0);
+            costRect.pivot = new Vector2(0, 0);
+            costRect.anchoredPosition = new Vector2(8, 8);
+            costRect.sizeDelta = new Vector2(24, 24);
+            card.costText.fontStyle = FontStyles.Bold;
             
-            Image costBg = costContainer.AddComponent<Image>();
-            costBg.color = new Color(0.2f, 0.3f, 0.5f);
+            // Energy icon background
+            GameObject costBg = new GameObject("CostBg");
+            costBg.transform.SetParent(card.root.transform, false);
+            costBg.transform.SetSiblingIndex(card.costText.transform.GetSiblingIndex());
+            Image costBgImg = costBg.AddComponent<Image>();
+            costBgImg.color = new Color(0.2f, 0.4f, 0.8f);
+            costBgImg.raycastTarget = false;
+            RectTransform costBgRect = costBg.GetComponent<RectTransform>();
+            costBgRect.anchorMin = new Vector2(0, 0);
+            costBgRect.anchorMax = new Vector2(0, 0);
+            costBgRect.pivot = new Vector2(0, 0);
+            costBgRect.anchoredPosition = new Vector2(5, 5);
+            costBgRect.sizeDelta = new Vector2(28, 28);
             
-            card.costText = CreateCardText(costContainer.transform, "CostText",
-                Vector2.zero, Vector2.zero, 16, FontStyles.Bold);
-            RectTransform costTextRt = card.costText.GetComponent<RectTransform>();
-            costTextRt.anchorMin = Vector2.zero;
-            costTextRt.anchorMax = Vector2.one;
-            costTextRt.offsetMin = Vector2.zero;
-            costTextRt.offsetMax = Vector2.zero;
-            card.costText.alignment = TextAlignmentOptions.Center;
-            card.costText.text = "1";
+            // Copies text (bottom right)
+            card.copiesText = CreateText(card.root.transform, "CopiesText", "", 10, TextAlignmentOptions.Center);
+            RectTransform copiesRect = card.copiesText.GetComponent<RectTransform>();
+            copiesRect.anchorMin = new Vector2(1, 0);
+            copiesRect.anchorMax = new Vector2(1, 0);
+            copiesRect.pivot = new Vector2(1, 0);
+            copiesRect.anchoredPosition = new Vector2(-8, 8);
+            copiesRect.sizeDelta = new Vector2(30, 20);
+            card.copiesText.color = new Color(0.6f, 0.6f, 0.6f);
             
             // Disabled overlay
             card.disabledOverlay = new GameObject("DisabledOverlay");
             card.disabledOverlay.transform.SetParent(card.root.transform, false);
-            RectTransform disabledRt = card.disabledOverlay.AddComponent<RectTransform>();
-            disabledRt.anchorMin = Vector2.zero;
-            disabledRt.anchorMax = Vector2.one;
-            disabledRt.offsetMin = Vector2.zero;
-            disabledRt.offsetMax = Vector2.zero;
-            Image disabledImg = card.disabledOverlay.AddComponent<Image>();
-            disabledImg.color = cardDisabledColor;
-            disabledImg.raycastTarget = false;
+            Image overlayImg = card.disabledOverlay.AddComponent<Image>();
+            overlayImg.color = cardDisabledColor;
+            overlayImg.raycastTarget = false;
+            RectTransform overlayRect = card.disabledOverlay.GetComponent<RectTransform>();
+            overlayRect.anchorMin = Vector2.zero;
+            overlayRect.anchorMax = Vector2.one;
+            overlayRect.sizeDelta = Vector2.zero;
             card.disabledOverlay.SetActive(false);
             
-            // Button
+            // Button for interaction
             card.button = card.root.AddComponent<Button>();
-            card.button.transition = Selectable.Transition.None;
+            card.button.targetGraphic = card.background;
             
-            int capturedIndex = index;
-            card.button.onClick.AddListener(() => OnCardClicked(capturedIndex));
-            
-            // Hover events
+            // Event triggers for hover
             EventTrigger trigger = card.root.AddComponent<EventTrigger>();
             
             EventTrigger.Entry enterEntry = new EventTrigger.Entry();
             enterEntry.eventID = EventTriggerType.PointerEnter;
-            enterEntry.callback.AddListener((data) => OnCardHoverEnter(capturedIndex));
+            int cardIndex = index;
+            enterEntry.callback.AddListener((data) => OnCardHoverEnter(cardIndex));
             trigger.triggers.Add(enterEntry);
             
             EventTrigger.Entry exitEntry = new EventTrigger.Entry();
             exitEntry.eventID = EventTriggerType.PointerExit;
-            exitEntry.callback.AddListener((data) => OnCardHoverExit(capturedIndex));
+            exitEntry.callback.AddListener((data) => OnCardHoverExit(cardIndex));
             trigger.triggers.Add(exitEntry);
+            
+            // Click handler
+            card.button.onClick.AddListener(() => OnCardClicked(cardIndex));
             
             cards.Add(card);
         }
         
-        private TMP_Text CreateCardText(Transform parent, string name, Vector2 position, Vector2 size, int fontSize, FontStyles style)
+        private TMP_Text CreateText(Transform parent, string name, string text, int fontSize, TextAlignmentOptions alignment)
         {
-            GameObject textObj = new GameObject(name);
-            textObj.transform.SetParent(parent, false);
+            GameObject obj = new GameObject(name);
+            obj.transform.SetParent(parent, false);
             
-            RectTransform rt = textObj.AddComponent<RectTransform>();
-            rt.anchorMin = new Vector2(0, 1);
-            rt.anchorMax = new Vector2(1, 1);
-            rt.pivot = new Vector2(0.5f, 1);
-            rt.anchoredPosition = position;
-            rt.sizeDelta = size;
+            TMP_Text tmp = obj.AddComponent<TextMeshProUGUI>();
+            tmp.text = text;
+            tmp.fontSize = fontSize;
+            tmp.alignment = alignment;
+            tmp.color = Color.white;
+            tmp.raycastTarget = false;
             
-            TMP_Text text = textObj.AddComponent<TextMeshProUGUI>();
-            text.fontSize = fontSize;
-            text.fontStyle = style;
-            text.alignment = TextAlignmentOptions.Center;
-            text.color = Color.white;
-            text.enableWordWrapping = true;
-            text.overflowMode = TextOverflowModes.Ellipsis;
-            
-            return text;
+            return tmp;
         }
         
         #endregion
         
         #region Show/Hide
         
-        /// <summary>
-        /// Show cards for a unit
-        /// </summary>
         public void Show(GameObject unitObject, UnitData unit)
         {
-            if (unit == null || unitObject == null) return;
+            if (unitObject == null) return;
             
-            // Only show for player units
-            if (unit.team != Team.Player) return;
+            // Check if player unit via UnitStatus component
+            UnitStatus status = unitObject.GetComponent<UnitStatus>();
+            if (status == null || status.Team != Team.Player) return;
             
             currentUnit = unit;
             currentUnitObject = unitObject;
             isVisible = true;
             cardContainer.SetActive(true);
             
-            // Populate cards from unit's equipment
             PopulateCards();
-            
-            // Position cards in fan formation
             PositionCards();
-            
-            // Check energy availability
             UpdateCardStates();
         }
         
-        /// <summary>
-        /// Hide the card UI
-        /// </summary>
         public void Hide()
         {
             isVisible = false;
@@ -437,9 +453,6 @@ namespace TacticalGame.UI
                 cardContainer.SetActive(false);
         }
         
-        /// <summary>
-        /// Fully clear everything (called on turn end, etc.)
-        /// </summary>
         private void FullHide()
         {
             ClearPendingUnit();
@@ -458,14 +471,12 @@ namespace TacticalGame.UI
                 return;
             }
             
-            // Store as pending unit - cards will show when X is pressed
             UnitData data = GetUnitDataFromObject(unit);
             if (data != null)
             {
                 pendingUnit = unit;
                 pendingUnitData = data;
                 
-                // If cards were already visible for a different unit, hide them
                 if (isVisible && currentUnitObject != unit)
                 {
                     Hide();
@@ -485,9 +496,6 @@ namespace TacticalGame.UI
             pendingUnitData = null;
         }
         
-        /// <summary>
-        /// Actually show the cards for the pending unit
-        /// </summary>
         private void ShowCards()
         {
             if (pendingUnit == null || pendingUnitData == null) return;
@@ -502,49 +510,20 @@ namespace TacticalGame.UI
             }
         }
         
-        /// <summary>
-        /// Try to get UnitData from a unit GameObject.
-        /// This looks for matching unit in the deployment manager's lists.
-        /// </summary>
         private UnitData GetUnitDataFromObject(GameObject unitObj)
         {
-            // Try to get from a component that stores the reference
-            UnitDataHolder holder = unitObj.GetComponent<UnitDataHolder>();
-            if (holder != null && holder.unitData != null)
-            {
-                return holder.unitData;
-            }
-            
-            // Fallback: create temporary data from UnitStatus
+            // We just need basic info - relics will be read directly from UnitEquipmentUpdated
             UnitStatus status = unitObj.GetComponent<UnitStatus>();
             if (status != null)
             {
-                // Check if unit has UnitAttack with weapon relic
-                UnitAttack attack = unitObj.GetComponent<UnitAttack>();
-                WeaponRelic defaultRelic = attack?.GetWeaponRelic();
-                
-                // Create a temporary UnitData to display cards
                 UnitData tempData = new UnitData();
                 tempData.unitName = status.UnitName;
-                tempData.role = status.Role;
-                tempData.team = status.Team;
-                tempData.weaponType = status.WeaponType;
-                tempData.defaultWeaponRelic = defaultRelic;
-                
-                // Initialize equipment if needed
-                if (tempData.equipment == null)
-                {
-                    tempData.equipment = new UnitEquipmentData();
-                    if (defaultRelic != null)
-                    {
-                        tempData.equipment.EquipWeaponRelic(0, defaultRelic);
-                    }
-                }
-                
+                // Note: UnitData.role type may vary - this creates minimal data
+                // The card UI gets relics directly from UnitEquipmentUpdated component
                 return tempData;
             }
             
-            return null;
+            return new UnitData();
         }
         
         #endregion
@@ -553,60 +532,212 @@ namespace TacticalGame.UI
         
         private void PopulateCards()
         {
+            // Get equipment component directly from the unit GameObject
+            UnitEquipmentUpdated equipComp = currentUnitObject?.GetComponent<UnitEquipmentUpdated>();
+            UnitStatus unitStatus = currentUnitObject?.GetComponent<UnitStatus>();
+            UnitRole unitRole = unitStatus?.Role ?? UnitRole.Deckhand;
+            
+            // Clear all cards first
             for (int i = 0; i < 7; i++)
             {
-                RelicCard card = cards[i];
-                WeaponRelic relic = currentUnit.equipment?.GetWeaponRelic(i);
-                
-                card.relic = relic;
-                card.isEmpty = (relic == null);
-                
-                // Get slot name for label
-                string slotName = UnitEquipmentData.GetSlotName(i);
-                
-                if (relic != null)
-                {
-                    // Weapon name
-                    card.weaponText.text = relic.baseWeaponData?.weaponName ?? relic.weaponFamily.ToString();
-                    
-                    // Effect name
-                    card.effectText.text = relic.effectData.effectName;
-                    
-                    // Role
-                    card.roleText.text = GetRoleDisplayName(relic.roleTag);
-                    
-                    // Match indicator
-                    bool isMatch = relic.MatchesRole(currentUnit.role);
-                    card.matchText.text = isMatch ? "★ MATCH" : "";
-                    card.matchText.gameObject.SetActive(isMatch);
-                    
-                    // Rarity color
-                    card.rarityBar.color = GetRarityColor(relic.effectData.rarity);
-                    
-                    // Border color based on match
-                    card.border.color = isMatch ? matchColor : cardBorderColor;
-                    
-                    // Cost (always 1 for now)
-                    int cost = relic.baseWeaponData?.energyCost ?? 1;
-                    card.costText.text = cost.ToString();
-                    
-                    // Background
-                    card.background.color = cardBackgroundColor;
-                }
-                else
-                {
-                    // Empty slot
-                    card.weaponText.text = "";
-                    card.effectText.text = "Empty Slot";
-                    card.roleText.text = GetSlotLabel(i);
-                    card.matchText.text = "";
-                    card.matchText.gameObject.SetActive(false);
-                    card.rarityBar.color = emptySlotColor;
-                    card.border.color = emptySlotColor;
-                    card.costText.text = "-";
-                    card.background.color = emptySlotColor;
-                }
+                cards[i].weaponRelic = null;
+                cards[i].categoryRelic = null;
+                cards[i].isWeapon = false;
+                cards[i].isPassive = false;
+                cards[i].isEmpty = true;
             }
+            
+            if (equipComp == null)
+            {
+                for (int i = 0; i < 7; i++)
+                    PopulateEmptyCard(cards[i], i);
+                return;
+            }
+            
+            // Collect ALL equipped relics into a list
+            List<WeaponRelic> weaponRelics = equipComp.GetAllWeaponRelics();
+            List<EquippedRelic> categoryRelics = equipComp.GetAllEquippedRelics();
+            
+            // Separate active relics from Ultimate and PassiveUnique
+            List<EquippedRelic> activeRelics = new List<EquippedRelic>();
+            EquippedRelic ultimate = null;
+            EquippedRelic passive = null;
+            
+            foreach (var relic in categoryRelics)
+            {
+                if (relic.category == RelicCategory.Ultimate)
+                    ultimate = relic;
+                else if (relic.category == RelicCategory.PassiveUnique)
+                    passive = relic;
+                else if (!relic.IsPassive()) // Skip trinket (always active, no card)
+                    activeRelics.Add(relic);
+            }
+            
+            // Fill cards: weapons first, then active category relics, then ultimate, then passive
+            int cardIndex = 0;
+            
+            // Add weapon relics
+            foreach (var weapon in weaponRelics)
+            {
+                if (cardIndex >= 5) break; // Leave room for ultimate and passive
+                PopulateWeaponCard(cards[cardIndex], weapon, unitRole);
+                cardIndex++;
+            }
+            
+            // Add active category relics
+            foreach (var relic in activeRelics)
+            {
+                if (cardIndex >= 5) break;
+                PopulateCategoryCard(cards[cardIndex], relic, unitRole);
+                cardIndex++;
+            }
+            
+            // Fill remaining slots 0-4 with empty
+            while (cardIndex < 5)
+            {
+                PopulateEmptyCard(cards[cardIndex], cardIndex);
+                cardIndex++;
+            }
+            
+            // Slot 5 = Ultimate
+            if (ultimate != null)
+                PopulateCategoryCard(cards[5], ultimate, unitRole);
+            else
+                PopulateEmptyCard(cards[5], 5);
+            
+            // Slot 6 = Passive
+            if (passive != null)
+                PopulateCategoryCard(cards[6], passive, unitRole);
+            else
+                PopulateEmptyCard(cards[6], 6);
+        }
+        
+        private void PopulateWeaponCard(RelicCard card, WeaponRelic relic, UnitRole unitRole)
+        {
+            card.weaponRelic = relic;
+            card.isWeapon = true;
+            card.isEmpty = false;
+            card.isPassive = false;
+            
+            // Type label
+            card.typeText.text = "WEAPON";
+            card.typeText.color = weaponColor;
+            
+            // Weapon/effect name
+            string weaponName = relic.baseWeaponData?.weaponName ?? relic.weaponFamily.ToString();
+            card.effectText.text = weaponName;
+            
+            // Role
+            card.roleText.text = GetRoleDisplayName(relic.roleTag);
+            
+            // Match indicator
+            bool isMatch = relic.MatchesRole(unitRole);
+            card.matchText.text = isMatch ? "★ MATCH" : "";
+            card.matchText.gameObject.SetActive(isMatch);
+            
+            // Rarity color (from effect data if available)
+            // Note: effectData is a struct, check if it has valid data
+            if (!string.IsNullOrEmpty(relic.effectData.effectName))
+            {
+                card.rarityBar.color = GetRarityColor(relic.effectData.rarity);
+            }
+            else
+            {
+                card.rarityBar.color = commonColor;
+            }
+            
+            // Border color based on match
+            card.border.color = isMatch ? matchColor : weaponColor;
+            
+            // Cost
+            int cost = relic.baseWeaponData?.energyCost ?? 1;
+            card.costText.text = cost.ToString();
+            
+            // Copies
+            int copies = relic.baseWeaponData?.cardCopies ?? 2;
+            card.copiesText.text = $"x{copies}";
+            
+            // Background with slight red tint for weapons
+            card.background.color = new Color(0.18f, 0.12f, 0.12f);
+        }
+        
+        private void PopulateCategoryCard(RelicCard card, EquippedRelic relic, UnitRole unitRole)
+        {
+            card.categoryRelic = relic;
+            card.isWeapon = false;
+            card.isEmpty = false;
+            card.isPassive = relic.IsPassive();
+            
+            // Type label (category name)
+            card.typeText.text = relic.category.ToString().ToUpper();
+            card.typeText.color = Color.white;
+            
+            // Effect name
+            string effectName = "";
+            if (relic.effectData != null && !string.IsNullOrEmpty(relic.effectData.effectName))
+            {
+                effectName = relic.effectData.effectName;
+            }
+            else if (!string.IsNullOrEmpty(relic.relicName))
+            {
+                effectName = relic.relicName;
+            }
+            else
+            {
+                effectName = $"{relic.roleTag} {relic.category}";
+            }
+            card.effectText.text = effectName;
+            
+            // Role
+            card.roleText.text = GetRoleDisplayName(relic.roleTag);
+            
+            // Match indicator
+            bool isMatch = relic.MatchesRole(unitRole);
+            card.matchText.text = isMatch ? "★ MATCH" : "";
+            card.matchText.gameObject.SetActive(isMatch);
+            
+            // Rarity color
+            if (relic.effectData != null)
+            {
+                card.rarityBar.color = GetRarityColor(relic.effectData.rarity);
+            }
+            else
+            {
+                card.rarityBar.color = commonColor;
+            }
+            
+            // Border color based on match
+            card.border.color = isMatch ? matchColor : cardBorderColor;
+            
+            // Cost
+            int cost = relic.GetEnergyCost();
+            card.costText.text = card.isPassive ? "P" : cost.ToString();
+            
+            // Copies
+            int copies = relic.GetCopies();
+            card.copiesText.text = card.isPassive ? "Passive" : $"x{copies}";
+            
+            // Background - green tint for passive, normal for active
+            card.background.color = card.isPassive ? new Color(0.1f, 0.15f, 0.1f) : cardBackgroundColor;
+        }
+        
+        private void PopulateEmptyCard(RelicCard card, int slotIndex)
+        {
+            card.isEmpty = true;
+            card.isWeapon = false;
+            card.isPassive = false;
+            
+            card.typeText.text = GetSlotLabel(slotIndex);
+            card.typeText.color = new Color(0.5f, 0.5f, 0.5f);
+            card.effectText.text = "Empty Slot";
+            card.roleText.text = "";
+            card.matchText.text = "";
+            card.matchText.gameObject.SetActive(false);
+            card.rarityBar.color = emptySlotColor;
+            card.border.color = emptySlotColor;
+            card.costText.text = "-";
+            card.copiesText.text = "";
+            card.background.color = emptySlotColor;
         }
         
         private void PositionCards()
@@ -619,32 +750,23 @@ namespace TacticalGame.UI
             {
                 RelicCard card = cards[i];
                 
-                // Calculate base position
                 float x = startX + i * (cardWidth + cardSpacing);
                 float y = 0;
                 
-                // Calculate rotation (fan out from center)
                 float centerIndex = (cardCount - 1) / 2f;
                 float offsetFromCenter = i - centerIndex;
                 float rotation = -offsetFromCenter * fanAngle;
-                
-                // Slight Y offset for fan effect
                 float yOffset = -Mathf.Abs(offsetFromCenter) * 5f;
                 
                 card.basePosition = new Vector2(x, y + yOffset);
                 card.baseRotation = rotation;
-                
-                // Set initial target
                 card.targetPosition = card.basePosition;
                 card.targetRotation = card.baseRotation;
                 card.targetScale = 1f;
                 
-                // Set initial position instantly
                 card.rectTransform.anchoredPosition = card.basePosition;
                 card.rectTransform.localEulerAngles = new Vector3(0, 0, rotation);
                 card.rectTransform.localScale = Vector3.one;
-                
-                // Set sibling index for layering (hovered card should be on top)
                 card.root.transform.SetSiblingIndex(i);
             }
         }
@@ -656,7 +778,6 @@ namespace TacticalGame.UI
             
             int currentEnergy = energyManager?.CurrentEnergy ?? 0;
             
-            // Check if unit has already attacked
             bool hasAttacked = false;
             if (currentUnitObject != null)
             {
@@ -673,15 +794,33 @@ namespace TacticalGame.UI
                 {
                     card.isDisabled = true;
                 }
+                else if (card.isPassive)
+                {
+                    // Passive relics can't be played
+                    card.isDisabled = true;
+                }
                 else
                 {
-                    int cost = card.relic?.baseWeaponData?.energyCost ?? 1;
+                    int cost = GetCardCost(card);
                     card.isDisabled = (currentEnergy < cost) || hasAttacked;
                 }
                 
                 card.disabledOverlay.SetActive(card.isDisabled);
-                card.button.interactable = !card.isDisabled && !card.isEmpty;
+                card.button.interactable = !card.isDisabled && !card.isEmpty && !card.isPassive;
             }
+        }
+        
+        private int GetCardCost(RelicCard card)
+        {
+            if (card.isWeapon && card.weaponRelic != null)
+            {
+                return card.weaponRelic.baseWeaponData?.energyCost ?? 1;
+            }
+            else if (card.categoryRelic != null)
+            {
+                return card.categoryRelic.GetEnergyCost();
+            }
+            return 1;
         }
         
         #endregion
@@ -693,19 +832,19 @@ namespace TacticalGame.UI
             if (index < 0 || index >= cards.Count) return;
             
             RelicCard card = cards[index];
-            if (card.isEmpty || card.isDisabled) return;
+            if (card.isEmpty) return;
             
             hoveredCardIndex = index;
             
-            // Lift and scale the hovered card
             card.targetPosition = card.basePosition + new Vector2(0, hoverLift);
-            card.targetRotation = 0; // Straighten on hover
+            card.targetRotation = 0;
             card.targetScale = hoverScale;
             
-            // Change background color
-            card.background.color = cardHoverColor;
+            if (!card.isPassive)
+            {
+                card.background.color = cardHoverColor;
+            }
             
-            // Bring to front
             card.root.transform.SetAsLastSibling();
         }
         
@@ -714,18 +853,30 @@ namespace TacticalGame.UI
             if (index < 0 || index >= cards.Count) return;
             
             RelicCard card = cards[index];
-            
             hoveredCardIndex = -1;
             
-            // Return to base position
             card.targetPosition = card.basePosition;
             card.targetRotation = card.baseRotation;
             card.targetScale = 1f;
             
             // Reset background color
-            card.background.color = card.isEmpty ? emptySlotColor : cardBackgroundColor;
+            if (card.isEmpty)
+            {
+                card.background.color = emptySlotColor;
+            }
+            else if (card.isPassive)
+            {
+                card.background.color = new Color(0.1f, 0.15f, 0.1f);
+            }
+            else if (card.isWeapon)
+            {
+                card.background.color = new Color(0.18f, 0.12f, 0.12f);
+            }
+            else
+            {
+                card.background.color = cardBackgroundColor;
+            }
             
-            // Reset sibling order
             card.root.transform.SetSiblingIndex(index);
         }
         
@@ -734,63 +885,119 @@ namespace TacticalGame.UI
             if (index < 0 || index >= cards.Count) return;
             
             RelicCard card = cards[index];
-            if (card.isEmpty || card.isDisabled) return;
-            if (card.relic == null) return;
+            if (card.isEmpty || card.isDisabled || card.isPassive) return;
             
-            Debug.Log($"<color=yellow>Playing card {index}: {card.relic.effectData.effectName}</color>");
+            if (card.isWeapon && card.weaponRelic != null)
+            {
+                Debug.Log($"<color=yellow>Playing weapon card {index}: {card.weaponRelic.relicName}</color>");
+                ExecuteWeaponAttack(index, card.weaponRelic);
+            }
+            else if (card.categoryRelic != null)
+            {
+                string effectName = card.categoryRelic.effectData?.effectName ?? card.categoryRelic.relicName;
+                Debug.Log($"<color=yellow>Playing category card {index}: {effectName}</color>");
+                ExecuteCategoryEffect(index, card.categoryRelic);
+            }
             
-            // Execute attack with this relic
-            ExecuteRelicAttack(index, card.relic);
-            
-            // Fire event
             OnCardPlayed?.Invoke(index);
         }
         
-        private void ExecuteRelicAttack(int slotIndex, WeaponRelic relic)
+        private void ExecuteWeaponAttack(int slotIndex, WeaponRelic relic)
         {
             if (currentUnitObject == null) return;
             if (energyManager == null)
                 energyManager = ServiceLocator.Get<EnergyManager>();
             
-            // Get cost from relic's weapon data
             int cost = relic.baseWeaponData?.energyCost ?? 1;
             
-            // Spend energy
             if (!energyManager.TrySpendEnergy(cost))
             {
                 Debug.Log("Not enough energy!");
                 return;
             }
             
-            // Get attack component
+            // Get attack component and execute
             UnitAttack attack = currentUnitObject.GetComponent<UnitAttack>();
-            if (attack == null)
+            if (attack != null)
             {
-                Debug.LogError("No UnitAttack component on selected unit!");
+                attack.ExecuteCardAttack(relic, energyAlreadySpent: true);
+            }
+            
+            UpdateCardStates();
+            StartCoroutine(CardPlayedAnimation(slotIndex));
+        }
+        
+        private void ExecuteCategoryEffect(int slotIndex, EquippedRelic relic)
+        {
+            if (currentUnitObject == null) return;
+            if (energyManager == null)
+                energyManager = ServiceLocator.Get<EnergyManager>();
+            
+            int cost = relic.GetEnergyCost();
+            
+            if (!energyManager.TrySpendEnergy(cost))
+            {
+                Debug.Log("Not enough energy!");
                 return;
             }
             
-            // Use the new ExecuteCardAttack method - energy already spent above
-            attack.ExecuteCardAttack(relic, energyAlreadySpent: true);
+            // Get caster status
+            UnitStatus casterStatus = currentUnitObject.GetComponent<UnitStatus>();
+            if (casterStatus == null)
+            {
+                Debug.LogWarning("No UnitStatus found on caster!");
+                return;
+            }
             
-            // Update card states after attack
+            // Find a target (closest enemy) for effects that need one
+            UnitStatus targetStatus = FindClosestEnemy(casterStatus);
+            
+            // Execute through RelicEffectExecutor (static class)
+            RelicEffectExecutor.Execute(relic, casterStatus, targetStatus, null);
+            
             UpdateCardStates();
-            
-            // Play card animation
             StartCoroutine(CardPlayedAnimation(slotIndex));
+        }
+        
+        /// <summary>
+        /// Find the closest enemy unit to use as a target.
+        /// </summary>
+        private UnitStatus FindClosestEnemy(UnitStatus caster)
+        {
+            if (caster == null) return null;
+            
+            UnitStatus[] allUnits = FindObjectsByType<UnitStatus>(FindObjectsSortMode.None);
+            UnitStatus closest = null;
+            float closestDist = float.MaxValue;
+            
+            foreach (var unit in allUnits)
+            {
+                if (unit == null) continue;
+                
+                // Skip allies and surrendered units
+                if (unit.Team == caster.Team) continue;
+                if (unit.HasSurrendered) continue;
+                
+                float dist = Vector3.Distance(caster.transform.position, unit.transform.position);
+                if (dist < closestDist)
+                {
+                    closestDist = dist;
+                    closest = unit;
+                }
+            }
+            
+            return closest;
         }
         
         private IEnumerator CardPlayedAnimation(int index)
         {
             RelicCard card = cards[index];
             
-            // Quick flash
             Color originalColor = card.background.color;
             card.background.color = Color.white;
             yield return new WaitForSeconds(0.1f);
             card.background.color = originalColor;
             
-            // Update states
             UpdateCardStates();
         }
         
@@ -805,6 +1012,7 @@ namespace TacticalGame.UI
                 RelicRarity.Common => commonColor,
                 RelicRarity.Uncommon => uncommonColor,
                 RelicRarity.Rare => rareColor,
+                RelicRarity.Unique => uniqueColor,
                 _ => commonColor
             };
         }
@@ -815,6 +1023,7 @@ namespace TacticalGame.UI
             {
                 UnitRole.MasterGunner => "Master Gunner",
                 UnitRole.MasterAtArms => "Master-at-Arms",
+                UnitRole.Helmsmaster => "Helmsman",
                 _ => role.ToString()
             };
         }
@@ -839,7 +1048,6 @@ namespace TacticalGame.UI
     
     /// <summary>
     /// Component to store UnitData reference on spawned unit GameObjects.
-    /// Attach this when spawning units so we can retrieve the data later.
     /// </summary>
     public class UnitDataHolder : MonoBehaviour
     {

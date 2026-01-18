@@ -2,6 +2,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
 using System.Collections.Generic;
+using System.Linq;
 using TacticalGame.Units;
 using TacticalGame.Equipment;
 using TacticalGame.Enums;
@@ -10,12 +11,9 @@ namespace TacticalGame.Managers
 {
     /// <summary>
     /// Equipment UI that builds itself entirely through code.
-    /// Just attach this to an empty GameObject and it creates everything!
+    /// Now includes category relics (Boots, Gloves, Hat, Coat, Trinket, Totem) with filter tabs!
     /// 
-    /// FIXES:
-    /// - Relic pool items now 75px height (was 52px) with proper spacing
-    /// - Added jewel slots (3 sockets) to each relic pool item
-    /// - Proper ScrollRect for relic pool
+    /// Click tabs at top of relic pool to switch between Weapon and Category relics.
     /// </summary>
     public class EquipmentUIBuilder : MonoBehaviour
     {
@@ -36,6 +34,17 @@ namespace TacticalGame.Managers
         private Color uncommonColor = new Color(0.2f, 0.8f, 0.2f);
         private Color rareColor = new Color(0.4f, 0.6f, 1f);
         
+        // Category tab colors
+        private Color weaponTabColor = new Color(0.5f, 0.5f, 0.6f);
+        private Color bootsTabColor = new Color(0.3f, 0.7f, 0.3f);
+        private Color glovesTabColor = new Color(0.8f, 0.5f, 0.2f);
+        private Color hatTabColor = new Color(0.5f, 0.3f, 0.7f);
+        private Color coatTabColor = new Color(0.2f, 0.5f, 0.8f);
+        private Color trinketTabColor = new Color(0.8f, 0.8f, 0.2f);
+        private Color totemTabColor = new Color(0.8f, 0.2f, 0.2f);
+        private Color ultimateTabColor = new Color(1f, 0.5f, 0f);      // Orange
+        private Color passiveTabColor = new Color(0.6f, 0.4f, 0.8f);   // Light purple
+        
         #endregion
         
         #region References (Auto-created)
@@ -54,12 +63,14 @@ namespace TacticalGame.Managers
         private List<RelicSlotData> relicSlots = new List<RelicSlotData>();
         
         // Right Panel
+        private Transform filterTabContainer;
         private Transform relicPoolContainer;
         private Transform jewelPoolContainer;
         private TMP_Text jewelBudgetText;
-        private TMP_Text relicPoolTitleText; // Shows "RELIC POOL - [WeaponName]"
+        private TMP_Text relicPoolTitleText;
         private List<GameObject> relicPoolItems = new List<GameObject>();
         private List<GameObject> jewelPoolItems = new List<GameObject>();
+        private List<Button> filterTabButtons = new List<Button>();
         
         #endregion
         
@@ -70,6 +81,17 @@ namespace TacticalGame.Managers
         private int selectedUnitIndex = -1;
         private int selectedSlotIndex = -1;
         private int selectedJewelIndex = -1;
+        
+        // Filter state: -1 = Weapon, 0-7 = category index
+        private int selectedFilterIndex = -1;
+        private RelicCategory[] filterCategories = {
+            RelicCategory.Boots, RelicCategory.Gloves, RelicCategory.Hat,
+            RelicCategory.Coat, RelicCategory.Trinket, RelicCategory.Totem,
+            RelicCategory.Ultimate, RelicCategory.PassiveUnique
+        };
+        
+        // Category relic pool (generated once)
+        private List<EquippedRelic> categoryRelicPool = new List<EquippedRelic>();
         
         // Callbacks
         public System.Action onBackClicked;
@@ -94,6 +116,34 @@ namespace TacticalGame.Managers
         
         #endregion
         
+        #region Category Relic Storage Helpers
+        
+        // Now uses UnitData directly instead of local dictionary
+        
+        private EquippedRelic GetCategoryRelic(UnitData unit, int slotIndex)
+        {
+            return unit?.GetCategoryRelic(slotIndex);
+        }
+        
+        private void SetCategoryRelic(UnitData unit, int slotIndex, EquippedRelic relic)
+        {
+            unit?.EquipCategoryRelic(slotIndex, relic);
+        }
+        
+        private void ClearCategoryRelic(UnitData unit, int slotIndex)
+        {
+            unit?.EquipCategoryRelic(slotIndex, null);
+        }
+        
+        private void ClearAllCategoryRelics(UnitData unit)
+        {
+            if (unit == null) return;
+            for (int i = 0; i < 7; i++)
+                unit.EquipCategoryRelic(i, null);
+        }
+        
+        #endregion
+        
         #region Public Methods
         
         public void Open(List<UnitData> players, List<UnitData> enemies)
@@ -101,21 +151,28 @@ namespace TacticalGame.Managers
             playerUnits = players;
             enemyUnits = enemies;
             
+            // Initialize relic arrays and set default weapon relics
             foreach (var unit in playerUnits)
             {
-                if (unit.equipment == null)
-                    unit.equipment = new UnitEquipmentData();
-                if (unit.defaultWeaponRelic != null && unit.equipment.IsSlotEmpty(0))
-                    unit.equipment.EquipWeaponRelic(0, unit.defaultWeaponRelic);
+                if (unit.weaponRelics == null) unit.weaponRelics = new WeaponRelic[7];
+                if (unit.categoryRelics == null) unit.categoryRelics = new EquippedRelic[7];
+                
+                // Equip default weapon to slot 0 if empty
+                if (unit.defaultWeaponRelic != null && unit.GetWeaponRelic(0) == null)
+                    unit.EquipWeaponRelic(0, unit.defaultWeaponRelic);
             }
             
             foreach (var unit in enemyUnits)
             {
-                if (unit.equipment == null)
-                    unit.equipment = new UnitEquipmentData();
-                if (unit.defaultWeaponRelic != null && unit.equipment.IsSlotEmpty(0))
-                    unit.equipment.EquipWeaponRelic(0, unit.defaultWeaponRelic);
+                if (unit.weaponRelics == null) unit.weaponRelics = new WeaponRelic[7];
+                if (unit.categoryRelics == null) unit.categoryRelics = new EquippedRelic[7];
+                
+                if (unit.defaultWeaponRelic != null && unit.GetWeaponRelic(0) == null)
+                    unit.EquipWeaponRelic(0, unit.defaultWeaponRelic);
             }
+            
+            // Generate category relic pool
+            GenerateCategoryRelicPool();
             
             gameObject.SetActive(true);
             BuildUI();
@@ -128,6 +185,46 @@ namespace TacticalGame.Managers
         public void Close()
         {
             gameObject.SetActive(false);
+        }
+        
+        /// <summary>
+        /// Get all category relics equipped on a unit (for deck building).
+        /// </summary>
+        public List<EquippedRelic> GetEquippedCategoryRelics(UnitData unit)
+        {
+            return unit?.GetAllCategoryRelics() ?? new List<EquippedRelic>();
+        }
+        
+        #endregion
+        
+        #region Category Relic Pool Generation
+        
+        private void GenerateCategoryRelicPool()
+        {
+            categoryRelicPool.Clear();
+            
+            var effectsDB = RelicEffectsDatabase.Instance;
+            if (effectsDB == null)
+            {
+                Debug.LogWarning("[EquipmentUI] RelicEffectsDatabase not found - category relics unavailable");
+                return;
+            }
+            
+            var allRoles = System.Enum.GetValues(typeof(UnitRole)).Cast<UnitRole>().ToList();
+            
+            foreach (var category in filterCategories)
+            {
+                foreach (var role in allRoles)
+                {
+                    var effectData = effectsDB.GetEffect(category, role);
+                    if (effectData != null)
+                    {
+                        categoryRelicPool.Add(new EquippedRelic(effectData));
+                    }
+                }
+            }
+            
+            Debug.Log($"<color=cyan>[EquipmentUI] Generated {categoryRelicPool.Count} category relics</color>");
         }
         
         #endregion
@@ -143,6 +240,7 @@ namespace TacticalGame.Managers
             unitListItems.Clear();
             relicPoolItems.Clear();
             jewelPoolItems.Clear();
+            filterTabButtons.Clear();
             
             GameObject canvasObj = new GameObject("EquipmentCanvas");
             canvasObj.transform.SetParent(transform);
@@ -207,24 +305,18 @@ namespace TacticalGame.Managers
             vlg.childForceExpandHeight = false;
             vlg.childControlWidth = true;
             vlg.childControlHeight = false;
-            vlg.padding = new RectOffset(5, 5, 5, 5);
-            
-            ContentSizeFitter csf = container.AddComponent<ContentSizeFitter>();
-            csf.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
             
             unitListContainer = container.transform;
             
-            GameObject budgetPanel = CreatePanel(leftPanel.transform, "BudgetPanel", slotEmptyColor);
-            RectTransform budgetRt = budgetPanel.GetComponent<RectTransform>();
+            GameObject budgetObj = CreateText(leftPanel.transform, "JewelBudget", "Jewel Budget: 0 / 0", 13, TextAlignmentOptions.Center);
+            RectTransform budgetRt = budgetObj.GetComponent<RectTransform>();
             budgetRt.anchorMin = new Vector2(0, 0);
             budgetRt.anchorMax = new Vector2(1, 0);
             budgetRt.pivot = new Vector2(0.5f, 0);
-            budgetRt.anchoredPosition = new Vector2(0, 10);
-            budgetRt.sizeDelta = new Vector2(-20, 50);
-            
-            jewelBudgetText = CreateText(budgetPanel.transform, "BudgetText", "Jewel Budget: 0 / 0", 14, TextAlignmentOptions.Center)
-                .GetComponent<TMP_Text>();
-            SetRectFill(jewelBudgetText.gameObject);
+            budgetRt.anchoredPosition = new Vector2(0, 15);
+            budgetRt.sizeDelta = new Vector2(0, 30);
+            jewelBudgetText = budgetObj.GetComponent<TMP_Text>();
+            jewelBudgetText.color = textDimColor;
         }
         
         private void CreateCenterPanel()
@@ -236,166 +328,135 @@ namespace TacticalGame.Managers
             rt.offsetMin = new Vector2(290, 70);
             rt.offsetMax = new Vector2(-360, -70);
             
-            GameObject infoArea = CreatePanel(centerPanel.transform, "UnitInfo", slotEmptyColor);
-            RectTransform infoRt = infoArea.GetComponent<RectTransform>();
-            infoRt.anchorMin = new Vector2(0, 1);
-            infoRt.anchorMax = new Vector2(1, 1);
-            infoRt.pivot = new Vector2(0.5f, 1);
-            infoRt.anchoredPosition = new Vector2(0, -10);
-            infoRt.sizeDelta = new Vector2(-20, 55);
+            GameObject unitInfo = CreateText(centerPanel.transform, "UnitInfo", "| Role | [Type] Weapon", 16, TextAlignmentOptions.Center);
+            RectTransform uiRt = unitInfo.GetComponent<RectTransform>();
+            uiRt.anchorMin = new Vector2(0, 1);
+            uiRt.anchorMax = new Vector2(1, 1);
+            uiRt.pivot = new Vector2(0.5f, 1);
+            uiRt.anchoredPosition = new Vector2(0, -15);
+            uiRt.sizeDelta = new Vector2(0, 35);
+            unitInfoText = unitInfo.GetComponent<TMP_Text>();
             
-            unitInfoText = CreateText(infoArea.transform, "UnitInfoText", "Select a unit", 16, TextAlignmentOptions.Center)
-                .GetComponent<TMP_Text>();
-            SetRectFill(unitInfoText.gameObject);
+            GameObject slotArea = new GameObject("SlotArea");
+            slotArea.transform.SetParent(centerPanel.transform);
+            RectTransform saRt = slotArea.AddComponent<RectTransform>();
+            saRt.anchorMin = new Vector2(0, 0.25f);
+            saRt.anchorMax = new Vector2(1, 1);
+            saRt.offsetMin = new Vector2(20, 0);
+            saRt.offsetMax = new Vector2(-20, -60);
             
-            GameObject slotsArea = new GameObject("RelicSlotsContainer");
-            slotsArea.transform.SetParent(centerPanel.transform);
-            RectTransform slotsRt = slotsArea.AddComponent<RectTransform>();
-            slotsRt.anchorMin = new Vector2(0, 0.5f);
-            slotsRt.anchorMax = new Vector2(1, 0.5f);
-            slotsRt.pivot = new Vector2(0.5f, 0.5f);
-            slotsRt.anchoredPosition = new Vector2(0, 20);
-            slotsRt.sizeDelta = new Vector2(-20, 200);
-            
-            HorizontalLayoutGroup hlg = slotsArea.AddComponent<HorizontalLayoutGroup>();
-            hlg.spacing = 12;
+            HorizontalLayoutGroup hlg = slotArea.AddComponent<HorizontalLayoutGroup>();
+            hlg.spacing = 15;
             hlg.childAlignment = TextAnchor.MiddleCenter;
-            hlg.childForceExpandWidth = false;
+            hlg.childForceExpandWidth = true;
             hlg.childForceExpandHeight = false;
-            hlg.childControlWidth = false;
+            hlg.childControlWidth = true;
             hlg.childControlHeight = false;
             
-            relicSlotContainer = slotsArea.transform;
+            relicSlotContainer = slotArea.transform;
             
-            // 7 slots: R1-R5 (mixed/equipable), ULT (ultimate), PAS (passive)
-            string[] slotLabels = { "R1", "R2", "R3", "R4", "R5", "ULT", "PAS" };
-            for (int i = 0; i < 7; i++)
-            {
-                CreateRelicSlot(slotsArea.transform, slotLabels[i], i);
-            }
+            string[] labels = { "R1", "R2", "R3", "R4", "R5", "ULT", "PAS" };
+            for (int i = 0; i < labels.Length; i++)
+                CreateRelicSlot(labels[i], i);
             
             GameObject infoPanel = CreatePanel(centerPanel.transform, "InfoPanel", slotEmptyColor);
-            RectTransform infoPanelRt = infoPanel.GetComponent<RectTransform>();
-            infoPanelRt.anchorMin = new Vector2(0, 0);
-            infoPanelRt.anchorMax = new Vector2(1, 0);
-            infoPanelRt.pivot = new Vector2(0.5f, 0);
-            infoPanelRt.anchoredPosition = new Vector2(0, 10);
-            infoPanelRt.sizeDelta = new Vector2(-20, 100);
+            RectTransform ipRt = infoPanel.GetComponent<RectTransform>();
+            ipRt.anchorMin = new Vector2(0, 0);
+            ipRt.anchorMax = new Vector2(1, 0.25f);
+            ipRt.offsetMin = new Vector2(20, 15);
+            ipRt.offsetMax = new Vector2(-20, -5);
             
-            infoText = CreateText(infoPanel.transform, "InfoText", "Select a slot to view details", 13, TextAlignmentOptions.TopLeft)
-                .GetComponent<TMP_Text>();
-            RectTransform infoTextRt = infoText.GetComponent<RectTransform>();
-            SetRectFill(infoText.gameObject);
-            infoTextRt.offsetMin = new Vector2(15, 10);
-            infoTextRt.offsetMax = new Vector2(-15, -10);
+            GameObject infoTextObj = CreateText(infoPanel.transform, "InfoText", "Select a slot to view details", 13, TextAlignmentOptions.Left);
+            infoText = infoTextObj.GetComponent<TMP_Text>();
+            SetRectFill(infoTextObj);
+            infoTextObj.GetComponent<RectTransform>().offsetMin = new Vector2(15, 10);
+            infoTextObj.GetComponent<RectTransform>().offsetMax = new Vector2(-15, -10);
+            infoText.color = textDimColor;
         }
         
-        private void CreateRelicSlot(Transform parent, string label, int index)
+        private void CreateRelicSlot(string label, int index)
         {
             RelicSlotData slotData = new RelicSlotData();
             slotData.slotIndex = index;
             
-            GameObject slot = CreatePanel(parent, $"Slot_{label}", slotEmptyColor);
-            RectTransform rt = slot.GetComponent<RectTransform>();
-            rt.sizeDelta = new Vector2(130, 180);
-            
-            Button slotButton = slot.AddComponent<Button>();
-            slotButton.transition = Selectable.Transition.None;
-            int capturedIndex = index;
-            slotButton.onClick.AddListener(() => OnSlotClicked(capturedIndex));
-            
+            GameObject slot = CreatePanel(relicSlotContainer, $"Slot_{label}", slotEmptyColor);
             slotData.root = slot;
             slotData.background = slot.GetComponent<Image>();
             
-            GameObject outline = CreatePanel(slot.transform, "SelectionOutline", accentColor);
-            RectTransform outlineRt = outline.GetComponent<RectTransform>();
+            LayoutElement le = slot.AddComponent<LayoutElement>();
+            le.minWidth = 110; le.preferredWidth = 130;
+            le.minHeight = 160; le.preferredHeight = 180;
+            
+            GameObject outline = CreatePanel(slot.transform, "Outline", accentColor);
             SetRectFill(outline);
-            outlineRt.offsetMin = new Vector2(-3, -3);
-            outlineRt.offsetMax = new Vector2(3, 3);
+            outline.GetComponent<RectTransform>().offsetMin = new Vector2(-3, -3);
+            outline.GetComponent<RectTransform>().offsetMax = new Vector2(3, 3);
             outline.GetComponent<Image>().raycastTarget = false;
             outline.SetActive(false);
             slotData.selectionOutline = outline.GetComponent<Image>();
             
-            slotData.labelText = CreateText(slot.transform, "Label", label, 16, TextAlignmentOptions.Center)
-                .GetComponent<TMP_Text>();
-            RectTransform labelRt = slotData.labelText.GetComponent<RectTransform>();
-            labelRt.anchorMin = new Vector2(0, 1);
-            labelRt.anchorMax = new Vector2(1, 1);
-            labelRt.pivot = new Vector2(0.5f, 1);
-            labelRt.anchoredPosition = new Vector2(0, -8);
-            labelRt.sizeDelta = new Vector2(0, 28);
+            GameObject inner = CreatePanel(slot.transform, "Inner", slotEmptyColor);
+            SetRectFill(inner);
+            
+            Button btn = inner.AddComponent<Button>();
+            btn.transition = Selectable.Transition.ColorTint;
+            ColorBlock colors = btn.colors;
+            colors.normalColor = slotEmptyColor;
+            colors.highlightedColor = buttonHoverColor;
+            btn.colors = colors;
+            int capturedIndex = index;
+            btn.onClick.AddListener(() => OnSlotClicked(capturedIndex));
+            
+            GameObject labelObj = CreateText(inner.transform, "Label", label, 16, TextAlignmentOptions.Center);
+            RectTransform lbRt = labelObj.GetComponent<RectTransform>();
+            lbRt.anchorMin = new Vector2(0, 1); lbRt.anchorMax = new Vector2(1, 1);
+            lbRt.pivot = new Vector2(0.5f, 1);
+            lbRt.anchoredPosition = new Vector2(0, -8); lbRt.sizeDelta = new Vector2(0, 25);
+            slotData.labelText = labelObj.GetComponent<TMP_Text>();
             slotData.labelText.fontStyle = FontStyles.Bold;
             
-            slotData.nameText = CreateText(slot.transform, "Name", "Empty", 12, TextAlignmentOptions.Center)
-                .GetComponent<TMP_Text>();
-            RectTransform nameRt = slotData.nameText.GetComponent<RectTransform>();
-            nameRt.anchorMin = new Vector2(0, 1);
-            nameRt.anchorMax = new Vector2(1, 1);
-            nameRt.pivot = new Vector2(0.5f, 1);
-            nameRt.anchoredPosition = new Vector2(0, -80);
-            nameRt.sizeDelta = new Vector2(-10, 24);
+            GameObject nameObj = CreateText(inner.transform, "Name", "Empty", 11, TextAlignmentOptions.Center);
+            RectTransform nmRt = nameObj.GetComponent<RectTransform>();
+            nmRt.anchorMin = new Vector2(0, 1); nmRt.anchorMax = new Vector2(1, 1);
+            nmRt.pivot = new Vector2(0.5f, 1);
+            nmRt.anchoredPosition = new Vector2(0, -35); nmRt.sizeDelta = new Vector2(-8, 20);
+            slotData.nameText = nameObj.GetComponent<TMP_Text>();
+            slotData.nameText.color = textDimColor;
             
-            slotData.effectText = CreateText(slot.transform, "Effect", "Click to equip", 10, TextAlignmentOptions.Center)
-                .GetComponent<TMP_Text>();
-            RectTransform effectRt = slotData.effectText.GetComponent<RectTransform>();
-            effectRt.anchorMin = new Vector2(0, 1);
-            effectRt.anchorMax = new Vector2(1, 1);
-            effectRt.pivot = new Vector2(0.5f, 1);
-            effectRt.anchoredPosition = new Vector2(0, -105);
-            effectRt.sizeDelta = new Vector2(-10, 22);
+            GameObject effectObj = CreateText(inner.transform, "Effect", "Click to equip", 9, TextAlignmentOptions.Center);
+            RectTransform efRt = effectObj.GetComponent<RectTransform>();
+            efRt.anchorMin = new Vector2(0, 1); efRt.anchorMax = new Vector2(1, 1);
+            efRt.pivot = new Vector2(0.5f, 1);
+            efRt.anchoredPosition = new Vector2(0, -55); efRt.sizeDelta = new Vector2(-8, 40);
+            slotData.effectText = effectObj.GetComponent<TMP_Text>();
             slotData.effectText.color = textDimColor;
+            slotData.effectText.enableWordWrapping = true;
+            slotData.effectText.overflowMode = TextOverflowModes.Ellipsis;
             
-            GameObject jewelCont = new GameObject("JewelContainer");
-            jewelCont.transform.SetParent(slot.transform);
-            RectTransform jcRt = jewelCont.AddComponent<RectTransform>();
-            jcRt.anchorMin = new Vector2(0.5f, 0);
-            jcRt.anchorMax = new Vector2(0.5f, 0);
-            jcRt.pivot = new Vector2(0.5f, 0);
-            jcRt.anchoredPosition = new Vector2(0, 15);
-            jcRt.sizeDelta = new Vector2(110, 35);
+            GameObject jewelRow = new GameObject("JewelRow");
+            jewelRow.transform.SetParent(inner.transform);
+            RectTransform jrRt = jewelRow.AddComponent<RectTransform>();
+            jrRt.anchorMin = new Vector2(0, 0); jrRt.anchorMax = new Vector2(1, 0);
+            jrRt.pivot = new Vector2(0.5f, 0);
+            jrRt.anchoredPosition = new Vector2(0, 12); jrRt.sizeDelta = new Vector2(0, 28);
             
-            HorizontalLayoutGroup jhlg = jewelCont.AddComponent<HorizontalLayoutGroup>();
+            HorizontalLayoutGroup jhlg = jewelRow.AddComponent<HorizontalLayoutGroup>();
             jhlg.spacing = 8;
             jhlg.childAlignment = TextAnchor.MiddleCenter;
-            jhlg.childForceExpandWidth = false;
-            jhlg.childForceExpandHeight = false;
-            jhlg.childControlWidth = false;
-            jhlg.childControlHeight = false;
-            
-            // Brighter socket color for visibility
-            Color socketColor = new Color(0.25f, 0.25f, 0.3f);
+            jhlg.childForceExpandWidth = false; jhlg.childForceExpandHeight = false;
             
             for (int j = 0; j < 3; j++)
             {
-                GameObject jewel = new GameObject($"Jewel{j}");
-                jewel.transform.SetParent(jewelCont.transform);
-                
-                RectTransform jrt = jewel.AddComponent<RectTransform>();
-                jrt.sizeDelta = new Vector2(28, 28);
-                
-                Image jewelImg = jewel.AddComponent<Image>();
-                jewelImg.color = socketColor;
-                
-                // Add LayoutElement to enforce size
-                LayoutElement jle = jewel.AddComponent<LayoutElement>();
-                jle.minWidth = 28;
-                jle.minHeight = 28;
-                jle.preferredWidth = 28;
-                jle.preferredHeight = 28;
-                
-                Button jBtn = jewel.AddComponent<Button>();
-                jBtn.transition = Selectable.Transition.ColorTint;
-                ColorBlock jColors = jBtn.colors;
-                jColors.normalColor = socketColor;
-                jColors.highlightedColor = new Color(0.35f, 0.35f, 0.45f);
-                jBtn.colors = jColors;
-                
-                int capturedJ = j;
-                int capturedSlot = index;
-                jBtn.onClick.AddListener(() => OnJewelClicked(capturedSlot, capturedJ));
-                
-                slotData.jewelImages[j] = jewelImg;
-                slotData.jewelButtons[j] = jBtn;
+                GameObject jewelSlot = CreatePanel(jewelRow.transform, $"Jewel_{j}", jewelEmptyColor);
+                LayoutElement jle = jewelSlot.AddComponent<LayoutElement>();
+                jle.minWidth = 24; jle.minHeight = 24;
+                jle.preferredWidth = 24; jle.preferredHeight = 24;
+                slotData.jewelImages[j] = jewelSlot.GetComponent<Image>();
+                Button jbtn = jewelSlot.AddComponent<Button>();
+                jbtn.transition = Selectable.Transition.ColorTint;
+                int slotIdx = index; int jewelIdx = j;
+                jbtn.onClick.AddListener(() => OnJewelClicked(slotIdx, jewelIdx));
+                slotData.jewelButtons[j] = jbtn;
             }
             
             relicSlots.Add(slotData);
@@ -405,138 +466,145 @@ namespace TacticalGame.Managers
         {
             GameObject rightPanel = CreatePanel(equipmentPanel.transform, "RightPanel", panelColor);
             RectTransform rt = rightPanel.GetComponent<RectTransform>();
-            rt.anchorMin = new Vector2(1, 0);
-            rt.anchorMax = new Vector2(1, 1);
+            rt.anchorMin = new Vector2(1, 0); rt.anchorMax = new Vector2(1, 1);
             rt.pivot = new Vector2(1, 0.5f);
-            rt.offsetMin = new Vector2(-340, 70);
-            rt.offsetMax = new Vector2(-20, -70);
+            rt.offsetMin = new Vector2(-340, 70); rt.offsetMax = new Vector2(-20, -70);
             
-            // === RELIC POOL SECTION (Top 60%) ===
             GameObject relicTitle = CreateText(rightPanel.transform, "RelicPoolTitle", "RELIC POOL", 18, TextAlignmentOptions.Center);
             RectTransform relicTitleRt = relicTitle.GetComponent<RectTransform>();
-            relicTitleRt.anchorMin = new Vector2(0, 1);
-            relicTitleRt.anchorMax = new Vector2(1, 1);
+            relicTitleRt.anchorMin = new Vector2(0, 1); relicTitleRt.anchorMax = new Vector2(1, 1);
             relicTitleRt.pivot = new Vector2(0.5f, 1);
-            relicTitleRt.anchoredPosition = new Vector2(0, -10);
-            relicTitleRt.sizeDelta = new Vector2(0, 35);
+            relicTitleRt.anchoredPosition = new Vector2(0, -10); relicTitleRt.sizeDelta = new Vector2(0, 28);
             relicPoolTitleText = relicTitle.GetComponent<TMP_Text>();
             relicPoolTitleText.color = accentColor;
             
-            // Relic pool scroll area
+            GameObject tabContainer = new GameObject("FilterTabs");
+            tabContainer.transform.SetParent(rightPanel.transform);
+            RectTransform tcRt = tabContainer.AddComponent<RectTransform>();
+            tcRt.anchorMin = new Vector2(0, 1); tcRt.anchorMax = new Vector2(1, 1);
+            tcRt.pivot = new Vector2(0.5f, 1);
+            tcRt.anchoredPosition = new Vector2(0, -40); tcRt.sizeDelta = new Vector2(-20, 26);
+            
+            HorizontalLayoutGroup tabHlg = tabContainer.AddComponent<HorizontalLayoutGroup>();
+            tabHlg.spacing = 2;
+            tabHlg.childAlignment = TextAnchor.MiddleCenter;
+            tabHlg.childForceExpandWidth = true; tabHlg.childForceExpandHeight = true;
+            filterTabContainer = tabContainer.transform;
+            
+            CreateFilterTab("Wpn", -1, weaponTabColor);
+            CreateFilterTab("Boot", 0, bootsTabColor);
+            CreateFilterTab("Glv", 1, glovesTabColor);
+            CreateFilterTab("Hat", 2, hatTabColor);
+            CreateFilterTab("Coat", 3, coatTabColor);
+            CreateFilterTab("Trnk", 4, trinketTabColor);
+            CreateFilterTab("Totm", 5, totemTabColor);
+            CreateFilterTab("Ult", 6, ultimateTabColor);
+            CreateFilterTab("Pas", 7, passiveTabColor);
+            
             GameObject relicScrollArea = CreatePanel(rightPanel.transform, "RelicScrollArea", slotEmptyColor);
             RectTransform rsaRt = relicScrollArea.GetComponent<RectTransform>();
-            rsaRt.anchorMin = new Vector2(0, 0.42f);
-            rsaRt.anchorMax = new Vector2(1, 1);
-            rsaRt.offsetMin = new Vector2(10, 5);
-            rsaRt.offsetMax = new Vector2(-10, -50);
+            rsaRt.anchorMin = new Vector2(0, 0.42f); rsaRt.anchorMax = new Vector2(1, 1);
+            rsaRt.offsetMin = new Vector2(10, 5); rsaRt.offsetMax = new Vector2(-10, -70);
             
-            // ScrollRect for scrolling
             ScrollRect scrollRect = relicScrollArea.AddComponent<ScrollRect>();
-            scrollRect.horizontal = false;
-            scrollRect.vertical = true;
+            scrollRect.horizontal = false; scrollRect.vertical = true;
             scrollRect.movementType = ScrollRect.MovementType.Clamped;
             scrollRect.scrollSensitivity = 30f;
             
-            // Viewport with mask
             GameObject viewport = CreatePanel(relicScrollArea.transform, "Viewport", Color.clear);
-            RectTransform vpRt = viewport.GetComponent<RectTransform>();
             SetRectFill(viewport);
             viewport.AddComponent<Mask>().showMaskGraphic = false;
             viewport.GetComponent<Image>().color = new Color(1, 1, 1, 0.01f);
-            scrollRect.viewport = vpRt;
+            scrollRect.viewport = viewport.GetComponent<RectTransform>();
             
-            // Content container
             GameObject relicContainer = new GameObject("RelicPoolContainer");
             relicContainer.transform.SetParent(viewport.transform);
             RectTransform rcRt = relicContainer.AddComponent<RectTransform>();
-            rcRt.anchorMin = new Vector2(0, 1);
-            rcRt.anchorMax = new Vector2(1, 1);
+            rcRt.anchorMin = new Vector2(0, 1); rcRt.anchorMax = new Vector2(1, 1);
             rcRt.pivot = new Vector2(0.5f, 1);
-            rcRt.anchoredPosition = Vector2.zero;
-            rcRt.sizeDelta = new Vector2(0, 0);
+            rcRt.anchoredPosition = Vector2.zero; rcRt.sizeDelta = new Vector2(0, 0);
             
             VerticalLayoutGroup rvlg = relicContainer.AddComponent<VerticalLayoutGroup>();
             rvlg.spacing = 8;
-            rvlg.childForceExpandWidth = true;
-            rvlg.childForceExpandHeight = false;
-            rvlg.childControlWidth = true;
-            rvlg.childControlHeight = false;
+            rvlg.childForceExpandWidth = true; rvlg.childForceExpandHeight = false;
+            rvlg.childControlWidth = true; rvlg.childControlHeight = false;
             rvlg.padding = new RectOffset(5, 5, 5, 5);
             
             ContentSizeFitter rcsf = relicContainer.AddComponent<ContentSizeFitter>();
             rcsf.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
-            
             scrollRect.content = rcRt;
             relicPoolContainer = relicContainer.transform;
             
-            // === JEWEL POOL SECTION (Bottom 40%) ===
             GameObject jewelTitle = CreateText(rightPanel.transform, "JewelPoolTitle", "JEWEL POOL", 18, TextAlignmentOptions.Center);
             RectTransform jewelTitleRt = jewelTitle.GetComponent<RectTransform>();
-            jewelTitleRt.anchorMin = new Vector2(0, 0.42f);
-            jewelTitleRt.anchorMax = new Vector2(1, 0.42f);
+            jewelTitleRt.anchorMin = new Vector2(0, 0.42f); jewelTitleRt.anchorMax = new Vector2(1, 0.42f);
             jewelTitleRt.pivot = new Vector2(0.5f, 1);
-            jewelTitleRt.anchoredPosition = new Vector2(0, 0);
-            jewelTitleRt.sizeDelta = new Vector2(0, 35);
+            jewelTitleRt.anchoredPosition = new Vector2(0, 0); jewelTitleRt.sizeDelta = new Vector2(0, 35);
             jewelTitle.GetComponent<TMP_Text>().color = accentColor;
             
             GameObject jewelPoolArea = CreatePanel(rightPanel.transform, "JewelPoolArea", slotEmptyColor);
             RectTransform jpaRt = jewelPoolArea.GetComponent<RectTransform>();
-            jpaRt.anchorMin = new Vector2(0, 0);
-            jpaRt.anchorMax = new Vector2(1, 0.42f);
-            jpaRt.offsetMin = new Vector2(10, 10);
-            jpaRt.offsetMax = new Vector2(-10, -40);
+            jpaRt.anchorMin = new Vector2(0, 0); jpaRt.anchorMax = new Vector2(1, 0.42f);
+            jpaRt.offsetMin = new Vector2(10, 10); jpaRt.offsetMax = new Vector2(-10, -40);
             
             GameObject jewelContainer = new GameObject("JewelPoolContainer");
             jewelContainer.transform.SetParent(jewelPoolArea.transform);
             RectTransform jcRt = jewelContainer.AddComponent<RectTransform>();
             SetRectFill(jewelContainer);
-            jcRt.offsetMin = new Vector2(8, 8);
-            jcRt.offsetMax = new Vector2(-8, -8);
+            jcRt.offsetMin = new Vector2(8, 8); jcRt.offsetMax = new Vector2(-8, -8);
             
             GridLayoutGroup glg = jewelContainer.AddComponent<GridLayoutGroup>();
-            glg.cellSize = new Vector2(145, 42);
-            glg.spacing = new Vector2(8, 8);
+            glg.cellSize = new Vector2(145, 42); glg.spacing = new Vector2(8, 8);
             glg.startAxis = GridLayoutGroup.Axis.Horizontal;
             glg.childAlignment = TextAnchor.UpperLeft;
-            
             jewelPoolContainer = jewelContainer.transform;
+        }
+        
+        private void CreateFilterTab(string label, int filterIndex, Color tabColor)
+        {
+            GameObject tabObj = CreatePanel(filterTabContainer, $"Tab_{label}", tabColor * 0.4f);
+            Button btn = tabObj.AddComponent<Button>();
+            btn.transition = Selectable.Transition.ColorTint;
+            ColorBlock colors = btn.colors;
+            colors.normalColor = tabColor * 0.4f;
+            colors.highlightedColor = tabColor * 0.6f;
+            colors.selectedColor = tabColor;
+            btn.colors = colors;
+            int capturedIndex = filterIndex;
+            btn.onClick.AddListener(() => OnFilterTabClicked(capturedIndex));
+            TMP_Text tabText = CreateText(tabObj.transform, "Text", label, 10, TextAlignmentOptions.Center).GetComponent<TMP_Text>();
+            SetRectFill(tabText.gameObject);
+            tabText.color = Color.white;
+            tabText.fontStyle = FontStyles.Bold;
+            filterTabButtons.Add(btn);
         }
         
         private void CreateButtons()
         {
             Button backButton = CreateButton(equipmentPanel.transform, "BackButton", "<- Back", new Vector2(130, 45));
             RectTransform backRt = backButton.GetComponent<RectTransform>();
-            backRt.anchorMin = new Vector2(0, 0);
-            backRt.anchorMax = new Vector2(0, 0);
-            backRt.pivot = new Vector2(0, 0);
-            backRt.anchoredPosition = new Vector2(20, 15);
+            backRt.anchorMin = new Vector2(0, 0); backRt.anchorMax = new Vector2(0, 0);
+            backRt.pivot = new Vector2(0, 0); backRt.anchoredPosition = new Vector2(20, 15);
             backButton.onClick.AddListener(() => onBackClicked?.Invoke());
             
             Button unequipButton = CreateButton(equipmentPanel.transform, "UnequipButton", "Unequip All", new Vector2(150, 45));
             RectTransform unequipRt = unequipButton.GetComponent<RectTransform>();
-            unequipRt.anchorMin = new Vector2(0.5f, 0);
-            unequipRt.anchorMax = new Vector2(0.5f, 0);
-            unequipRt.pivot = new Vector2(0.5f, 0);
-            unequipRt.anchoredPosition = new Vector2(-100, 15);
+            unequipRt.anchorMin = new Vector2(0.5f, 0); unequipRt.anchorMax = new Vector2(0.5f, 0);
+            unequipRt.pivot = new Vector2(0.5f, 0); unequipRt.anchoredPosition = new Vector2(-100, 15);
             unequipButton.onClick.AddListener(OnUnequipAll);
             unequipButton.GetComponent<Image>().color = new Color(0.5f, 0.2f, 0.2f);
             
-            // Auto Equip Enemies button
             Button autoEquipButton = CreateButton(equipmentPanel.transform, "AutoEquipButton", "Auto Equip Enemies", new Vector2(180, 45));
             RectTransform autoEquipRt = autoEquipButton.GetComponent<RectTransform>();
-            autoEquipRt.anchorMin = new Vector2(0.5f, 0);
-            autoEquipRt.anchorMax = new Vector2(0.5f, 0);
-            autoEquipRt.pivot = new Vector2(0.5f, 0);
-            autoEquipRt.anchoredPosition = new Vector2(100, 15);
+            autoEquipRt.anchorMin = new Vector2(0.5f, 0); autoEquipRt.anchorMax = new Vector2(0.5f, 0);
+            autoEquipRt.pivot = new Vector2(0.5f, 0); autoEquipRt.anchoredPosition = new Vector2(100, 15);
             autoEquipButton.onClick.AddListener(OnAutoEquipEnemies);
             autoEquipButton.GetComponent<Image>().color = new Color(0.5f, 0.3f, 0.2f);
             
             Button startButton = CreateButton(equipmentPanel.transform, "StartButton", "Start Battle ->", new Vector2(170, 45));
             RectTransform startRt = startButton.GetComponent<RectTransform>();
-            startRt.anchorMin = new Vector2(1, 0);
-            startRt.anchorMax = new Vector2(1, 0);
-            startRt.pivot = new Vector2(1, 0);
-            startRt.anchoredPosition = new Vector2(-20, 15);
+            startRt.anchorMin = new Vector2(1, 0); startRt.anchorMax = new Vector2(1, 0);
+            startRt.pivot = new Vector2(1, 0); startRt.anchoredPosition = new Vector2(-20, 15);
             startButton.onClick.AddListener(OnStartBattle);
             startButton.GetComponent<Image>().color = new Color(0.2f, 0.5f, 0.2f);
         }
@@ -573,16 +641,14 @@ namespace TacticalGame.Managers
         private Button CreateButton(Transform parent, string name, string text, Vector2 size)
         {
             GameObject btnObj = CreatePanel(parent, name, buttonColor);
-            RectTransform rt = btnObj.GetComponent<RectTransform>();
-            rt.sizeDelta = size;
+            btnObj.GetComponent<RectTransform>().sizeDelta = size;
             Button btn = btnObj.AddComponent<Button>();
             ColorBlock colors = btn.colors;
             colors.normalColor = buttonColor;
             colors.highlightedColor = buttonHoverColor;
             colors.pressedColor = buttonColor;
             btn.colors = colors;
-            TMP_Text btnText = CreateText(btnObj.transform, "Text", text, 15, TextAlignmentOptions.Center)
-                .GetComponent<TMP_Text>();
+            TMP_Text btnText = CreateText(btnObj.transform, "Text", text, 15, TextAlignmentOptions.Center).GetComponent<TMP_Text>();
             SetRectFill(btnText.gameObject);
             return btn;
         }
@@ -590,14 +656,13 @@ namespace TacticalGame.Managers
         private void SetRectFill(GameObject obj)
         {
             RectTransform rt = obj.GetComponent<RectTransform>();
-            rt.anchorMin = Vector2.zero;
-            rt.anchorMax = Vector2.one;
-            rt.offsetMin = Vector2.zero;
-            rt.offsetMax = Vector2.zero;
+            rt.anchorMin = Vector2.zero; rt.anchorMax = Vector2.one;
+            rt.offsetMin = Vector2.zero; rt.offsetMax = Vector2.zero;
         }
         
         private string TruncateText(string text, int maxLength)
         {
+            if (string.IsNullOrEmpty(text)) return "";
             if (text.Length <= maxLength) return text;
             return text.Substring(0, maxLength - 2) + "..";
         }
@@ -608,80 +673,64 @@ namespace TacticalGame.Managers
         
         private void PopulateUnitList()
         {
-            foreach (var item in unitListItems)
-                if (item != null) Destroy(item);
+            foreach (var item in unitListItems) if (item != null) Destroy(item);
             unitListItems.Clear();
             
             for (int i = 0; i < playerUnits.Count; i++)
-            {
                 CreateUnitListItem(playerUnits[i], i, true);
-            }
             
             if (enemyUnits.Count > 0)
             {
                 GameObject separator = CreatePanel(unitListContainer, "Separator", new Color(0.3f, 0.15f, 0.15f));
-                RectTransform sepRt = separator.GetComponent<RectTransform>();
-                sepRt.sizeDelta = new Vector2(0, 30);
-                TMP_Text sepText = CreateText(separator.transform, "SepText", "-- ENEMY --", 12, TextAlignmentOptions.Center)
-                    .GetComponent<TMP_Text>();
+                separator.GetComponent<RectTransform>().sizeDelta = new Vector2(0, 30);
+                LayoutElement sepLe = separator.AddComponent<LayoutElement>();
+                sepLe.minHeight = 30;
+                TMP_Text sepText = CreateText(separator.transform, "SepText", "-- ENEMY --", 12, TextAlignmentOptions.Center).GetComponent<TMP_Text>();
                 SetRectFill(sepText.gameObject);
                 sepText.color = new Color(1f, 0.5f, 0.5f);
                 unitListItems.Add(separator);
             }
             
             for (int i = 0; i < enemyUnits.Count; i++)
-            {
-                // +1 to account for separator
                 CreateUnitListItem(enemyUnits[i], playerUnits.Count + 1 + i, false);
-            }
         }
         
         private void CreateUnitListItem(UnitData unit, int index, bool isPlayer)
         {
             GameObject item = CreatePanel(unitListContainer, $"Unit_{index}", slotEmptyColor);
-            RectTransform rt = item.GetComponent<RectTransform>();
-            rt.sizeDelta = new Vector2(0, 68);
+            item.GetComponent<RectTransform>().sizeDelta = new Vector2(0, 68);
+            LayoutElement le = item.AddComponent<LayoutElement>();
+            le.minHeight = 68; le.preferredHeight = 68;
             
             Button btn = item.AddComponent<Button>();
             btn.transition = Selectable.Transition.ColorTint;
             ColorBlock colors = btn.colors;
             colors.normalColor = slotEmptyColor;
             colors.highlightedColor = buttonHoverColor;
-            colors.selectedColor = new Color(0.3f, 0.4f, 0.5f);
             btn.colors = colors;
-            
             int capturedIndex = index;
             btn.onClick.AddListener(() => SelectUnit(capturedIndex));
             
-            TMP_Text nameText = CreateText(item.transform, "Name", unit.unitName, 14, TextAlignmentOptions.Left)
-                .GetComponent<TMP_Text>();
+            TMP_Text nameText = CreateText(item.transform, "Name", unit.unitName, 14, TextAlignmentOptions.Left).GetComponent<TMP_Text>();
             RectTransform nameRt = nameText.GetComponent<RectTransform>();
-            nameRt.anchorMin = new Vector2(0, 1);
-            nameRt.anchorMax = new Vector2(1, 1);
+            nameRt.anchorMin = new Vector2(0, 1); nameRt.anchorMax = new Vector2(1, 1);
             nameRt.pivot = new Vector2(0, 1);
-            nameRt.anchoredPosition = new Vector2(12, -6);
-            nameRt.sizeDelta = new Vector2(-20, 22);
+            nameRt.anchoredPosition = new Vector2(12, -6); nameRt.sizeDelta = new Vector2(-20, 22);
             nameText.fontStyle = FontStyles.Bold;
             
-            TMP_Text roleText = CreateText(item.transform, "Role", unit.GetRoleDisplayName(), 11, TextAlignmentOptions.Left)
-                .GetComponent<TMP_Text>();
+            TMP_Text roleText = CreateText(item.transform, "Role", unit.GetRoleDisplayName(), 11, TextAlignmentOptions.Left).GetComponent<TMP_Text>();
             RectTransform roleRt = roleText.GetComponent<RectTransform>();
-            roleRt.anchorMin = new Vector2(0, 1);
-            roleRt.anchorMax = new Vector2(1, 1);
+            roleRt.anchorMin = new Vector2(0, 1); roleRt.anchorMax = new Vector2(1, 1);
             roleRt.pivot = new Vector2(0, 1);
-            roleRt.anchoredPosition = new Vector2(12, -28);
-            roleRt.sizeDelta = new Vector2(-20, 18);
+            roleRt.anchoredPosition = new Vector2(12, -28); roleRt.sizeDelta = new Vector2(-20, 18);
             roleText.color = textDimColor;
             
             string weaponType = unit.weaponType == WeaponType.Melee ? "[Melee]" : "[Ranged]";
-            TMP_Text weaponText = CreateText(item.transform, "Weapon", $"{weaponType} {unit.GetWeaponFamilyDisplayName()}", 11, TextAlignmentOptions.Left)
-                .GetComponent<TMP_Text>();
+            TMP_Text weaponText = CreateText(item.transform, "Weapon", $"{weaponType} {unit.GetWeaponFamilyDisplayName()}", 11, TextAlignmentOptions.Left).GetComponent<TMP_Text>();
             RectTransform weaponRt = weaponText.GetComponent<RectTransform>();
-            weaponRt.anchorMin = new Vector2(0, 1);
-            weaponRt.anchorMax = new Vector2(1, 1);
+            weaponRt.anchorMin = new Vector2(0, 1); weaponRt.anchorMax = new Vector2(1, 1);
             weaponRt.pivot = new Vector2(0, 1);
-            weaponRt.anchoredPosition = new Vector2(12, -48);
-            weaponRt.sizeDelta = new Vector2(-20, 18);
+            weaponRt.anchoredPosition = new Vector2(12, -48); weaponRt.sizeDelta = new Vector2(-20, 18);
             weaponText.color = new Color(0.45f, 0.45f, 0.5f);
             
             unitListItems.Add(item);
@@ -689,70 +738,48 @@ namespace TacticalGame.Managers
         
         private void PopulateRelicPool()
         {
-            foreach (var item in relicPoolItems)
-                if (item != null) Destroy(item);
+            foreach (var item in relicPoolItems) if (item != null) Destroy(item);
             relicPoolItems.Clear();
             
             UnitData unit = GetUnitByIndex(selectedUnitIndex);
-            if (unit == null)
-            {
-                if (relicPoolTitleText != null)
-                    relicPoolTitleText.text = "RELIC POOL";
-                return;
-            }
+            if (unit == null) { if (relicPoolTitleText != null) relicPoolTitleText.text = "RELIC POOL"; return; }
             
-            // Update title to show current weapon family
-            string weaponFamilyName = unit.GetWeaponFamilyDisplayName();
-            if (relicPoolTitleText != null)
-            {
-                relicPoolTitleText.text = $"RELIC POOL - {weaponFamilyName}";
-            }
+            UpdateFilterTabVisuals();
             
-            Debug.Log($"<color=cyan>[EquipmentUI] PopulateRelicPool for {unit.unitName}, WeaponFamily: {unit.weaponFamily}</color>");
-            
-            List<WeaponRelic> availableRelics = WeaponRelicGenerator.GenerateRelicPoolForFamily(
-                unit.weaponFamily, 
-                new List<WeaponRelic>()
-            );
-            
-            Debug.Log($"<color=cyan>[EquipmentUI] Generated {availableRelics.Count} relics for {unit.weaponFamily}</color>");
-            
-            if (availableRelics.Count > 0)
-            {
-                Debug.Log($"<color=cyan>[EquipmentUI] First relic: {availableRelics[0].relicName}, Family: {availableRelics[0].weaponFamily}</color>");
-            }
-            
-            for (int i = 0; i < availableRelics.Count; i++)
-            {
-                CreateRelicPoolItem(availableRelics[i], i, unit.role);
-            }
+            if (selectedFilterIndex < 0) PopulateWeaponRelicPool(unit);
+            else PopulateCategoryRelicPool(unit, filterCategories[selectedFilterIndex]);
         }
         
-        private void CreateRelicPoolItem(WeaponRelic relic, int index, UnitRole unitRole)
+        private void PopulateWeaponRelicPool(UnitData unit)
         {
-            // 65px height for weapon + effect + role (no sockets)
-            GameObject item = CreatePanel(relicPoolContainer, $"Relic_{index}", slotEmptyColor);
-            RectTransform rt = item.GetComponent<RectTransform>();
-            rt.sizeDelta = new Vector2(0, 65);
-            
+            if (relicPoolTitleText != null) relicPoolTitleText.text = $"RELIC POOL - {unit.GetWeaponFamilyDisplayName()}";
+            var relics = WeaponRelicGenerator.GenerateRelicPoolForFamily(unit.weaponFamily, new List<WeaponRelic>());
+            for (int i = 0; i < relics.Count; i++) CreateWeaponRelicPoolItem(relics[i], i, unit.role);
+        }
+        
+        private void PopulateCategoryRelicPool(UnitData unit, RelicCategory category)
+        {
+            if (relicPoolTitleText != null) relicPoolTitleText.text = $"RELIC POOL - {category}";
+            var relics = categoryRelicPool.Where(r => r.category == category)
+                .OrderByDescending(r => r.MatchesRole(unit.role)).ThenBy(r => r.roleTag.ToString()).ToList();
+            for (int i = 0; i < relics.Count; i++) CreateCategoryRelicPoolItem(relics[i], i, unit.role);
+        }
+        
+        private void CreateWeaponRelicPoolItem(WeaponRelic relic, int index, UnitRole unitRole)
+        {
+            GameObject item = CreatePanel(relicPoolContainer, $"WpnRelic_{index}", slotEmptyColor);
+            item.GetComponent<RectTransform>().sizeDelta = new Vector2(0, 65);
             LayoutElement le = item.AddComponent<LayoutElement>();
-            le.minHeight = 65;
-            le.preferredHeight = 65;
+            le.minHeight = 65; le.preferredHeight = 65;
             
             bool isMatch = relic.MatchesRole(unitRole);
+            if (isMatch) item.GetComponent<Image>().color = new Color(0.18f, 0.25f, 0.18f);
             
-            Image bg = item.GetComponent<Image>();
-            if (isMatch)
-                bg.color = new Color(0.18f, 0.25f, 0.18f);
-            
-            // Left rarity bar
             GameObject rarityBar = CreatePanel(item.transform, "RarityBar", GetRarityColor(relic.effectData.rarity));
             RectTransform barRt = rarityBar.GetComponent<RectTransform>();
-            barRt.anchorMin = new Vector2(0, 0);
-            barRt.anchorMax = new Vector2(0, 1);
+            barRt.anchorMin = new Vector2(0, 0); barRt.anchorMax = new Vector2(0, 1);
             barRt.pivot = new Vector2(0, 0.5f);
-            barRt.offsetMin = new Vector2(0, 4);
-            barRt.offsetMax = new Vector2(6, -4);
+            barRt.offsetMin = new Vector2(0, 4); barRt.offsetMax = new Vector2(6, -4);
             
             Button btn = item.AddComponent<Button>();
             btn.transition = Selectable.Transition.ColorTint;
@@ -762,65 +789,113 @@ namespace TacticalGame.Managers
             btn.colors = colors;
             btn.onClick.AddListener(() => OnRelicPoolItemClicked(relic));
             
-            // Weapon name (top line) - Shows which weapon this relic is for
-            string weaponName = relic.baseWeaponData != null ? relic.baseWeaponData.weaponName : relic.weaponFamily.ToString();
-            TMP_Text weaponText = CreateText(item.transform, "Weapon", weaponName, 10, TextAlignmentOptions.Left)
-                .GetComponent<TMP_Text>();
+            string weaponName = relic.baseWeaponData?.weaponName ?? relic.weaponFamily.ToString();
+            TMP_Text weaponText = CreateText(item.transform, "Weapon", weaponName, 10, TextAlignmentOptions.Left).GetComponent<TMP_Text>();
             RectTransform weaponRt = weaponText.GetComponent<RectTransform>();
-            weaponRt.anchorMin = new Vector2(0, 1);
-            weaponRt.anchorMax = new Vector2(0.6f, 1);
+            weaponRt.anchorMin = new Vector2(0, 1); weaponRt.anchorMax = new Vector2(0.6f, 1);
             weaponRt.pivot = new Vector2(0, 1);
-            weaponRt.anchoredPosition = new Vector2(14, -4);
-            weaponRt.sizeDelta = new Vector2(0, 16);
-            weaponText.color = new Color(0.5f, 0.7f, 1f); // Light blue for weapon name
+            weaponRt.anchoredPosition = new Vector2(14, -4); weaponRt.sizeDelta = new Vector2(0, 16);
+            weaponText.color = new Color(0.5f, 0.7f, 1f);
             
-            // Effect name (second line)
-            TMP_Text nameText = CreateText(item.transform, "Name", relic.effectData.effectName, 12, TextAlignmentOptions.Left)
-                .GetComponent<TMP_Text>();
+            TMP_Text nameText = CreateText(item.transform, "Name", relic.effectData.effectName, 12, TextAlignmentOptions.Left).GetComponent<TMP_Text>();
             RectTransform nameRt = nameText.GetComponent<RectTransform>();
-            nameRt.anchorMin = new Vector2(0, 1);
-            nameRt.anchorMax = new Vector2(0.7f, 1);
+            nameRt.anchorMin = new Vector2(0, 1); nameRt.anchorMax = new Vector2(0.7f, 1);
             nameRt.pivot = new Vector2(0, 1);
-            nameRt.anchoredPosition = new Vector2(14, -20);
-            nameRt.sizeDelta = new Vector2(0, 20);
+            nameRt.anchoredPosition = new Vector2(14, -20); nameRt.sizeDelta = new Vector2(0, 20);
             nameText.fontStyle = FontStyles.Bold;
             nameText.overflowMode = TextOverflowModes.Ellipsis;
             
-            // Role name (third line)
-            TMP_Text roleText = CreateText(item.transform, "Role", relic.roleTag.ToString(), 10, TextAlignmentOptions.Left)
-                .GetComponent<TMP_Text>();
+            TMP_Text roleText = CreateText(item.transform, "Role", relic.roleTag.ToString(), 10, TextAlignmentOptions.Left).GetComponent<TMP_Text>();
             RectTransform roleRt = roleText.GetComponent<RectTransform>();
-            roleRt.anchorMin = new Vector2(0, 1);
-            roleRt.anchorMax = new Vector2(0.5f, 1);
+            roleRt.anchorMin = new Vector2(0, 1); roleRt.anchorMax = new Vector2(0.5f, 1);
             roleRt.pivot = new Vector2(0, 1);
-            roleRt.anchoredPosition = new Vector2(14, -40);
-            roleRt.sizeDelta = new Vector2(0, 16);
+            roleRt.anchoredPosition = new Vector2(14, -40); roleRt.sizeDelta = new Vector2(0, 16);
             roleText.color = isMatch ? accentColor : textDimColor;
             
-            // Rarity text (top right)
-            TMP_Text rarityText = CreateText(item.transform, "Rarity", relic.effectData.rarity.ToString(), 10, TextAlignmentOptions.Right)
-                .GetComponent<TMP_Text>();
+            TMP_Text rarityText = CreateText(item.transform, "Rarity", relic.effectData.rarity.ToString(), 10, TextAlignmentOptions.Right).GetComponent<TMP_Text>();
             RectTransform rarityRt = rarityText.GetComponent<RectTransform>();
-            rarityRt.anchorMin = new Vector2(0.6f, 1);
-            rarityRt.anchorMax = new Vector2(1, 1);
+            rarityRt.anchorMin = new Vector2(0.6f, 1); rarityRt.anchorMax = new Vector2(1, 1);
             rarityRt.pivot = new Vector2(1, 1);
-            rarityRt.anchoredPosition = new Vector2(-10, -4);
-            rarityRt.sizeDelta = new Vector2(0, 16);
+            rarityRt.anchoredPosition = new Vector2(-10, -4); rarityRt.sizeDelta = new Vector2(0, 16);
             rarityText.color = GetRarityColor(relic.effectData.rarity);
             
-            // Match indicator (right side, below rarity)
             if (isMatch)
             {
-                TMP_Text matchText = CreateText(item.transform, "Match", "MATCH", 10, TextAlignmentOptions.Right)
-                    .GetComponent<TMP_Text>();
+                TMP_Text matchText = CreateText(item.transform, "Match", "MATCH", 10, TextAlignmentOptions.Right).GetComponent<TMP_Text>();
                 RectTransform matchRt = matchText.GetComponent<RectTransform>();
-                matchRt.anchorMin = new Vector2(0.6f, 1);
-                matchRt.anchorMax = new Vector2(1, 1);
+                matchRt.anchorMin = new Vector2(0.6f, 1); matchRt.anchorMax = new Vector2(1, 1);
                 matchRt.pivot = new Vector2(1, 1);
-                matchRt.anchoredPosition = new Vector2(-10, -20);
-                matchRt.sizeDelta = new Vector2(0, 16);
-                matchText.color = accentColor;
-                matchText.fontStyle = FontStyles.Bold;
+                matchRt.anchoredPosition = new Vector2(-10, -20); matchRt.sizeDelta = new Vector2(0, 16);
+                matchText.color = accentColor; matchText.fontStyle = FontStyles.Bold;
+            }
+            
+            relicPoolItems.Add(item);
+        }
+        
+        private void CreateCategoryRelicPoolItem(EquippedRelic relic, int index, UnitRole unitRole)
+        {
+            GameObject item = CreatePanel(relicPoolContainer, $"CatRelic_{index}", slotEmptyColor);
+            item.GetComponent<RectTransform>().sizeDelta = new Vector2(0, 65);
+            LayoutElement le = item.AddComponent<LayoutElement>();
+            le.minHeight = 65; le.preferredHeight = 65;
+            
+            bool isMatch = relic.MatchesRole(unitRole);
+            if (isMatch) item.GetComponent<Image>().color = new Color(0.18f, 0.25f, 0.18f);
+            
+            Color catColor = GetCategoryColor(relic.category);
+            GameObject catBar = CreatePanel(item.transform, "CategoryBar", catColor);
+            RectTransform barRt = catBar.GetComponent<RectTransform>();
+            barRt.anchorMin = new Vector2(0, 0); barRt.anchorMax = new Vector2(0, 1);
+            barRt.pivot = new Vector2(0, 0.5f);
+            barRt.offsetMin = new Vector2(0, 4); barRt.offsetMax = new Vector2(6, -4);
+            
+            Button btn = item.AddComponent<Button>();
+            btn.transition = Selectable.Transition.ColorTint;
+            ColorBlock colors = btn.colors;
+            colors.normalColor = isMatch ? new Color(0.18f, 0.25f, 0.18f) : slotEmptyColor;
+            colors.highlightedColor = new Color(0.28f, 0.32f, 0.38f);
+            btn.colors = colors;
+            btn.onClick.AddListener(() => OnCategoryRelicPoolItemClicked(relic));
+            
+            TMP_Text catText = CreateText(item.transform, "Category", relic.category.ToString(), 10, TextAlignmentOptions.Left).GetComponent<TMP_Text>();
+            RectTransform catRt = catText.GetComponent<RectTransform>();
+            catRt.anchorMin = new Vector2(0, 1); catRt.anchorMax = new Vector2(0.6f, 1);
+            catRt.pivot = new Vector2(0, 1);
+            catRt.anchoredPosition = new Vector2(14, -4); catRt.sizeDelta = new Vector2(0, 16);
+            catText.color = catColor;
+            
+            TMP_Text nameText = CreateText(item.transform, "Name", relic.relicName, 12, TextAlignmentOptions.Left).GetComponent<TMP_Text>();
+            RectTransform nameRt = nameText.GetComponent<RectTransform>();
+            nameRt.anchorMin = new Vector2(0, 1); nameRt.anchorMax = new Vector2(0.7f, 1);
+            nameRt.pivot = new Vector2(0, 1);
+            nameRt.anchoredPosition = new Vector2(14, -20); nameRt.sizeDelta = new Vector2(0, 20);
+            nameText.fontStyle = FontStyles.Bold;
+            nameText.overflowMode = TextOverflowModes.Ellipsis;
+            
+            TMP_Text roleText = CreateText(item.transform, "Role", relic.roleTag.ToString(), 10, TextAlignmentOptions.Left).GetComponent<TMP_Text>();
+            RectTransform roleRt = roleText.GetComponent<RectTransform>();
+            roleRt.anchorMin = new Vector2(0, 1); roleRt.anchorMax = new Vector2(0.5f, 1);
+            roleRt.pivot = new Vector2(0, 1);
+            roleRt.anchoredPosition = new Vector2(14, -40); roleRt.sizeDelta = new Vector2(0, 16);
+            roleText.color = isMatch ? accentColor : textDimColor;
+            
+            bool isPassive = relic.IsPassive();
+            string infoStr = isPassive ? "Passive" : $"{relic.GetCopies()} copies";
+            TMP_Text infoTextLabel = CreateText(item.transform, "Info", infoStr, 10, TextAlignmentOptions.Right).GetComponent<TMP_Text>();
+            RectTransform infoRt = infoTextLabel.GetComponent<RectTransform>();
+            infoRt.anchorMin = new Vector2(0.6f, 1); infoRt.anchorMax = new Vector2(1, 1);
+            infoRt.pivot = new Vector2(1, 1);
+            infoRt.anchoredPosition = new Vector2(-10, -4); infoRt.sizeDelta = new Vector2(0, 16);
+            infoTextLabel.color = isPassive ? trinketTabColor : textDimColor;
+            
+            if (isMatch)
+            {
+                TMP_Text matchText = CreateText(item.transform, "Match", "MATCH", 10, TextAlignmentOptions.Right).GetComponent<TMP_Text>();
+                RectTransform matchRt = matchText.GetComponent<RectTransform>();
+                matchRt.anchorMin = new Vector2(0.6f, 1); matchRt.anchorMax = new Vector2(1, 1);
+                matchRt.pivot = new Vector2(1, 1);
+                matchRt.anchoredPosition = new Vector2(-10, -20); matchRt.sizeDelta = new Vector2(0, 16);
+                matchText.color = accentColor; matchText.fontStyle = FontStyles.Bold;
             }
             
             relicPoolItems.Add(item);
@@ -828,30 +903,18 @@ namespace TacticalGame.Managers
         
         private void PopulateJewelPool()
         {
-            foreach (var item in jewelPoolItems)
-                if (item != null) Destroy(item);
+            foreach (var item in jewelPoolItems) if (item != null) Destroy(item);
             jewelPoolItems.Clear();
             
             string[] jewelNames = { "Ruby", "Sapphire", "Emerald", "Topaz", "Amethyst", "Diamond" };
-            Color[] jewelColors = {
-                new Color(1f, 0.3f, 0.3f),
-                new Color(0.3f, 0.5f, 1f),
-                new Color(0.3f, 1f, 0.3f),
-                new Color(1f, 1f, 0.3f),
-                new Color(0.8f, 0.3f, 0.8f),
-                new Color(0.6f, 0.9f, 1f)
-            };
-            
-            for (int i = 0; i < jewelNames.Length; i++)
-            {
-                CreateJewelPoolItem(jewelNames[i], jewelColors[i], i);
-            }
+            Color[] jewelColors = { new Color(1f, 0.3f, 0.3f), new Color(0.3f, 0.5f, 1f), new Color(0.3f, 1f, 0.3f),
+                new Color(1f, 1f, 0.3f), new Color(0.8f, 0.3f, 0.8f), new Color(0.6f, 0.9f, 1f) };
+            for (int i = 0; i < jewelNames.Length; i++) CreateJewelPoolItem(jewelNames[i], jewelColors[i], i);
         }
         
         private void CreateJewelPoolItem(string name, Color color, int index)
         {
             GameObject item = CreatePanel(jewelPoolContainer, $"Jewel_{index}", slotEmptyColor);
-            
             Button btn = item.AddComponent<Button>();
             btn.transition = Selectable.Transition.ColorTint;
             ColorBlock colors = btn.colors;
@@ -861,34 +924,26 @@ namespace TacticalGame.Managers
             
             GameObject icon = CreatePanel(item.transform, "Icon", color);
             RectTransform iconRt = icon.GetComponent<RectTransform>();
-            iconRt.anchorMin = new Vector2(0, 0.5f);
-            iconRt.anchorMax = new Vector2(0, 0.5f);
+            iconRt.anchorMin = new Vector2(0, 0.5f); iconRt.anchorMax = new Vector2(0, 0.5f);
             iconRt.pivot = new Vector2(0, 0.5f);
-            iconRt.anchoredPosition = new Vector2(10, 0);
-            iconRt.sizeDelta = new Vector2(24, 24);
+            iconRt.anchoredPosition = new Vector2(10, 0); iconRt.sizeDelta = new Vector2(24, 24);
             
-            TMP_Text nameText = CreateText(item.transform, "Name", name, 13, TextAlignmentOptions.Left)
-                .GetComponent<TMP_Text>();
+            TMP_Text nameText = CreateText(item.transform, "Name", name, 13, TextAlignmentOptions.Left).GetComponent<TMP_Text>();
             RectTransform nameRt = nameText.GetComponent<RectTransform>();
-            nameRt.anchorMin = new Vector2(0, 0);
-            nameRt.anchorMax = new Vector2(1, 1);
+            nameRt.anchorMin = new Vector2(0, 0); nameRt.anchorMax = new Vector2(1, 1);
             nameRt.pivot = new Vector2(0, 0.5f);
-            nameRt.offsetMin = new Vector2(42, 0);
-            nameRt.offsetMax = new Vector2(-8, 0);
+            nameRt.offsetMin = new Vector2(42, 0); nameRt.offsetMax = new Vector2(-8, 0);
             
             jewelPoolItems.Add(item);
         }
         
-        private Color GetRarityColor(RelicRarity rarity)
-        {
-            return rarity switch
-            {
-                RelicRarity.Common => commonColor,
-                RelicRarity.Uncommon => uncommonColor,
-                RelicRarity.Rare => rareColor,
-                _ => commonColor
-            };
-        }
+        private Color GetRarityColor(RelicRarity rarity) => rarity switch {
+            RelicRarity.Common => commonColor, RelicRarity.Uncommon => uncommonColor, RelicRarity.Rare => rareColor, _ => commonColor };
+        
+        private Color GetCategoryColor(RelicCategory category) => category switch {
+            RelicCategory.Boots => bootsTabColor, RelicCategory.Gloves => glovesTabColor, RelicCategory.Hat => hatTabColor,
+            RelicCategory.Coat => coatTabColor, RelicCategory.Trinket => trinketTabColor, RelicCategory.Totem => totemTabColor,
+            RelicCategory.Ultimate => ultimateTabColor, RelicCategory.PassiveUnique => passiveTabColor, _ => weaponTabColor };
         
         #endregion
         
@@ -896,225 +951,159 @@ namespace TacticalGame.Managers
         
         private void SelectUnit(int index)
         {
-            selectedUnitIndex = index;
-            selectedSlotIndex = -1;
-            selectedJewelIndex = -1;
-            
+            selectedUnitIndex = index; selectedSlotIndex = -1; selectedJewelIndex = -1;
             UnitData unit = GetUnitByIndex(index);
-            if (unit == null) return;
-            
-            string weaponType = unit.weaponType == WeaponType.Melee ? "[Melee]" : "[Ranged]";
-            unitInfoText.text = $"{unit.unitName}  |  {unit.GetRoleDisplayName()}  |  {weaponType} {unit.GetWeaponFamilyDisplayName()}";
-            
-            RefreshSlots(unit);
-            UpdateJewelBudget(unit);
-            
-            // Both player AND enemy units can equip relics/jewels
-            PopulateRelicPool();
-            PopulateJewelPool();
-            
-            // Update selection highlight in unit list
-            for (int i = 0; i < unitListItems.Count; i++)
+            if (unit != null)
             {
-                Image bg = unitListItems[i].GetComponent<Image>();
-                if (bg != null)
-                {
-                    bg.color = (i == index) ? new Color(0.25f, 0.35f, 0.45f) : slotEmptyColor;
-                }
+                unitInfoText.text = $"| {unit.GetRoleDisplayName()} | [{unit.weaponType}] {unit.GetWeaponFamilyDisplayName()}";
+                RefreshSlots(unit); PopulateRelicPool(); PopulateJewelPool(); UpdateJewelBudget(unit); UpdateInfoPanel();
             }
-        }
-        
-        /// <summary>
-        /// Get unit by combined index (players first, then separator, then enemies)
-        /// Index layout: [Player0, Player1, ..., Separator, Enemy0, Enemy1, ...]
-        /// </summary>
-        private UnitData GetUnitByIndex(int index)
-        {
-            if (index < 0) return null;
-            
-            // Player units are at indices 0 to playerUnits.Count-1
-            if (index < playerUnits.Count)
-                return playerUnits[index];
-            
-            // Separator is at index playerUnits.Count (skip it)
-            // Enemy units start at index playerUnits.Count + 1
-            int enemyIndex = index - playerUnits.Count - 1; // -1 for separator
-            
-            if (enemyIndex >= 0 && enemyIndex < enemyUnits.Count)
-                return enemyUnits[enemyIndex];
-            
-            return null;
-        }
-        
-        /// <summary>
-        /// Check if the selected unit is a player unit
-        /// </summary>
-        private bool IsSelectedUnitPlayer()
-        {
-            return selectedUnitIndex >= 0 && selectedUnitIndex < playerUnits.Count;
         }
         
         private void RefreshSlots(UnitData unit)
         {
-            for (int i = 0; i < 7; i++)
+            for (int i = 0; i < relicSlots.Count; i++)
             {
-                RefreshSlot(i, unit);
+                RelicSlotData slot = relicSlots[i];
+                WeaponRelic weaponRelic = unit.GetWeaponRelic(i);
+                EquippedRelic categoryRelic = GetCategoryRelic(unit, i);
+                
+                slot.selectionOutline.gameObject.SetActive(i == selectedSlotIndex);
+                
+                if (weaponRelic != null)
+                {
+                    slot.nameText.text = weaponRelic.effectData.effectName;
+                    slot.nameText.color = weaponRelic.MatchesRole(unit.role) ? accentColor : textColor;
+                    slot.effectText.text = TruncateText(weaponRelic.effectData.description, 50);
+                    slot.effectText.color = textDimColor;
+                    slot.background.color = slotFilledColor;
+                }
+                else if (categoryRelic != null)
+                {
+                    slot.nameText.text = categoryRelic.relicName;
+                    slot.nameText.color = categoryRelic.MatchesRole(unit.role) ? accentColor : textColor;
+                    slot.effectText.text = TruncateText(categoryRelic.effectData?.description ?? "", 50);
+                    slot.effectText.color = textDimColor;
+                    slot.background.color = GetCategoryColor(categoryRelic.category) * 0.4f;
+                }
+                else
+                {
+                    slot.nameText.text = "Empty"; slot.nameText.color = textDimColor;
+                    slot.effectText.text = "Click to equip"; slot.effectText.color = textDimColor;
+                    slot.background.color = slotEmptyColor;
+                }
+                
+                // Jewels - simplified for now
+                for (int j = 0; j < 3; j++)
+                {
+                    slot.jewelImages[j].color = (i == selectedSlotIndex && j == selectedJewelIndex) 
+                        ? new Color(0.3f, 0.3f, 0.4f) : jewelEmptyColor;
+                }
             }
         }
         
-        private void RefreshSlot(int slotIndex, UnitData unit)
+        private UnitData GetUnitByIndex(int index)
         {
-            RelicSlotData slot = relicSlots[slotIndex];
-            WeaponRelic relic = unit.equipment?.GetWeaponRelic(slotIndex);
-            
-            if (relic != null)
-            {
-                slot.nameText.text = TruncateText(relic.effectData.effectName, 14);
-                slot.effectText.text = relic.roleTag.ToString();
-                slot.nameText.color = GetRarityColor(relic.effectData.rarity);
-                slot.background.color = slotFilledColor;
-            }
-            else
-            {
-                slot.nameText.text = "Empty";
-                slot.effectText.text = "Click to equip";
-                slot.nameText.color = textColor;
-                slot.background.color = slotEmptyColor;
-            }
-            
-            slot.selectionOutline.gameObject.SetActive(slotIndex == selectedSlotIndex);
-            
-            for (int j = 0; j < 3; j++)
-            {
-                JewelData jewel = unit.equipment?.GetJewel(slotIndex, j);
-                slot.jewelImages[j].color = jewel != null ? jewel.jewelColor : jewelEmptyColor;
-            }
+            if (index < 0) return null;
+            if (index < playerUnits.Count) return playerUnits[index];
+            int enemyIndex = index - playerUnits.Count - 1;
+            return (enemyIndex >= 0 && enemyIndex < enemyUnits.Count) ? enemyUnits[enemyIndex] : null;
         }
+        
+        private bool IsSelectedUnitPlayer() => selectedUnitIndex >= 0 && selectedUnitIndex < playerUnits.Count;
         
         private void UpdateJewelBudget(UnitData unit)
         {
-            if (unit.equipment != null)
-            {
-                int used = unit.equipment.GetTotalEquippedJewelCount();
-                int budget = unit.equipment.GetJewelBudget(unit.role);
-                jewelBudgetText.text = $"Jewel Budget: {used} / {budget}";
-                jewelBudgetText.color = used > budget ? new Color(1f, 0.4f, 0.4f) : textColor;
-            }
-            else
-            {
-                jewelBudgetText.text = "Jewel Budget: 0 / 0";
-            }
+            // Simplified - jewels not fully implemented yet
+            jewelBudgetText.text = "Jewel Budget: 0 / 0";
         }
         
         private void OnSlotClicked(int slotIndex)
         {
-            if (selectedSlotIndex == slotIndex)
-            {
-                selectedSlotIndex = -1;
-                selectedJewelIndex = -1;
-            }
-            else
-            {
-                selectedSlotIndex = slotIndex;
-                selectedJewelIndex = -1;
-            }
-            
+            selectedSlotIndex = (selectedSlotIndex == slotIndex) ? -1 : slotIndex;
+            selectedJewelIndex = -1;
             UnitData unit = GetUnitByIndex(selectedUnitIndex);
-            if (unit != null)
-            {
-                RefreshSlots(unit);
-                UpdateInfoPanel();
-            }
+            if (unit != null) { RefreshSlots(unit); UpdateInfoPanel(); }
         }
         
         private void OnJewelClicked(int slotIndex, int jewelIndex)
         {
-            selectedSlotIndex = slotIndex;
-            selectedJewelIndex = jewelIndex;
-            
+            selectedSlotIndex = slotIndex; selectedJewelIndex = jewelIndex;
             UnitData unit = GetUnitByIndex(selectedUnitIndex);
-            if (unit != null)
+            if (unit != null) { RefreshSlots(unit); UpdateInfoPanel(); }
+        }
+        
+        private void OnFilterTabClicked(int filterIndex) { selectedFilterIndex = filterIndex; PopulateRelicPool(); }
+        
+        private void UpdateFilterTabVisuals()
+        {
+            Color[] tabColors = { weaponTabColor, bootsTabColor, glovesTabColor, hatTabColor, coatTabColor, trinketTabColor, totemTabColor, ultimateTabColor, passiveTabColor };
+            for (int i = 0; i < filterTabButtons.Count && i < tabColors.Length; i++)
             {
-                RefreshSlots(unit);
-                UpdateInfoPanel();
+                int tabFilterIndex = i - 1;
+                bool isSelected = (selectedFilterIndex == tabFilterIndex);
+                Image img = filterTabButtons[i].GetComponent<Image>();
+                if (img != null) img.color = isSelected ? tabColors[i] : tabColors[i] * 0.4f;
             }
         }
         
         private void OnRelicPoolItemClicked(WeaponRelic relic)
         {
             UnitData unit = GetUnitByIndex(selectedUnitIndex);
-            if (unit == null) return;
-            if (selectedSlotIndex < 0) return;
+            if (unit == null || selectedSlotIndex < 0) return;
             
-            unit.equipment.EquipWeaponRelic(selectedSlotIndex, relic);
+            // Clear category relic first (mutual exclusivity)
+            ClearCategoryRelic(unit, selectedSlotIndex);
             
-            RefreshSlots(unit);
-            UpdateJewelBudget(unit);
-            UpdateInfoPanel();
+            // Store in UnitData
+            unit.EquipWeaponRelic(selectedSlotIndex, relic);
+            
+            RefreshSlots(unit); UpdateJewelBudget(unit); UpdateInfoPanel();
+        }
+        
+        private void OnCategoryRelicPoolItemClicked(EquippedRelic relic)
+        {
+            UnitData unit = GetUnitByIndex(selectedUnitIndex);
+            if (unit == null || selectedSlotIndex < 0) return;
+            
+            // Clear weapon relic first (mutual exclusivity)
+            unit.EquipWeaponRelic(selectedSlotIndex, null);
+            
+            // Store in UnitData
+            SetCategoryRelic(unit, selectedSlotIndex, relic);
+            
+            RefreshSlots(unit); UpdateJewelBudget(unit); UpdateInfoPanel();
         }
         
         private void OnJewelPoolItemClicked(int poolIndex)
         {
-            UnitData unit = GetUnitByIndex(selectedUnitIndex);
-            if (unit == null) return;
-            if (selectedSlotIndex < 0 || selectedJewelIndex < 0) return;
-            
-            int used = unit.equipment.GetTotalEquippedJewelCount();
-            int budget = unit.equipment.GetJewelBudget(unit.role);
-            
-            if (used >= budget)
-            {
-                Debug.Log("Jewel budget exceeded!");
-                return;
-            }
-            
-            JewelData jewel = ScriptableObject.CreateInstance<JewelData>();
-            string[] names = { "Ruby", "Sapphire", "Emerald", "Topaz", "Amethyst", "Diamond" };
-            Color[] colors = {
-                new Color(1f, 0.3f, 0.3f),
-                new Color(0.3f, 0.5f, 1f),
-                new Color(0.3f, 1f, 0.3f),
-                new Color(1f, 1f, 0.3f),
-                new Color(0.8f, 0.3f, 0.8f),
-                new Color(0.6f, 0.9f, 1f)
-            };
-            jewel.jewelName = names[poolIndex];
-            jewel.jewelColor = colors[poolIndex];
-            
-            unit.equipment.EquipJewel(selectedSlotIndex, selectedJewelIndex, jewel);
-            
-            RefreshSlots(unit);
-            UpdateJewelBudget(unit);
+            // Jewel system not fully integrated yet
+            Debug.Log("Jewel system coming soon!");
         }
         
         private void UpdateInfoPanel()
         {
             UnitData unit = GetUnitByIndex(selectedUnitIndex);
-            if (unit == null)
-            {
-                infoText.text = "Select a unit";
-                return;
-            }
+            if (unit == null) { infoText.text = "Select a unit"; return; }
+            if (selectedSlotIndex < 0) { infoText.text = "Select a slot to view details"; return; }
             
-            if (selectedSlotIndex < 0)
-            {
-                infoText.text = "Select a slot to view details";
-                return;
-            }
+            WeaponRelic weaponRelic = unit.GetWeaponRelic(selectedSlotIndex);
+            EquippedRelic categoryRelic = GetCategoryRelic(unit, selectedSlotIndex);
             
-            WeaponRelic relic = unit.equipment?.GetWeaponRelic(selectedSlotIndex);
-            
-            if (relic != null)
+            if (weaponRelic != null)
             {
-                string matchText = relic.MatchesRole(unit.role) ? " [ROLE MATCH!]" : "";
-                infoText.text = $"<b>{relic.effectData.effectName}</b>{matchText}\n" +
-                               $"Role: {relic.roleTag}  |  Rarity: {relic.effectData.rarity}\n" +
-                               $"{relic.effectData.description}";
+                string matchText = weaponRelic.MatchesRole(unit.role) ? " [ROLE MATCH!]" : "";
+                infoText.text = $"<b>{weaponRelic.effectData.effectName}</b>{matchText}\n" +
+                    $"Role: {weaponRelic.roleTag}  |  Rarity: {weaponRelic.effectData.rarity}\n{weaponRelic.effectData.description}";
             }
-            else
+            else if (categoryRelic != null)
             {
-                infoText.text = "Empty slot\n\nSelect a slot, then click a relic from the pool to equip it.";
+                string matchText = categoryRelic.MatchesRole(unit.role) ? " [ROLE MATCH!]" : "";
+                string passive = categoryRelic.IsPassive() ? " (Passive)" : "";
+                infoText.text = $"<b>{categoryRelic.relicName}</b>{matchText}{passive}\n" +
+                    $"Category: {categoryRelic.category}  |  Role: {categoryRelic.roleTag}\n{categoryRelic.effectData?.description ?? ""}";
             }
+            else infoText.text = "Empty slot\n\nSelect a slot, then click a relic from the pool.\nUse tabs to filter by Weapon or Category.";
         }
         
         private void OnUnequipAll()
@@ -1122,86 +1111,66 @@ namespace TacticalGame.Managers
             UnitData unit = GetUnitByIndex(selectedUnitIndex);
             if (unit == null) return;
             
-            unit.equipment?.UnequipAll();
+            // Clear all slots
+            unit.ClearAllEquipment();
             
-            // Equip default relic to R1 slot (index 0)
+            // Re-equip default weapon relic if exists
             if (unit.defaultWeaponRelic != null)
-                unit.equipment.EquipWeaponRelic(UnitEquipmentData.SLOT_R1, unit.defaultWeaponRelic);
+                unit.EquipWeaponRelic(0, unit.defaultWeaponRelic);
             
-            RefreshSlots(unit);
-            UpdateJewelBudget(unit);
-            UpdateInfoPanel();
+            RefreshSlots(unit); UpdateJewelBudget(unit); UpdateInfoPanel();
         }
         
-        /// <summary>
-        /// Auto-equip all enemy units with random relics matching their weapon family.
-        /// </summary>
         private void OnAutoEquipEnemies()
         {
             foreach (UnitData enemy in enemyUnits)
             {
-                if (enemy.equipment == null)
-                    enemy.equipment = new UnitEquipmentData();
+                // Initialize arrays if needed
+                if (enemy.weaponRelics == null) enemy.weaponRelics = new WeaponRelic[7];
+                if (enemy.categoryRelics == null) enemy.categoryRelics = new EquippedRelic[7];
                 
-                // Make sure default relic is in R1 slot
+                // Equip default weapon
                 if (enemy.defaultWeaponRelic != null)
-                {
-                    enemy.equipment.EquipWeaponRelic(UnitEquipmentData.SLOT_R1, enemy.defaultWeaponRelic);
-                }
+                    enemy.EquipWeaponRelic(0, enemy.defaultWeaponRelic);
                 
-                // Generate random relics for R2-R5 slots
-                for (int slot = UnitEquipmentData.SLOT_R2; slot <= UnitEquipmentData.SLOT_R5; slot++)
+                // Random additional weapon relics
+                for (int slot = 1; slot <= 4; slot++)
                 {
-                    // 70% chance to fill each slot
                     if (UnityEngine.Random.value > 0.7f) continue;
                     
-                    // Generate a random relic that matches the enemy's weapon family
                     WeaponRelic randomRelic = GenerateRandomRelicForUnit(enemy);
                     if (randomRelic != null)
-                    {
-                        enemy.equipment.EquipWeaponRelic(slot, randomRelic);
-                    }
+                        enemy.EquipWeaponRelic(slot, randomRelic);
                 }
             }
             
-            // Refresh UI if an enemy is currently selected
             if (selectedUnitIndex >= 0 && !IsSelectedUnitPlayer())
             {
-                UnitData selectedEnemy = GetUnitByIndex(selectedUnitIndex);
-                if (selectedEnemy != null)
-                {
-                    RefreshSlots(selectedEnemy);
-                    UpdateJewelBudget(selectedEnemy);
-                }
+                UnitData enemy = GetUnitByIndex(selectedUnitIndex);
+                if (enemy != null) { RefreshSlots(enemy); UpdateJewelBudget(enemy); }
             }
-            
-            Debug.Log($"<color=orange>Auto-equipped {enemyUnits.Count} enemy units with random relics!</color>");
+            Debug.Log($"<color=orange>Auto-equipped {enemyUnits.Count} enemies!</color>");
         }
         
-        /// <summary>
-        /// Generate a random weapon relic for a unit (matching their weapon family).
-        /// </summary>
         private WeaponRelic GenerateRandomRelicForUnit(UnitData unit)
         {
-            // Get all roles
             UnitRole[] allRoles = (UnitRole[])System.Enum.GetValues(typeof(UnitRole));
-            
-            // Pick random role
             UnitRole randomRole = allRoles[UnityEngine.Random.Range(0, allRoles.Length)];
-            
-            // Pick random effect tier (weighted: 50% common, 35% uncommon, 15% rare)
-            int tier;
             float roll = UnityEngine.Random.value;
-            if (roll < 0.50f) tier = 1;
-            else if (roll < 0.85f) tier = 2;
-            else tier = 3;
-            
-            // Generate the relic
+            int tier = roll < 0.50f ? 1 : (roll < 0.85f ? 2 : 3);
             return WeaponRelicGenerator.GenerateWeaponRelic(unit.weaponFamily, randomRole, tier);
         }
         
         private void OnStartBattle()
         {
+            // Relics are already stored in UnitData, just log and start
+            Debug.Log("<color=green>[EquipmentUI] Starting battle with equipped relics!</color>");
+            foreach (var unit in playerUnits)
+            {
+                int weaponCount = unit.GetAllWeaponRelics().Count;
+                int categoryCount = unit.GetAllCategoryRelics().Count;
+                Debug.Log($"<color=cyan>{unit.unitName}: {weaponCount} weapon relics, {categoryCount} category relics</color>");
+            }
             onStartBattle?.Invoke(playerUnits, enemyUnits);
         }
         

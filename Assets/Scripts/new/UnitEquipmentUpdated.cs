@@ -6,13 +6,11 @@ using TacticalGame.Enums;
 namespace TacticalGame.Equipment
 {
     /// <summary>
-    /// Updated equipment system supporting:
+    /// Equipment system supporting:
     /// - 1 Weapon Relic (role-tagged weapon)
     /// - 6 Category Relics (Boots, Gloves, Hat, Coat, Trinket, Totem)
     /// - 1 Ultimate (role-locked)
     /// - 1 Passive Unique (role-locked)
-    /// 
-    /// Each relic (except passives) adds cards to the unit's deck.
     /// </summary>
     public class UnitEquipmentUpdated : MonoBehaviour
     {
@@ -58,21 +56,13 @@ namespace TacticalGame.Equipment
         
         #region Initialization
         
-        /// <summary>
-        /// Initialize equipment for a unit.
-        /// </summary>
         public void Initialize(UnitRole role, WeaponFamily family)
         {
             unitRole = role;
             weaponFamily = family;
-            
-            // Auto-assign role-locked relics
             AssignRoleLockedRelics();
         }
         
-        /// <summary>
-        /// Assign the role-locked Ultimate and Passive Unique relics.
-        /// </summary>
         private void AssignRoleLockedRelics()
         {
             ultimateRelic = new EquippedRelic(RelicCategory.Ultimate, unitRole);
@@ -83,107 +73,52 @@ namespace TacticalGame.Equipment
         
         #region Equip Methods
         
-        /// <summary>
-        /// Equip a weapon relic.
-        /// </summary>
         public bool EquipWeaponRelic(WeaponRelic relic)
         {
             if (relic == null) return false;
-            if (!relic.MatchesFamily(weaponFamily))
-            {
-                Debug.LogWarning($"Weapon relic {relic.relicName} doesn't match family {weaponFamily}");
-                return false;
-            }
-            
             weaponRelic = relic;
             return true;
         }
         
-        /// <summary>
-        /// Equip a category relic.
-        /// </summary>
         public bool EquipRelic(EquippedRelic relic)
         {
             if (relic == null) return false;
             
-            // Don't allow equipping role-locked categories
-            if (relic.category == RelicCategory.Ultimate || relic.category == RelicCategory.PassiveUnique)
-            {
-                Debug.LogWarning($"Cannot manually equip {relic.category} - it's role-locked");
-                return false;
-            }
-            
             switch (relic.category)
             {
-                case RelicCategory.Boots:
-                    bootsRelic = relic;
-                    break;
-                case RelicCategory.Gloves:
-                    glovesRelic = relic;
-                    break;
-                case RelicCategory.Hat:
-                    hatRelic = relic;
-                    break;
-                case RelicCategory.Coat:
-                    coatRelic = relic;
-                    break;
-                case RelicCategory.Trinket:
-                    trinketRelic = relic;
-                    break;
-                case RelicCategory.Totem:
-                    totemRelic = relic;
-                    break;
-                default:
-                    Debug.LogWarning($"Unknown relic category: {relic.category}");
-                    return false;
+                case RelicCategory.Boots: bootsRelic = relic; break;
+                case RelicCategory.Gloves: glovesRelic = relic; break;
+                case RelicCategory.Hat: hatRelic = relic; break;
+                case RelicCategory.Coat: coatRelic = relic; break;
+                case RelicCategory.Trinket: trinketRelic = relic; break;
+                case RelicCategory.Totem: totemRelic = relic; break;
+                case RelicCategory.Ultimate: ultimateRelic = relic; break;
+                case RelicCategory.PassiveUnique: passiveUniqueRelic = relic; break;
+                default: return false;
             }
             
-            Debug.Log($"<color=cyan>Equipped {relic.relicName} to {gameObject.name}</color>");
+            Debug.Log($"<color=cyan>Equipped {relic.relicName}</color>");
             return true;
         }
         
-        /// <summary>
-        /// Equip a relic by category and role.
-        /// </summary>
         public bool EquipRelic(RelicCategory category, UnitRole roleTag)
         {
             var relic = new EquippedRelic(category, roleTag);
             return EquipRelic(relic);
         }
         
-        /// <summary>
-        /// Unequip a relic by category.
-        /// </summary>
         public EquippedRelic UnequipRelic(RelicCategory category)
         {
             EquippedRelic removed = null;
             
             switch (category)
             {
-                case RelicCategory.Boots:
-                    removed = bootsRelic;
-                    bootsRelic = null;
-                    break;
-                case RelicCategory.Gloves:
-                    removed = glovesRelic;
-                    glovesRelic = null;
-                    break;
-                case RelicCategory.Hat:
-                    removed = hatRelic;
-                    hatRelic = null;
-                    break;
-                case RelicCategory.Coat:
-                    removed = coatRelic;
-                    coatRelic = null;
-                    break;
-                case RelicCategory.Trinket:
-                    removed = trinketRelic;
-                    trinketRelic = null;
-                    break;
-                case RelicCategory.Totem:
-                    removed = totemRelic;
-                    totemRelic = null;
-                    break;
+                case RelicCategory.Boots: removed = bootsRelic; bootsRelic = null; break;
+                case RelicCategory.Gloves: removed = glovesRelic; glovesRelic = null; break;
+                case RelicCategory.Hat: removed = hatRelic; hatRelic = null; break;
+                case RelicCategory.Coat: removed = coatRelic; coatRelic = null; break;
+                case RelicCategory.Trinket: removed = trinketRelic; trinketRelic = null; break;
+                case RelicCategory.Totem: removed = totemRelic; totemRelic = null; break;
             }
             
             return removed;
@@ -191,15 +126,24 @@ namespace TacticalGame.Equipment
         
         #endregion
         
-        #region Query Methods
+        #region Query Methods (for RelicCardUI)
         
         /// <summary>
-        /// Get all equipped relics (including weapon).
+        /// Get all weapon relics as a list.
+        /// </summary>
+        public List<WeaponRelic> GetAllWeaponRelics()
+        {
+            var list = new List<WeaponRelic>();
+            if (weaponRelic != null) list.Add(weaponRelic);
+            return list;
+        }
+        
+        /// <summary>
+        /// Get all category relics (including passive ones).
         /// </summary>
         public List<EquippedRelic> GetAllEquippedRelics()
         {
             var list = new List<EquippedRelic>();
-            
             if (bootsRelic != null) list.Add(bootsRelic);
             if (glovesRelic != null) list.Add(glovesRelic);
             if (hatRelic != null) list.Add(hatRelic);
@@ -208,12 +152,11 @@ namespace TacticalGame.Equipment
             if (totemRelic != null) list.Add(totemRelic);
             if (ultimateRelic != null) list.Add(ultimateRelic);
             if (passiveUniqueRelic != null) list.Add(passiveUniqueRelic);
-            
             return list;
         }
         
         /// <summary>
-        /// Get all relics that add cards (non-passive).
+        /// Get active (non-passive) relics.
         /// </summary>
         public List<EquippedRelic> GetActiveRelics()
         {
@@ -221,7 +164,7 @@ namespace TacticalGame.Equipment
         }
         
         /// <summary>
-        /// Get all passive relics.
+        /// Get passive relics.
         /// </summary>
         public List<EquippedRelic> GetPassiveRelics()
         {
@@ -248,41 +191,29 @@ namespace TacticalGame.Equipment
         }
         
         /// <summary>
-        /// Count relics that match this unit's role (for Proficiency bonus).
+        /// Count matching relics.
         /// </summary>
         public int GetMatchingRelicCount()
         {
             int count = 0;
-            foreach (var relic in GetAllEquippedRelics())
-            {
-                if (relic.MatchesRole(unitRole)) count++;
-            }
-            
-            // Also count weapon relic
             if (weaponRelic != null && weaponRelic.MatchesRole(unitRole)) count++;
-            
+            foreach (var r in GetAllEquippedRelics())
+            {
+                if (r.MatchesRole(unitRole)) count++;
+            }
             return count;
         }
         
         /// <summary>
-        /// Get total cards this equipment adds to deck.
+        /// Get total card count.
         /// </summary>
         public int GetTotalCardCount()
         {
             int total = 0;
-            
-            // Weapon relic cards (from weapon data)
-            if (weaponRelic != null && weaponRelic.baseWeaponData != null)
-            {
+            if (weaponRelic?.baseWeaponData != null)
                 total += weaponRelic.baseWeaponData.cardCopies;
-            }
-            
-            // Category relic cards
-            foreach (var relic in GetActiveRelics())
-            {
-                total += relic.GetCopies();
-            }
-            
+            foreach (var r in GetActiveRelics())
+                total += r.GetCopies();
             return total;
         }
         
@@ -290,27 +221,19 @@ namespace TacticalGame.Equipment
         
         #region Debug
         
-        /// <summary>
-        /// Get equipment summary for debugging/UI.
-        /// </summary>
         public string GetEquipmentSummary()
         {
             var sb = new System.Text.StringBuilder();
             sb.AppendLine($"Unit: {unitRole} ({weaponFamily})");
-            sb.AppendLine($"Matching Relics: {GetMatchingRelicCount()}");
-            sb.AppendLine($"Total Cards: {GetTotalCardCount()}");
+            sb.AppendLine($"Matching: {GetMatchingRelicCount()}");
             sb.AppendLine("---");
-            
-            if (weaponRelic != null)
-                sb.AppendLine($"Weapon: {weaponRelic.relicName}");
-            
-            foreach (var relic in GetAllEquippedRelics())
+            if (weaponRelic != null) sb.AppendLine($"Weapon: {weaponRelic.relicName}");
+            foreach (var r in GetAllEquippedRelics())
             {
-                string match = relic.MatchesRole(unitRole) ? " ✓" : "";
-                string passive = relic.IsPassive() ? " (P)" : "";
-                sb.AppendLine($"{relic.category}: {relic.relicName}{passive}{match}");
+                string passive = r.IsPassive() ? " (P)" : "";
+                string match = r.MatchesRole(unitRole) ? " ✓" : "";
+                sb.AppendLine($"{r.category}: {r.relicName}{passive}{match}");
             }
-            
             return sb.ToString();
         }
         
