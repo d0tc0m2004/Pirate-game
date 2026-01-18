@@ -13761,67 +13761,6 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 802475547}
   m_CullTransparentMesh: 1
---- !u!1 &812612264
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 812612266}
-  - component: {fileID: 812612265}
-  m_Layer: 0
-  m_Name: RelicCardUIManager
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!114 &812612265
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 812612264}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: ce458b184f8751940a38021271971c0a, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::TacticalGame.UI.RelicCardUI
-  cardWidth: 140
-  cardHeight: 200
-  cardSpacing: 10
-  fanAngle: 3
-  hoverLift: 40
-  hoverScale: 1.15
-  animationSpeed: 8
-  bottomOffset: 20
-  cardBackgroundColor: {r: 0.15, g: 0.15, b: 0.2, a: 1}
-  cardBorderColor: {r: 0.3, g: 0.3, b: 0.4, a: 1}
-  cardHoverColor: {r: 0.25, g: 0.25, b: 0.35, a: 1}
-  cardDisabledColor: {r: 0.1, g: 0.1, b: 0.1, a: 0.7}
-  emptySlotColor: {r: 0.1, g: 0.1, b: 0.12, a: 1}
-  matchColor: {r: 1, g: 0.85, b: 0.3, a: 1}
-  commonColor: {r: 0.6, g: 0.6, b: 0.6, a: 1}
-  uncommonColor: {r: 0.3, g: 0.8, b: 0.3, a: 1}
-  rareColor: {r: 0.4, g: 0.6, b: 1, a: 1}
---- !u!4 &812612266
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 812612264}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 314.43335, y: 200.10545, z: -571.6873}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &814820402
 GameObject:
   m_ObjectHideFlags: 0
@@ -16245,15 +16184,15 @@ MonoBehaviour:
       hasTwoPrimaryStats: 0
       health: 0
       morale: 0
+      grit: 0
       buzz: 0
       power: 0
       aim: 0
-      tactics: 0
-      skill: 0
       proficiency: 0
-      grit: 0
-      hull: 0
+      skill: 0
+      tactics: 0
       speed: 0
+      hull: 0
   - roleDropdown: {fileID: 825043473}
     generateButton: {fileID: 589553509}
     healthText: {fileID: 1572884680}
@@ -16282,15 +16221,15 @@ MonoBehaviour:
       hasTwoPrimaryStats: 0
       health: 0
       morale: 0
+      grit: 0
       buzz: 0
       power: 0
       aim: 0
-      tactics: 0
-      skill: 0
       proficiency: 0
-      grit: 0
-      hull: 0
+      skill: 0
+      tactics: 0
       speed: 0
+      hull: 0
   - roleDropdown: {fileID: 560974062}
     generateButton: {fileID: 2044516128}
     healthText: {fileID: 1351307016}
@@ -16319,15 +16258,15 @@ MonoBehaviour:
       hasTwoPrimaryStats: 0
       health: 0
       morale: 0
+      grit: 0
       buzz: 0
       power: 0
       aim: 0
-      tactics: 0
-      skill: 0
       proficiency: 0
-      grit: 0
-      hull: 0
+      skill: 0
+      tactics: 0
       speed: 0
+      hull: 0
   - roleDropdown: {fileID: 1235938565}
     generateButton: {fileID: 2115467155}
     healthText: {fileID: 62199519}
@@ -16356,15 +16295,15 @@ MonoBehaviour:
       hasTwoPrimaryStats: 0
       health: 0
       morale: 0
+      grit: 0
       buzz: 0
       power: 0
       aim: 0
-      tactics: 0
-      skill: 0
       proficiency: 0
-      grit: 0
-      hull: 0
+      skill: 0
+      tactics: 0
       speed: 0
+      hull: 0
   enemyPanels:
   - roleDropdown: {fileID: 39109533}
     generateButton: {fileID: 1140620140}
@@ -16394,15 +16333,15 @@ MonoBehaviour:
       hasTwoPrimaryStats: 0
       health: 0
       morale: 0
+      grit: 0
       buzz: 0
       power: 0
       aim: 0
-      tactics: 0
-      skill: 0
       proficiency: 0
-      grit: 0
-      hull: 0
+      skill: 0
+      tactics: 0
       speed: 0
+      hull: 0
   - roleDropdown: {fileID: 1811386132}
     generateButton: {fileID: 1845959244}
     healthText: {fileID: 2090391261}
@@ -16431,15 +16370,15 @@ MonoBehaviour:
       hasTwoPrimaryStats: 0
       health: 0
       morale: 0
+      grit: 0
       buzz: 0
       power: 0
       aim: 0
-      tactics: 0
-      skill: 0
       proficiency: 0
-      grit: 0
-      hull: 0
+      skill: 0
+      tactics: 0
       speed: 0
+      hull: 0
   - roleDropdown: {fileID: 1079599986}
     generateButton: {fileID: 1945410125}
     healthText: {fileID: 872809303}
@@ -16468,15 +16407,15 @@ MonoBehaviour:
       hasTwoPrimaryStats: 0
       health: 0
       morale: 0
+      grit: 0
       buzz: 0
       power: 0
       aim: 0
-      tactics: 0
-      skill: 0
       proficiency: 0
-      grit: 0
-      hull: 0
+      skill: 0
+      tactics: 0
       speed: 0
+      hull: 0
   - roleDropdown: {fileID: 306100675}
     generateButton: {fileID: 310915481}
     healthText: {fileID: 1785085367}
@@ -16505,15 +16444,15 @@ MonoBehaviour:
       hasTwoPrimaryStats: 0
       health: 0
       morale: 0
+      grit: 0
       buzz: 0
       power: 0
       aim: 0
-      tactics: 0
-      skill: 0
       proficiency: 0
-      grit: 0
-      hull: 0
+      skill: 0
+      tactics: 0
       speed: 0
+      hull: 0
   startGameButton: {fileID: 976227558}
   creationCanvas: {fileID: 1375831185}
   battleCanvas: {fileID: 1536150026}
@@ -31653,6 +31592,67 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1945410123}
   m_CullTransparentMesh: 1
+--- !u!1 &1951657233
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1951657235}
+  - component: {fileID: 1951657236}
+  m_Layer: 0
+  m_Name: relicmanage
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1951657235
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1951657233}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 314.43335, y: 200.10545, z: -571.6873}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1951657236
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1951657233}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: eef13801c796d35419d5d50c8ff667c0, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::TacticalGame.UI.FlexibleRelicCardUI
+  cardWidth: 140
+  cardHeight: 200
+  cardSpacing: 15
+  bottomOffset: 30
+  hoverLift: 30
+  hoverScale: 1.15
+  weaponColor: {r: 0.7, g: 0.25, b: 0.2, a: 1}
+  bootsColor: {r: 0.2, g: 0.5, b: 0.3, a: 1}
+  glovesColor: {r: 0.5, g: 0.35, b: 0.2, a: 1}
+  hatColor: {r: 0.3, g: 0.3, b: 0.6, a: 1}
+  coatColor: {r: 0.4, g: 0.25, b: 0.5, a: 1}
+  totemColor: {r: 0.5, g: 0.2, b: 0.4, a: 1}
+  trinketColor: {r: 0.3, g: 0.45, b: 0.45, a: 1}
+  ultimateColor: {r: 0.6, g: 0.4, b: 0.1, a: 1}
+  passiveColor: {r: 0.2, g: 0.4, b: 0.2, a: 1}
+  emptyColor: {r: 0.12, g: 0.12, b: 0.15, a: 1}
+  hoverTint: {r: 1.3, g: 1.3, b: 1.3, a: 1}
 --- !u!1 &1965020004
 GameObject:
   m_ObjectHideFlags: 0
@@ -34694,4 +34694,4 @@ SceneRoots:
   - {fileID: 1375831189}
   - {fileID: 1277437721}
   - {fileID: 377888728}
-  - {fileID: 812612266}
+  - {fileID: 1951657235}

@@ -1066,11 +1066,18 @@ namespace TacticalGame.Managers
             UnitData unit = GetUnitByIndex(selectedUnitIndex);
             if (unit == null || selectedSlotIndex < 0) return;
             
+            Debug.Log($"<color=orange>[EquipmentUI] Equipping category relic: {relic.relicName} (category: {relic.category}) to slot {selectedSlotIndex} for {unit.unitName}</color>");
+            
             // Clear weapon relic first (mutual exclusivity)
             unit.EquipWeaponRelic(selectedSlotIndex, null);
             
             // Store in UnitData
             SetCategoryRelic(unit, selectedSlotIndex, relic);
+            
+            // Verify it was stored
+            var storedRelic = GetCategoryRelic(unit, selectedSlotIndex);
+            Debug.Log($"<color=orange>  Verification - Stored relic at slot {selectedSlotIndex}: {(storedRelic != null ? storedRelic.relicName : "NULL")}</color>");
+            Debug.Log($"<color=orange>  Unit now has {unit.GetAllCategoryRelics().Count} total category relics</color>");
             
             RefreshSlots(unit); UpdateJewelBudget(unit); UpdateInfoPanel();
         }
@@ -1163,13 +1170,26 @@ namespace TacticalGame.Managers
         
         private void OnStartBattle()
         {
-            // Relics are already stored in UnitData, just log and start
-            Debug.Log("<color=green>[EquipmentUI] Starting battle with equipped relics!</color>");
+            // Log detailed relic info before starting battle
+            Debug.Log("<color=green>[EquipmentUI] Starting battle - detailed relic report:</color>");
             foreach (var unit in playerUnits)
             {
                 int weaponCount = unit.GetAllWeaponRelics().Count;
                 int categoryCount = unit.GetAllCategoryRelics().Count;
                 Debug.Log($"<color=cyan>{unit.unitName}: {weaponCount} weapon relics, {categoryCount} category relics</color>");
+                
+                // Log each category relic
+                if (unit.categoryRelics != null)
+                {
+                    for (int i = 0; i < unit.categoryRelics.Length; i++)
+                    {
+                        var relic = unit.categoryRelics[i];
+                        if (relic != null)
+                        {
+                            Debug.Log($"<color=cyan>  Slot {i}: {relic.category} - {relic.relicName}</color>");
+                        }
+                    }
+                }
             }
             onStartBattle?.Invoke(playerUnits, enemyUnits);
         }

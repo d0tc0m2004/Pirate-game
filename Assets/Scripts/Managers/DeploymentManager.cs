@@ -15,7 +15,7 @@ namespace TacticalGame.Managers
 {
     /// <summary>
     /// Manages the unit deployment phase before battle.
-    /// Now includes relic transfer from UnitData to runtime components.
+    /// Uses FlexibleUnitEquipment for slot-based relic storage.
     /// </summary>
     public class DeploymentManager : MonoBehaviour
     {
@@ -291,52 +291,60 @@ namespace TacticalGame.Managers
                 newUnit.AddComponent<StatusEffectManager>();
             }
 
-            // === NEW: Setup UnitEquipmentUpdated with ALL relics ===
+            // Setup equipment using the FLEXIBLE slot-based system
             SetupUnitEquipment(newUnit, data);
             
-            // === NEW: Setup CardDeckManager ===
+            // Setup card deck
             SetupCardDeck(newUnit);
 
             cell.PlaceUnit(newUnit);
             
-            Debug.Log($"<color=green>Spawned {data.unitName} with {data.GetAllWeaponRelics().Count} weapon relics and {data.GetAllCategoryRelics().Count} category relics</color>");
+            Debug.Log($"<color=green>Spawned {data.unitName}</color>");
         }
 
         /// <summary>
         /// Setup the runtime equipment component with relics from UnitData.
+        /// Uses FlexibleUnitEquipment for SLOT-BASED storage (not category-based).
+        /// This preserves whatever the player equipped in whatever slot they chose!
         /// </summary>
         private void SetupUnitEquipment(GameObject unitObj, UnitData data)
         {
-            // Get or add UnitEquipmentUpdated
-            UnitEquipmentUpdated equipment = unitObj.GetComponent<UnitEquipmentUpdated>();
+            Debug.Log($"<color=yellow>[Deployment] Setting up equipment for {data.unitName}</color>");
+
+            // Use FlexibleUnitEquipment for slot-based storage
+            FlexibleUnitEquipment equipment = unitObj.GetComponent<FlexibleUnitEquipment>();
             if (equipment == null)
             {
-                equipment = unitObj.AddComponent<UnitEquipmentUpdated>();
+                equipment = unitObj.AddComponent<FlexibleUnitEquipment>();
             }
-            
-            // Initialize with role and weapon family
+
+            // Initialize (this auto-assigns Ultimate and PassiveUnique based on role)
             equipment.Initialize(data.role, data.weaponFamily);
-            
-            // Transfer weapon relic (primary)
-            WeaponRelic primaryWeapon = data.GetWeaponRelic(0) ?? data.defaultWeaponRelic;
-            if (primaryWeapon != null)
+
+            // Transfer relics from UnitData BY SLOT INDEX
+            // This preserves whatever the player equipped to each slot!
+            for (int i = 0; i < 5; i++) // Slots 0-4 are flexible
             {
-                equipment.EquipWeaponRelic(primaryWeapon);
-                Debug.Log($"<color=cyan>  Equipped weapon: {primaryWeapon.relicName}</color>");
-            }
-            
-            // Transfer category relics
-            if (data.categoryRelics != null)
-            {
-                foreach (var categoryRelic in data.categoryRelics)
+                // Check for weapon in this slot
+                WeaponRelic weapon = data.GetWeaponRelic(i);
+                if (weapon != null)
                 {
-                    if (categoryRelic != null)
-                    {
-                        equipment.EquipRelic(categoryRelic);
-                        Debug.Log($"<color=cyan>  Equipped {categoryRelic.category}: {categoryRelic.relicName}</color>");
-                    }
+                    equipment.EquipWeapon(i, weapon);
+                    Debug.Log($"<color=cyan>  Slot {i}: Weapon - {weapon.relicName}</color>");
+                    continue; // Slot filled, move to next
+                }
+
+                // Check for category relic in this slot
+                EquippedRelic categoryRelic = data.GetCategoryRelic(i);
+                if (categoryRelic != null)
+                {
+                    equipment.EquipCategory(i, categoryRelic);
+                    Debug.Log($"<color=cyan>  Slot {i}: {categoryRelic.category} - {categoryRelic.relicName}</color>");
                 }
             }
+
+            // Log final equipment state
+            equipment.LogEquipmentState();
         }
 
         /// <summary>
@@ -350,7 +358,7 @@ namespace TacticalGame.Managers
                 deck = unitObj.AddComponent<CardDeckManager>();
             }
             
-            // Deck will build itself in Start() using UnitEquipmentUpdated
+            // Deck will build itself in Start() using FlexibleUnitEquipment
         }
 
         private GameObject GetPrefabForRole(UnitRole role, Team team)
