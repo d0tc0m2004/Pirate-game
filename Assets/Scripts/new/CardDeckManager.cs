@@ -35,6 +35,7 @@ namespace TacticalGame.Equipment
     
     /// <summary>
     /// Manages the card deck for a unit.
+    /// Updated to use FlexibleUnitEquipment (slot-based system).
     /// </summary>
     public class CardDeckManager : MonoBehaviour
     {
@@ -50,7 +51,7 @@ namespace TacticalGame.Equipment
         [SerializeField] private int maxHandSize = 7;
         
         private UnitStatus unitStatus;
-        private UnitEquipmentUpdated equipment;
+        private FlexibleUnitEquipment equipment;
         
         // Tracking for effects
         private int cardsPlayedThisRound = 0;
@@ -76,7 +77,7 @@ namespace TacticalGame.Equipment
         private void Awake()
         {
             unitStatus = GetComponent<UnitStatus>();
-            equipment = GetComponent<UnitEquipmentUpdated>();
+            equipment = GetComponent<FlexibleUnitEquipment>();
         }
         
         private void Start()
@@ -105,9 +106,9 @@ namespace TacticalGame.Equipment
         
         public void BuildDeck()
         {
-            // Get references if not set (for edit mode testing)
+            // Get references if not set
             if (unitStatus == null) unitStatus = GetComponent<UnitStatus>();
-            if (equipment == null) equipment = GetComponent<UnitEquipmentUpdated>();
+            if (equipment == null) equipment = GetComponent<FlexibleUnitEquipment>();
             
             availableCards.Clear();
             spentCards.Clear();
@@ -115,32 +116,40 @@ namespace TacticalGame.Equipment
             
             if (equipment == null)
             {
-                Debug.LogWarning($"{gameObject.name}: No UnitEquipmentUpdated found");
+                Debug.LogWarning($"{gameObject.name}: No FlexibleUnitEquipment found");
                 return;
             }
             
-            // Add weapon relic cards
-            if (equipment.WeaponRelic != null)
+            // Iterate through all slots and add cards
+            for (int i = 0; i < FlexibleUnitEquipment.SLOT_COUNT; i++)
             {
-                int copies = equipment.WeaponRelic.baseWeaponData?.cardCopies ?? 2;
-                Debug.Log($"<color=green>Weapon: Adding {copies} copies of {equipment.WeaponRelic.relicName}</color>");
-                for (int i = 0; i < copies; i++)
+                var slot = equipment.GetSlot(i);
+                if (slot == null || slot.IsEmpty) continue;
+                
+                // Skip passive relics (they don't become cards)
+                if (slot.IsPassive()) continue;
+                
+                if (slot.hasWeapon && slot.weaponRelic != null)
                 {
-                    availableCards.Add(CreateWeaponCard(equipment.WeaponRelic));
+                    // Weapon card
+                    int copies = slot.weaponRelic.baseWeaponData?.cardCopies ?? 2;
+                    Debug.Log($"<color=green>Slot {i}: Adding {copies} copies of weapon {slot.weaponRelic.relicName}</color>");
+                    for (int c = 0; c < copies; c++)
+                    {
+                        availableCards.Add(CreateWeaponCard(slot.weaponRelic));
+                    }
+                }
+                else if (slot.categoryRelic != null)
+                {
+                    // Category relic card
+                    int copies = slot.categoryRelic.GetCopies();
+                    Debug.Log($"<color=green>Slot {i}: Adding {copies} copies of {slot.categoryRelic.category} - {slot.categoryRelic.relicName}</color>");
+                    for (int c = 0; c < copies; c++)
+                    {
+                        availableCards.Add(CreateRelicCard(slot.categoryRelic));
+                    }
                 }
             }
-            else
-            {
-                Debug.Log($"<color=orange>Weapon: No weapon relic equipped</color>");
-            }
-            
-            // Add category relic cards (non-passive only)
-            AddRelicCards(equipment.BootsRelic, "Boots");
-            AddRelicCards(equipment.GlovesRelic, "Gloves");
-            AddRelicCards(equipment.HatRelic, "Hat");
-            AddRelicCards(equipment.CoatRelic, "Coat");
-            AddRelicCards(equipment.TotemRelic, "Totem");
-            AddRelicCards(equipment.UltimateRelic, "Ultimate");
             
             Debug.Log($"<color=cyan>{gameObject.name} deck built: {availableCards.Count} cards total</color>");
             
@@ -153,29 +162,6 @@ namespace TacticalGame.Equipment
             else
             {
                 Debug.LogWarning($"<color=red>No cards were added to deck!</color>");
-            }
-        }
-        
-        private void AddRelicCards(EquippedRelic relic, string slotName = "")
-        {
-            if (relic == null)
-            {
-                Debug.Log($"<color=orange>{slotName}: No relic equipped</color>");
-                return;
-            }
-            
-            if (relic.IsPassive())
-            {
-                Debug.Log($"<color=gray>{slotName}: {relic.relicName} is passive, skipping</color>");
-                return;
-            }
-            
-            int copies = relic.GetCopies();
-            Debug.Log($"<color=green>{slotName}: Adding {copies} copies of {relic.relicName}</color>");
-            
-            for (int i = 0; i < copies; i++)
-            {
-                availableCards.Add(CreateRelicCard(relic));
             }
         }
         
@@ -249,7 +235,6 @@ namespace TacticalGame.Equipment
                 var card = availableCards[0];
                 availableCards.RemoveAt(0);
                 hand.Add(card);
-                Debug.Log($"<color=green>Drew: {card.GetDisplayName()}</color>");
                 return true;
             }
             
@@ -259,10 +244,7 @@ namespace TacticalGame.Equipment
         public bool PlayCard(int handIndex, UnitStatus target = null, GridCell targetCell = null)
         {
             if (handIndex < 0 || handIndex >= hand.Count)
-            {
-                Debug.LogWarning("Invalid card index");
                 return false;
-            }
             
             var card = hand[handIndex];
             
@@ -376,9 +358,11 @@ namespace TacticalGame.Equipment
         {
             if (equipment == null) return;
             
-            foreach (var relic in equipment.GetPassiveRelics())
+            // Check passive slot
+            var passiveSlot = equipment.PassiveSlot;
+            if (passiveSlot != null && !passiveSlot.IsEmpty && passiveSlot.categoryRelic != null)
             {
-                Debug.Log($"<color=gray>Passive active: {relic.relicName}</color>");
+                Debug.Log($"<color=gray>Passive active: {passiveSlot.categoryRelic.relicName}</color>");
             }
         }
         
