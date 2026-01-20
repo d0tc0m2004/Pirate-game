@@ -6,21 +6,12 @@ using TacticalGame.Equipment;
 namespace TacticalGame.Combat
 {
     /// <summary>
-    /// Handles all damage calculations. Extracted from UnitStatus for single responsibility.
-    /// Now includes passive relic modifiers.
-    /// 
-    /// FORMULAS FROM STAT TABLE:
-    /// - Power: MeleeOutput = Base × (1 + Power × 0.03)
-    /// - Aim: RangedOutput = Base × (1 + Aim × 0.03)
-    /// - Skill: ComboMult(n) = 1 + (n-1) × ComboStep, where ComboStep = clamp(Skill × 0.003, 0.02, 0.12)
-    /// - Tactics: Potency = Base × (1 + Tactics × 0.04) [for heals/buffs]
-    /// - Grit: DR = min(0.40, GritFactor × Grit/100), GritFactor = (1-HP%)×0.50 + Morale%×0.40
+    /// Handles all damage calculations.
+    /// Integrates with StatusEffectManager for buff/debuff modifiers.
+    /// Integrates with PassiveRelicManager for passive relic modifiers.
     /// </summary>
     public static class DamageCalculator
     {
-        /// <summary>
-        /// Result of a damage calculation with all details for logging.
-        /// </summary>
         public struct DamageResult
         {
             public int FinalHPDamage;
@@ -31,9 +22,6 @@ namespace TacticalGame.Combat
             public string MoraleBreakdown;
         }
 
-        /// <summary>
-        /// Calculate damage for an attack.
-        /// </summary>
         public static DamageResult Calculate(
             int baseDamage,
             bool isMelee,
@@ -86,6 +74,32 @@ namespace TacticalGame.Combat
                 logHP += $" -{Mathf.RoundToInt(config.adjacencyCoverReduction * 100)}%(Cover)";
             }
             
+            // === STATUS EFFECT OUTGOING DAMAGE MODIFIER (attacker buffs) ===
+            if (attackerStatus != null)
+            {
+                var attackerEffects = attackerStatus.GetComponent<StatusEffectManager>();
+                if (attackerEffects != null)
+                {
+                    // Damage boost buff
+                    float outgoingMod = attackerEffects.GetOutgoingDamageModifier();
+                    if (outgoingMod != 0f)
+                    {
+                        hpDamageMod += outgoingMod;
+                        logHP += $" +{Mathf.RoundToInt(outgoingMod * 100)}%(DamageBuff)";
+                    }
+                    
+                    // Stat buffs applied to scaling
+                    float powerMod = attackerEffects.GetPowerModifier();
+                    float aimMod = attackerEffects.GetAimModifier();
+                    float statBonus = isMelee ? powerMod * 0.03f : aimMod * 0.03f;
+                    if (statBonus != 0f)
+                    {
+                        hpDamageMod += statBonus;
+                        logHP += $" +{Mathf.RoundToInt(statBonus * 100)}%(StatBuff)";
+                    }
+                }
+            }
+            
             // === PASSIVE RELIC OUTGOING DAMAGE MODIFIER ===
             if (attackerStatus != null)
             {
@@ -97,6 +111,44 @@ namespace TacticalGame.Combat
                     {
                         hpDamageMod *= passiveOutgoing;
                         logHP += $" x{passiveOutgoing:F2}(PassiveRelic)";
+                    }
+                }
+            }
+            
+            // === STATUS EFFECT INCOMING DAMAGE MODIFIER (target debuffs/buffs) ===
+            if (targetStatus != null)
+            {
+                var targetEffects = targetStatus.GetComponent<StatusEffectManager>();
+                if (targetEffects != null)
+                {
+                    // Vulnerable/Protected
+                    float incomingMod = targetEffects.GetIncomingDamageModifier();
+                    if (incomingMod != 0f)
+                    {
+                        hpDamageMod += incomingMod;
+                        if (incomingMod > 0)
+                            logHP += $" +{Mathf.RoundToInt(incomingMod * 100)}%(Vulnerable)";
+                        else
+                            logHP += $" {Mathf.RoundToInt(incomingMod * 100)}%(Protected)";
+                    }
+                    
+                    // Marked bonus
+                    float markedBonus = targetEffects.GetMarkedBonus();
+                    if (markedBonus > 0f)
+                    {
+                        hpDamageMod += markedBonus;
+                        logHP += $" +{Mathf.RoundToInt(markedBonus * 100)}%(Marked)";
+                    }
+                    
+                    // Ranged damage reduction
+                    if (!isMelee)
+                    {
+                        float rangedReduction = targetEffects.GetRangedDamageReduction();
+                        if (rangedReduction > 0f)
+                        {
+                            hpDamageMod -= rangedReduction;
+                            logHP += $" -{Mathf.RoundToInt(rangedReduction * 100)}%(RangedShield)";
+                        }
                     }
                 }
             }
@@ -147,7 +199,7 @@ namespace TacticalGame.Combat
             }
             
             result.HPBreakdown = logHP;
-            result.FinalHPDamage = calculatedHPDamage;
+            result.FinalHPDamage = Mathf.Max(0, calculatedHPDamage);
             
             // === MORALE DAMAGE CALCULATION ===
             float moraleDamageMod = 1.0f;
@@ -184,6 +236,21 @@ namespace TacticalGame.Combat
                 logMorale += $" -{Mathf.RoundToInt(config.adjacencyCoverReduction * 100)}%(Cover)";
             }
             
+            // === STATUS EFFECT MORALE DAMAGE REDUCTION ===
+            if (targetStatus != null)
+            {
+                var targetEffects = targetStatus.GetComponent<StatusEffectManager>();
+                if (targetEffects != null)
+                {
+                    float moraleReduction = targetEffects.GetMoraleDamageReduction();
+                    if (moraleReduction > 0f)
+                    {
+                        moraleDamageMod -= moraleReduction;
+                        logMorale += $" -{Mathf.RoundToInt(moraleReduction * 100)}%(MoraleShield)";
+                    }
+                }
+            }
+            
             // Melee bonus to morale (+10%)
             float moraleTypeMultiplier = isMelee ? config.meleeMoraleMultiplier : 1.0f;
             if (isMelee)
@@ -217,14 +284,11 @@ namespace TacticalGame.Combat
             }
             
             result.MoraleBreakdown = logMorale;
-            result.FinalMoraleDamage = calculatedMoraleDamage;
+            result.FinalMoraleDamage = Mathf.Max(0, calculatedMoraleDamage);
             
             return result;
         }
 
-        /// <summary>
-        /// Overload for backward compatibility.
-        /// </summary>
         public static DamageResult Calculate(
             int baseDamage,
             bool isMelee,
@@ -236,79 +300,79 @@ namespace TacticalGame.Combat
             return Calculate(baseDamage, isMelee, null, targetStatus, hasCover, false, 1, flatBonusHP, flatBonusMorale);
         }
 
-        /// <summary>
-        /// Calculate base melee damage from attacker stats.
-        /// Formula: Base × (1 + Power × 0.03)
-        /// </summary>
         public static int GetMeleeBaseDamage(UnitStatus attacker, int weaponBaseDamage = 0)
         {
             var config = GameConfig.Instance;
             
             int baseDmg = weaponBaseDamage > 0 ? weaponBaseDamage : config.meleeBaseDamage;
             
-            // Apply Power scaling: Base × (1 + Power × 0.03)
-            float powerMultiplier = 1f + (attacker.Power * config.powerScalingPercent);
+            // Get effective Power with status effect modifier
+            float effectivePower = attacker.Power;
+            var effects = attacker.GetComponent<StatusEffectManager>();
+            if (effects != null)
+            {
+                effectivePower += effects.GetPowerModifier();
+            }
+            
+            float powerMultiplier = 1f + (effectivePower * config.powerScalingPercent);
             int scaledDamage = Mathf.RoundToInt(baseDmg * powerMultiplier);
             
-            // Apply drunk penalty
-            float drunkMod = attacker.IsTooDrunk ? config.drunkDamageMultiplier : 1.0f;
+            // Apply drunk penalty (unless buzz downside is disabled)
+            float drunkMod = 1.0f;
+            if (attacker.IsTooDrunk && !HasNoBuzzDownside(attacker))
+            {
+                drunkMod = config.drunkDamageMultiplier;
+            }
             
             return Mathf.RoundToInt(scaledDamage * drunkMod);
         }
 
-        /// <summary>
-        /// Calculate base ranged damage from attacker stats.
-        /// Formula: Base × (1 + Aim × 0.03)
-        /// </summary>
         public static int GetRangedBaseDamage(UnitStatus attacker, int weaponBaseDamage = 0)
         {
             var config = GameConfig.Instance;
             
             int baseDmg = weaponBaseDamage > 0 ? weaponBaseDamage : config.rangedBaseDamage;
             
-            // Apply Aim scaling: Base × (1 + Aim × 0.03)
-            float aimMultiplier = 1f + (attacker.Aim * config.aimScalingPercent);
+            // Get effective Aim with status effect modifier
+            float effectiveAim = attacker.Aim;
+            var effects = attacker.GetComponent<StatusEffectManager>();
+            if (effects != null)
+            {
+                effectiveAim += effects.GetAimModifier();
+            }
+            
+            float aimMultiplier = 1f + (effectiveAim * config.aimScalingPercent);
             int scaledDamage = Mathf.RoundToInt(baseDmg * aimMultiplier);
             
-            // Apply drunk penalty
-            float drunkMod = attacker.IsTooDrunk ? config.drunkDamageMultiplier : 1.0f;
+            // Apply drunk penalty (unless buzz downside is disabled)
+            float drunkMod = 1.0f;
+            if (attacker.IsTooDrunk && !HasNoBuzzDownside(attacker))
+            {
+                drunkMod = config.drunkDamageMultiplier;
+            }
             
             return Mathf.RoundToInt(scaledDamage * drunkMod);
         }
 
-        /// <summary>
-        /// Calculate combo multiplier based on Skill stat.
-        /// Formula: ComboMult(n) = 1 + (n-1) × ComboStep
-        /// Where: ComboStep = clamp(Skill × 0.003, 0.02, 0.12)
-        /// </summary>
         public static float GetComboMultiplier(int skill, int comboCount, GameConfig config = null)
         {
             if (config == null) config = GameConfig.Instance;
             
-            // Clamp combo count
             int n = Mathf.Clamp(comboCount, 1, config.maxComboChain);
             
             if (n <= 1) return 1f;
             
-            // Calculate ComboStep
             float comboStep = Mathf.Clamp(
                 skill * config.skillComboMultiplier,
                 config.comboStepMin,
                 config.comboStepMax
             );
             
-            // ComboMult(n) = 1 + (n-1) × ComboStep
             float comboMult = 1f + ((n - 1) * comboStep);
             
             return comboMult;
         }
 
-        /// <summary>
-        /// Calculate Grit damage reduction.
-        /// Formula: 
-        ///   GritFactor = (1-HP%) × 0.50 + Morale% × 0.40
-        ///   DR = min(0.40, GritFactor × (Grit/100))
-        /// </summary>
         public static float GetGritDamageReduction(UnitStatus target, GameConfig config = null)
         {
             if (config == null) config = GameConfig.Instance;
@@ -316,21 +380,22 @@ namespace TacticalGame.Combat
             float hpPercent = target.HPPercent;
             float moralePercent = target.MoralePercent;
             
-            // GritFactor rewards low HP but high morale
+            // Get effective Grit with status effect modifier
+            float effectiveGrit = target.Grit;
+            var effects = target.GetComponent<StatusEffectManager>();
+            if (effects != null)
+            {
+                effectiveGrit += effects.GetGritModifier();
+            }
+            
             float gritFactor = ((1f - hpPercent) * config.gritLowHPWeight) + 
                                (moralePercent * config.gritMoraleWeight);
             
-            // DR = GritFactor × (Grit / 100)
-            float dr = gritFactor * (target.Grit * config.gritPerPointPercent);
+            float dr = gritFactor * (effectiveGrit * config.gritPerPointPercent);
             
-            // Cap at max DR
             return Mathf.Min(dr, config.gritDRCap);
         }
 
-        /// <summary>
-        /// Calculate Tactics potency multiplier for heals/buffs/debuffs.
-        /// Formula: Potency = Base × (1 + Tactics × 0.04)
-        /// </summary>
         public static float GetTacticsPotencyMultiplier(int tactics, GameConfig config = null)
         {
             if (config == null) config = GameConfig.Instance;
@@ -338,20 +403,57 @@ namespace TacticalGame.Combat
             return 1f + (tactics * config.tacticsScalingPercent);
         }
 
-        /// <summary>
-        /// Apply Tactics scaling to a base value (for heals, shields, buffs, etc.)
-        /// </summary>
         public static int ApplyTacticsScaling(int baseValue, int tactics)
         {
             float multiplier = GetTacticsPotencyMultiplier(tactics);
             return Mathf.RoundToInt(baseValue * multiplier);
         }
 
+        /// <summary>
+        /// Check if attacker should miss due to effects.
+        /// </summary>
+        public static bool ShouldMiss(UnitStatus attacker)
+        {
+            if (attacker == null) return false;
+            
+            var effects = attacker.GetComponent<StatusEffectManager>();
+            if (effects != null)
+            {
+                float missChance = effects.GetMissChance();
+                if (missChance > 0 && Random.value < missChance)
+                {
+                    Debug.Log($"<color=red>{attacker.name} missed due to {missChance*100}% miss chance!</color>");
+                    return true;
+                }
+            }
+            
+            return false;
+        }
+
+        /// <summary>
+        /// Check if target should be ignored (invisible effect).
+        /// </summary>
+        public static bool IsTargetIgnored(UnitStatus target)
+        {
+            if (target == null) return false;
+            
+            var effects = target.GetComponent<StatusEffectManager>();
+            return effects != null && effects.HasEffect(StatusEffectType.IgnoredByEnemies);
+        }
+
+        /// <summary>
+        /// Check if attacker must target closest enemy.
+        /// </summary>
+        public static bool MustTargetClosest(UnitStatus attacker)
+        {
+            if (attacker == null) return false;
+            
+            var effects = attacker.GetComponent<StatusEffectManager>();
+            return effects != null && effects.HasEffect(StatusEffectType.ForceTargetClosest);
+        }
+
         #region Passive Relic Helpers
         
-        /// <summary>
-        /// Get the surrender threshold for a unit (checks for Boatswain passive).
-        /// </summary>
         public static float GetSurrenderThreshold(UnitStatus unit)
         {
             if (unit == null) return 0.2f;
@@ -362,12 +464,9 @@ namespace TacticalGame.Combat
                 return passiveManager.GetSurrenderThreshold();
             }
             
-            return 0.2f; // Default 20%
+            return 0.2f;
         }
 
-        /// <summary>
-        /// Check if unit is immune to morale focus fire (Helmsman trinket).
-        /// </summary>
         public static bool IsImmuneMoraleFocusFire(UnitStatus unit)
         {
             if (unit == null) return false;
@@ -376,9 +475,6 @@ namespace TacticalGame.Combat
             return passiveManager != null && passiveManager.IsImmuneMoraleFocusFire();
         }
 
-        /// <summary>
-        /// Check if unit has no buzz downside (Shipwright passive).
-        /// </summary>
         public static bool HasNoBuzzDownside(UnitStatus unit)
         {
             if (unit == null) return false;

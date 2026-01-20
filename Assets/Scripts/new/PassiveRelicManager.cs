@@ -1,526 +1,775 @@
 using UnityEngine;
 using System.Collections.Generic;
 using System.Linq;
-using TacticalGame.Enums;
 using TacticalGame.Units;
 using TacticalGame.Core;
 using TacticalGame.Grid;
+using TacticalGame.Enums;
+using TacticalGame.Combat;
 using TacticalGame.Managers;
 
 namespace TacticalGame.Equipment
 {
     /// <summary>
-    /// Manages passive relic effects (Trinket + PassiveUnique).
-    /// Subscribes to game events and applies effects when conditions are met.
-    /// Attach to each unit that has UnitEquipmentUpdated.
+    /// Manages passive relic effects for a unit.
+    /// Handles all Trinket and PassiveUnique effects via event hooks.
+    /// Attach to unit prefabs alongside UnitStatus.
     /// </summary>
     public class PassiveRelicManager : MonoBehaviour
     {
+        #region Private State
+
         private UnitStatus unitStatus;
+        private UnitAttack unitAttack;
+        private CardDeckManager cardDeck;
+        private StatusEffectManager statusEffects;
         private UnitEquipmentUpdated equipment;
-        private CardDeckManager deckManager;
-        private GridManager gridManager;
         
-        // Per-turn tracking
-        private bool usedKnockbackRetaliation = false;
-        private bool usedTaunt = false;
-        private int damageTakenThisTurn = 0;
+        private List<RelicEffectType> activePassives = new List<RelicEffectType>();
         
+        // Tracking for conditional passives
+        private bool knockbackAttackerUsedThisTurn = false;
+        private int weaponsUsedOnCurrentTarget = 0;
+        private GameObject currentTarget;
+        private int hullsDestroyedThisGame = 0;
+
+        #endregion
+
+        #region Properties
+
+        public IReadOnlyList<RelicEffectType> ActivePassives => activePassives;
+        public int HullsDestroyedThisGame => hullsDestroyedThisGame;
+
+        #endregion
+
         #region Unity Lifecycle
-        
+
         private void Awake()
         {
             unitStatus = GetComponent<UnitStatus>();
+            unitAttack = GetComponent<UnitAttack>();
+            cardDeck = GetComponent<CardDeckManager>();
+            statusEffects = GetComponent<StatusEffectManager>();
             equipment = GetComponent<UnitEquipmentUpdated>();
-            deckManager = GetComponent<CardDeckManager>();
         }
-        
+
         private void Start()
         {
-            gridManager = ServiceLocator.Get<GridManager>();
+            RegisterPassiveEffects();
         }
-        
+
         private void OnEnable()
         {
+            // Subscribe to game events
+            GameEvents.OnUnitDamaged += OnUnitDamaged;
+            GameEvents.OnUnitHealed += OnUnitHealed;
+            GameEvents.OnUnitDeath += OnUnitDeath;
+            GameEvents.OnUnitSurrender += OnUnitSurrender;
+            GameEvents.OnUnitAttack += OnUnitAttack;
+            GameEvents.OnUnitMoved += OnUnitMoved;
             GameEvents.OnPlayerTurnStart += OnPlayerTurnStart;
-            GameEvents.OnEnemyTurnStart += OnEnemyTurnStart;
-            GameEvents.OnEnemyTurnEnd += OnEnemyTurnEnd;
-            GameEvents.OnUnitDamaged += OnAnyUnitDamaged;
-            GameEvents.OnUnitAttack += OnAnyUnitAttack;
-            GameEvents.OnUnitDeath += OnAnyUnitDeath;
-            GameEvents.OnUnitSurrender += OnAnyUnitSurrender;
-            GameEvents.OnUnitMoved += OnAnyUnitMoved;
+            GameEvents.OnPlayerTurnEnd += OnPlayerTurnEnd;
+            GameEvents.OnRoundStart += OnRoundStart;
         }
-        
+
         private void OnDisable()
         {
+            GameEvents.OnUnitDamaged -= OnUnitDamaged;
+            GameEvents.OnUnitHealed -= OnUnitHealed;
+            GameEvents.OnUnitDeath -= OnUnitDeath;
+            GameEvents.OnUnitSurrender -= OnUnitSurrender;
+            GameEvents.OnUnitAttack -= OnUnitAttack;
+            GameEvents.OnUnitMoved -= OnUnitMoved;
             GameEvents.OnPlayerTurnStart -= OnPlayerTurnStart;
-            GameEvents.OnEnemyTurnStart -= OnEnemyTurnStart;
-            GameEvents.OnEnemyTurnEnd -= OnEnemyTurnEnd;
-            GameEvents.OnUnitDamaged -= OnAnyUnitDamaged;
-            GameEvents.OnUnitAttack -= OnAnyUnitAttack;
-            GameEvents.OnUnitDeath -= OnAnyUnitDeath;
-            GameEvents.OnUnitSurrender -= OnAnyUnitSurrender;
-            GameEvents.OnUnitMoved -= OnAnyUnitMoved;
+            GameEvents.OnPlayerTurnEnd -= OnPlayerTurnEnd;
+            GameEvents.OnRoundStart -= OnRoundStart;
         }
-        
+
         #endregion
-        
-        #region Passive Checks
-        
-        private bool HasPassive(RelicEffectType type)
+
+        #region Passive Registration
+
+        /// <summary>
+        /// Register all passive effects from equipped relics.
+        /// </summary>
+        public void RegisterPassiveEffects()
         {
-            if (equipment == null) return false;
-            
-            var trinket = equipment.TrinketRelic;
-            if (trinket?.effectData?.effectType == type) return true;
-            
-            var passive = equipment.PassiveUniqueRelic;
-            if (passive?.effectData?.effectType == type) return true;
-            
-            return false;
+            activePassives.Clear();
+
+            if (equipment == null) return;
+
+            // Get all passive relics
+            var passiveRelics = equipment.GetPassiveRelics();
+            foreach (var relic in passiveRelics)
+            {
+                activePassives.Add(relic.GetEffectType());
+                Debug.Log($"<color=magenta>{gameObject.name}: Registered passive {relic.relicName}</color>");
+            }
         }
-        
-        private RelicEffectData GetPassiveData(RelicEffectType type)
+
+        /// <summary>
+        /// Check if a passive effect is active.
+        /// </summary>
+        public bool HasPassive(RelicEffectType effectType)
         {
-            if (equipment == null) return null;
-            
-            var trinket = equipment.TrinketRelic;
-            if (trinket?.effectData?.effectType == type) return trinket.effectData;
-            
-            var passive = equipment.PassiveUniqueRelic;
-            if (passive?.effectData?.effectType == type) return passive.effectData;
-            
-            return null;
+            // Check if passives are disabled by status effect
+            if (statusEffects != null && statusEffects.ArePassivesDisabled())
+                return false;
+                
+            return activePassives.Contains(effectType);
         }
-        
+
         #endregion
-        
-        #region Turn Start Events
-        
+
+        #region Event Handlers
+
         private void OnPlayerTurnStart()
         {
-            if (unitStatus == null || unitStatus.Team != Team.Player) return;
-            if (unitStatus.HasSurrendered) return;
+            if (unitStatus.Team != Team.Player) return;
             
-            // Reset per-turn flags
-            usedKnockbackRetaliation = false;
-            usedTaunt = false;
-            damageTakenThisTurn = 0;
+            knockbackAttackerUsedThisTurn = false;
             
-            // === Captain PassiveUnique: +1 max energy each turn ===
+            // PassiveUnique_ExtraEnergy - Captain V1
             if (HasPassive(RelicEffectType.PassiveUnique_ExtraEnergy))
             {
                 var energyManager = ServiceLocator.Get<EnergyManager>();
-                if (energyManager != null)
-                {
-                    // Add bonus energy at turn start
-                    energyManager.TrySpendEnergy(-1); // Negative spend = gain
-                    Debug.Log($"<color=yellow>[Passive] {unitStatus.name}: Captain +1 Energy</color>");
-                }
+                energyManager?.TrySpendEnergy(-1); // Gain 1 energy
+                Debug.Log($"<color=cyan>{gameObject.name}: +1 energy from passive</color>");
             }
             
-            // === Quartermaster PassiveUnique: +2 cards each turn ===
-            if (HasPassive(RelicEffectType.PassiveUnique_ExtraCards))
+            // PassiveUnique_ExtraCards / ExtraCardsEachTurn - Quartermaster V1/Captain V2
+            if (HasPassive(RelicEffectType.PassiveUnique_ExtraCards) || 
+                HasPassive(RelicEffectType.PassiveUnique_ExtraCards))
             {
-                if (deckManager != null)
-                {
-                    deckManager.DrawCards(2);
-                    Debug.Log($"<color=yellow>[Passive] {unitStatus.name}: Quartermaster +2 Cards</color>");
-                }
+                cardDeck?.DrawCards(2);
+                Debug.Log($"<color=cyan>{gameObject.name}: +2 cards from passive</color>");
             }
             
-            // === Navigator Trinket: Draw extra if HP above 60% ===
-            if (HasPassive(RelicEffectType.Trinket_DrawIfHighHP))
-            {
-                var data = GetPassiveData(RelicEffectType.Trinket_DrawIfHighHP);
-                float threshold = data?.value2 ?? 0.6f;
-                
-                if (unitStatus.HPPercent > threshold && deckManager != null)
-                {
-                    deckManager.DrawCards(1);
-                    Debug.Log($"<color=yellow>[Passive] {unitStatus.name}: Navigator Trinket +1 Card (HP > {threshold*100}%)</color>");
-                }
-            }
-            
-            // === Master Gunner PassiveUnique: Draw extra per grog ===
-            if (HasPassive(RelicEffectType.PassiveUnique_DrawPerGrog))
+            // PassiveUnique_DrawPerGrog / DrawPerGrogToken - MasterGunner V1/Helmsman V2
+            if (HasPassive(RelicEffectType.PassiveUnique_DrawPerGrog) || 
+                HasPassive(RelicEffectType.PassiveUnique_DrawPerGrog))
             {
                 var energyManager = ServiceLocator.Get<EnergyManager>();
-                if (energyManager != null && deckManager != null)
+                int grog = energyManager?.GrogTokens ?? 0;
+                if (grog > 0)
                 {
-                    int grog = energyManager.GrogTokens;
-                    if (grog > 0)
-                    {
-                        deckManager.DrawCards(grog);
-                        Debug.Log($"<color=yellow>[Passive] {unitStatus.name}: Master Gunner +{grog} Cards (per grog)</color>");
-                    }
+                    cardDeck?.DrawCards(grog);
+                    Debug.Log($"<color=cyan>{gameObject.name}: +{grog} cards from grog</color>");
                 }
             }
-        }
-        
-        private void OnEnemyTurnStart()
-        {
-            if (unitStatus == null || unitStatus.Team != Team.Player) return;
             
-            // Reset taunt for enemy turn
-            usedTaunt = false;
-        }
-        
-        private void OnEnemyTurnEnd()
-        {
-            if (unitStatus == null || unitStatus.Team != Team.Player) return;
-            
-            // === Master-at-Arms PassiveUnique: Draw card if damage taken < 20% HP ===
-            if (HasPassive(RelicEffectType.PassiveUnique_DrawOnLowDamage))
+            // Trinket_DrawIfHighHP / DrawIfHighHealth - Navigator V1/Boatswain V2
+            if (HasPassive(RelicEffectType.Trinket_DrawIfHighHP) || 
+                HasPassive(RelicEffectType.Trinket_DrawIfHighHP))
             {
-                var data = GetPassiveData(RelicEffectType.PassiveUnique_DrawOnLowDamage);
-                float threshold = data?.value2 ?? 0.2f;
-                int thresholdDamage = Mathf.RoundToInt(unitStatus.MaxHP * threshold);
-                
-                if (damageTakenThisTurn > 0 && damageTakenThisTurn < thresholdDamage && deckManager != null)
+                if (unitStatus.HPPercent > 0.6f)
                 {
-                    deckManager.DrawCards(1);
-                    Debug.Log($"<color=yellow>[Passive] {unitStatus.name}: Master-at-Arms +1 Card (low damage taken)</color>");
+                    cardDeck?.DrawCards(1);
+                    Debug.Log($"<color=cyan>{gameObject.name}: +1 card (high HP)</color>");
                 }
             }
             
-            damageTakenThisTurn = 0;
+            // Trinket_DrawIfLowHP - Cook V2 (not in current enum, commented out)
+            // if (HasPassive(RelicEffectType.Trinket_DrawIfLowHP))
+            // {
+            //     if (unitStatus.HPPercent < 0.5f)
+            //     {
+            //         cardDeck?.DrawCards(1);
+            //         Debug.Log($"<color=cyan>{gameObject.name}: +1 card (low HP)</color>");
+            //     }
+            // }
         }
-        
-        #endregion
-        
-        #region Damage Events
-        
-        private void OnAnyUnitDamaged(GameObject damagedUnit, int damage)
+
+        private void OnPlayerTurnEnd()
         {
-            if (unitStatus == null || unitStatus.HasSurrendered) return;
-            
-            var damagedStatus = damagedUnit?.GetComponent<UnitStatus>();
-            if (damagedStatus == null) return;
-            
-            // Track damage to self
-            if (damagedUnit == gameObject)
+            // PassiveUnique_DrawOnLowDamage - MasterAtArms V1
+            // This would need damage tracking per turn
+        }
+
+        private void OnRoundStart(int round)
+        {
+            weaponsUsedOnCurrentTarget = 0;
+            currentTarget = null;
+        }
+
+        private void OnUnitDamaged(GameObject unit, int damage)
+        {
+            var targetStatus = unit?.GetComponent<UnitStatus>();
+            if (targetStatus == null) return;
+
+            // Check if this unit caused the damage (would need attacker info)
+            // For now, check if an ally took damage
+
+            // If THIS unit took damage
+            if (unit == gameObject)
             {
-                damageTakenThisTurn += damage;
-                
-                // === Cook Trinket: Knockback attacker once per turn ===
-                if (HasPassive(RelicEffectType.Trinket_KnockbackAttacker) && !usedKnockbackRetaliation)
-                {
-                    // Need to find attacker - this would require tracking in the damage event
-                    // For now, log placeholder
-                    usedKnockbackRetaliation = true;
-                    Debug.Log($"<color=yellow>[Passive] {unitStatus.name}: Cook Trinket - Knockback attacker (needs attacker tracking)</color>");
-                }
+                HandleDamageTaken(damage);
             }
             
-            // === Navigator PassiveUnique: Counter-attack when ally damaged ===
-            if (HasPassive(RelicEffectType.PassiveUnique_CounterAttack))
+            // If an ALLY took damage
+            if (targetStatus.Team == unitStatus.Team && unit != gameObject)
             {
-                if (damagedStatus.Team == unitStatus.Team && damagedUnit != gameObject)
-                {
-                    // Would need attacker reference to counter-attack
-                    Debug.Log($"<color=yellow>[Passive] {unitStatus.name}: Navigator - Counter-attack triggered (needs attacker tracking)</color>");
-                }
+                HandleAllyDamaged(unit, damage);
             }
-        }
-        
-        private void OnAnyUnitAttack(GameObject attacker, GameObject target)
-        {
-            if (unitStatus == null || unitStatus.HasSurrendered) return;
-            
-            var attackerStatus = attacker?.GetComponent<UnitStatus>();
-            var targetStatus = target?.GetComponent<UnitStatus>();
-            
-            if (attackerStatus == null || targetStatus == null) return;
-            
-            // === Surgeon Trinket: Taunt first attack per enemy turn ===
-            if (HasPassive(RelicEffectType.Trinket_TauntFirstAttack) && !usedTaunt)
+
+            // If ENEMY captain took damage
+            if (targetStatus.Team != unitStatus.Team && targetStatus.IsCaptain)
             {
-                // If enemy is attacking an ally (not this unit), redirect to this unit
-                if (attackerStatus.Team != unitStatus.Team && 
-                    targetStatus.Team == unitStatus.Team && 
-                    target != gameObject)
+                HandleCaptainDamaged(unit, damage);
+            }
+        }
+
+        private void HandleDamageTaken(int damage)
+        {
+            // Trinket_KnockbackAttacker / KnockbackAttackerOnce - Cook V1/Shipwright V2
+            if ((HasPassive(RelicEffectType.Trinket_KnockbackAttacker) || 
+                 HasPassive(RelicEffectType.Trinket_KnockbackAttacker)) && 
+                !knockbackAttackerUsedThisTurn)
+            {
+                // Would need attacker reference - handled by StatusEffectManager
+                knockbackAttackerUsedThisTurn = true;
+            }
+
+            // Check hull destruction for BonusDmgPerHullDestroyed tracking
+            if (unitStatus.CurrentHullPool <= 0 && unitStatus.HasHull)
+            {
+                // Hull was destroyed this hit
+                // Track for enemy passive if they have it
+            }
+        }
+
+        private void HandleAllyDamaged(GameObject ally, int damage)
+        {
+            // PassiveUnique_CounterAttack / CounterAttackAlly - Navigator V1/Boatswain V2
+            if (HasPassive(RelicEffectType.PassiveUnique_CounterAttack) || 
+                HasPassive(RelicEffectType.PassiveUnique_CounterAttack))
+            {
+                // Attack the enemy that damaged ally
+                if (unitAttack != null)
                 {
-                    usedTaunt = true;
-                    Debug.Log($"<color=yellow>[Passive] {unitStatus.name}: Surgeon Trinket - Taunt! Redirecting attack to self</color>");
-                    // Note: Actual redirection would need to happen in the attack system
+                    Debug.Log($"<color=cyan>{gameObject.name}: Counter-attacking for ally!</color>");
+                    unitAttack.TryMeleeAttack(); // Would need to target specific enemy
                 }
             }
         }
-        
-        #endregion
-        
-        #region Death/Surrender Events
-        
-        private void OnAnyUnitDeath(GameObject deadUnit)
+
+        private void HandleCaptainDamaged(GameObject captain, int damage)
         {
-            HandleDeathOrSurrender(deadUnit, true);
+            // Trinket_HealOnCaptainDamage handled by StatusEffectManager
         }
-        
-        private void OnAnyUnitSurrender(GameObject surrenderedUnit)
+
+        private void OnUnitHealed(GameObject unit, int amount)
         {
-            HandleDeathOrSurrender(surrenderedUnit, false);
+            // Trinket_AttackOnEnemyHeal handled by StatusEffectManager
         }
-        
-        private void HandleDeathOrSurrender(GameObject unit, bool isDeath)
+
+        private void OnUnitDeath(GameObject unit)
         {
-            if (unitStatus == null || unitStatus.HasSurrendered) return;
-            
             var deadStatus = unit?.GetComponent<UnitStatus>();
             if (deadStatus == null) return;
-            
-            // === Boatswain Totem (Passive): Enemy death = morale swing ===
+
+            // If enemy died
+            if (deadStatus.Team != unitStatus.Team)
+            {
+                HandleEnemyDeath(unit);
+            }
+
+            // If ally died
+            if (deadStatus.Team == unitStatus.Team && unit != gameObject)
+            {
+                HandleAllyDeath(unit);
+            }
+        }
+
+        private void HandleEnemyDeath(GameObject enemy)
+        {
+            // PassiveUnique_KillRestoreHealth - MasterAtArms V2 (not in current enum)
+            // if (HasPassive(RelicEffectType.PassiveUnique_KillRestoreHealth))
+            // {
+            //     int heal = Mathf.RoundToInt(unitStatus.MaxHP * 0.2f);
+            //     unitStatus.Heal(heal);
+            //     Debug.Log($"<color=cyan>{gameObject.name}: Healed {heal} from kill</color>");
+            // }
+
+            // PassiveUnique_KillRestoreAllyHP - Surgeon V2 (not in current enum)
+            // if (HasPassive(RelicEffectType.PassiveUnique_KillRestoreAllyHP))
+            // {
+            //     var allies = GetAllies();
+            //     foreach (var ally in allies)
+            //     {
+            //         int heal = Mathf.RoundToInt(ally.MaxHP * 0.05f);
+            //         ally.Heal(heal);
+            //     }
+            //     Debug.Log($"<color=cyan>{gameObject.name}: Healed all allies 5% from kill</color>");
+            // }
+
+            // Totem_EnemyDeathMoraleSwing - Boatswain V1
             if (HasPassive(RelicEffectType.Totem_EnemyDeathMoraleSwing))
             {
-                if (deadStatus.Team != unitStatus.Team)
-                {
-                    var data = GetPassiveData(RelicEffectType.Totem_EnemyDeathMoraleSwing);
-                    float moraleGain = data?.value2 ?? 0.05f;
-                    
-                    // Give morale to all player units
-                    foreach (var ally in GetAllAllies())
-                    {
-                        int gain = Mathf.RoundToInt(ally.MaxMorale * moraleGain);
-                        ally.RestoreMorale(gain);
-                    }
-                    Debug.Log($"<color=yellow>[Passive] {unitStatus.name}: Boatswain Totem - Enemy defeated, allies gain {moraleGain*100}% morale</color>");
-                }
-            }
-            
-            // === Helmsman PassiveUnique: Chance to attack on death based on morale ===
-            if (unit == gameObject && HasPassive(RelicEffectType.PassiveUnique_DeathStrikeByMorale))
-            {
-                float moralePercent = unitStatus.MoralePercent;
-                float chance = moralePercent; // Higher morale = higher chance
+                // Enemies lose morale, allies gain
+                var enemies = GetEnemies();
+                var allies = GetAllies();
                 
-                if (Random.value < chance)
+                foreach (var enemyUnit in enemies)
                 {
-                    Debug.Log($"<color=yellow>[Passive] {unitStatus.name}: Helmsman - Death strike! ({chance*100:F0}% chance)</color>");
-                    // Would trigger an attack on nearest enemy
+                    enemyUnit.ApplyMoraleDamage(Mathf.RoundToInt(enemyUnit.MaxMorale * 0.05f));
                 }
+                foreach (var ally in allies)
+                {
+                    ally.RestoreMorale(Mathf.RoundToInt(ally.MaxMorale * 0.05f));
+                }
+                Debug.Log($"<color=cyan>Morale swing from enemy death!</color>");
             }
         }
-        
-        #endregion
-        
-        #region Movement Events
-        
-        private void OnAnyUnitMoved(GameObject unit, GridCell from, GridCell to)
+
+        private void HandleAllyDeath(GameObject ally)
         {
-            if (unitStatus == null || unitStatus.HasSurrendered) return;
-            
-            var movedStatus = unit?.GetComponent<UnitStatus>();
-            if (movedStatus == null) return;
-            
-            // === Master Gunner Trinket: Knockback increases enemy buzz ===
-            if (HasPassive(RelicEffectType.Trinket_KnockbackIncreasesBuzz))
+            // Coat_KnockbackOnAllyDeath - Surgeon V2 (handled as active, not passive here)
+        }
+
+        private void OnUnitSurrender(GameObject unit)
+        {
+            // Same handling as death for kill-based passives
+            var surrenderedStatus = unit?.GetComponent<UnitStatus>();
+            if (surrenderedStatus != null && surrenderedStatus.Team != unitStatus.Team)
             {
-                // Check if this was a knockback (enemy moved by force)
-                if (movedStatus.Team != unitStatus.Team)
-                {
-                    // Would need to track if this was knockback vs voluntary move
-                    // For now, skip - needs knockback tracking flag
-                }
+                HandleEnemyDeath(unit);
             }
         }
-        
+
+        private void OnUnitAttack(GameObject attacker, GameObject target)
+        {
+            // Track weapons used on target for Ultimate_FourWeaponsSurrender (not in current enum)
+            // if (attacker == gameObject && HasPassive(RelicEffectType.Ultimate_FourWeaponsSurrender))
+            // {
+            //     if (currentTarget != target)
+            //     {
+            //         currentTarget = target;
+            //         weaponsUsedOnCurrentTarget = 0;
+            //     }
+            //     weaponsUsedOnCurrentTarget++;
+            //     
+            //     if (weaponsUsedOnCurrentTarget >= 4)
+            //     {
+            //         var targetStatus = target?.GetComponent<UnitStatus>();
+            //         if (targetStatus != null && !targetStatus.IsCaptain)
+            //         {
+            //             // Force surrender
+            //             Debug.Log($"<color=yellow>{target.name} forced to surrender after 4 weapon hits!</color>");
+            //             GameEvents.TriggerUnitSurrender(target);
+            //         }
+            //     }
+            // }
+        }
+
+        private void OnUnitMoved(GameObject unit, GridCell from, GridCell to)
+        {
+            // No movement-triggered passives currently
+        }
+
         #endregion
-        
-        #region Damage Modifier Interface
-        
+
+        #region Damage Modifiers (Called by DamageCalculator)
+
         /// <summary>
-        /// Get damage modifier for an attack from this unit.
-        /// Called by damage calculation system.
+        /// Get passive damage bonus percentage.
+        /// </summary>
+        public float GetPassiveDamageBonus(UnitStatus target)
+        {
+            float bonus = 0f;
+
+            // Trinket_BonusDamagePerCard - Captain V1
+            if (HasPassive(RelicEffectType.Trinket_BonusDamagePerCard))
+            {
+                int cardsInHand = cardDeck?.CardsInHand ?? 0;
+                bonus += cardsInHand * 0.2f; // +20% per card
+            }
+
+            // Trinket_BonusVsCaptain / BonusVsCaptainTarget - Quartermaster V1/Captain V2
+            if ((HasPassive(RelicEffectType.Trinket_BonusVsCaptain) || 
+                 HasPassive(RelicEffectType.Trinket_BonusVsCaptain)) && 
+                target != null && target.IsCaptain)
+            {
+                bonus += 0.2f; // +20% vs captain
+            }
+
+            // Trinket_DamageByBuzz - Shipwright V1
+            if (HasPassive(RelicEffectType.Trinket_DamageByBuzz))
+            {
+                float buzzPercent = unitStatus.MaxBuzz > 0 ? 
+                    (float)unitStatus.CurrentBuzz / unitStatus.MaxBuzz : 0f;
+                bonus += buzzPercent * 0.5f; // Up to +50% at full buzz
+            }
+
+            // PassiveUnique_BonusVsLowGrit - Cook V1
+            if (HasPassive(RelicEffectType.PassiveUnique_BonusVsLowGrit) && 
+                target != null && target.Grit < unitStatus.Grit)
+            {
+                bonus += 0.2f; // +20% vs lower grit
+            }
+
+            // PassiveUnique_BonusVsLowHP - Deckhand V1
+            if (HasPassive(RelicEffectType.PassiveUnique_BonusVsLowHP) && 
+                target != null && target.HPPercent < 0.5f)
+            {
+                bonus += 0.2f; // +20% vs low HP
+            }
+
+            // PassiveUnique_BonusDmgPerHullDestroyed - not in current enum
+            // if (HasPassive(RelicEffectType.PassiveUnique_BonusDmgPerHullDestroyed))
+            // {
+            //     bonus += hullsDestroyedThisGame * 0.3f; // +30% per hull destroyed
+            // }
+
+            // Trinket_RowEnemiesTakeMore - Deckhand V1
+            if (HasPassive(RelicEffectType.Trinket_RowEnemiesTakeMore) && 
+                target != null && IsSameRow(target))
+            {
+                bonus += 0.1f; // +10% vs same row enemies
+            }
+
+            return bonus;
+        }
+
+        /// <summary>
+        /// Get outgoing damage modifier as multiplier (for DamageCalculator compatibility).
+        /// Returns 1.0 for no change, >1.0 for bonus, <1.0 for penalty.
         /// </summary>
         public float GetOutgoingDamageModifier(UnitStatus target)
         {
-            float modifier = 1f;
-            if (equipment == null || unitStatus == null) return modifier;
-            
-            // === Captain Trinket: +20% per card in hand ===
-            if (HasPassive(RelicEffectType.Trinket_BonusDamagePerCard))
-            {
-                var data = GetPassiveData(RelicEffectType.Trinket_BonusDamagePerCard);
-                float perCard = data?.value2 ?? 0.2f;
-                int cards = deckManager?.CardsInHand ?? 0;
-                modifier += perCard * cards;
-            }
-            
-            // === Quartermaster Trinket: +20% vs captain ===
-            if (HasPassive(RelicEffectType.Trinket_BonusVsCaptain) && target != null)
-            {
-                var targetEquip = target.GetComponent<UnitEquipmentUpdated>();
-                if (targetEquip?.UnitRole == UnitRole.Captain)
-                {
-                    var data = GetPassiveData(RelicEffectType.Trinket_BonusVsCaptain);
-                    modifier += data?.value2 ?? 0.2f;
-                }
-            }
-            
-            // === Shipwright Trinket: +damage by buzz ===
-            if (HasPassive(RelicEffectType.Trinket_DamageByBuzz))
-            {
-                float buzzPercent = unitStatus.MaxBuzz > 0 
-                    ? (float)unitStatus.CurrentBuzz / unitStatus.MaxBuzz 
-                    : 0f;
-                modifier += buzzPercent * 0.5f; // Up to +50% at full buzz
-            }
-            
-            // === Cook PassiveUnique: +20% vs low grit ===
-            if (HasPassive(RelicEffectType.PassiveUnique_BonusVsLowGrit) && target != null)
-            {
-                if (target.Grit < unitStatus.Grit)
-                {
-                    var data = GetPassiveData(RelicEffectType.PassiveUnique_BonusVsLowGrit);
-                    modifier += data?.value2 ?? 0.2f;
-                }
-            }
-            
-            // === Deckhand PassiveUnique: +damage vs <50% HP ===
-            if (HasPassive(RelicEffectType.PassiveUnique_BonusVsLowHP) && target != null)
-            {
-                var data = GetPassiveData(RelicEffectType.PassiveUnique_BonusVsLowHP);
-                float threshold = data?.value2 ?? 0.5f;
-                if (target.HPPercent < threshold)
-                {
-                    modifier += 0.2f; // +20% bonus
-                }
-            }
-            
-            // === Deckhand Trinket: Enemies in row take +10% ===
-            if (HasPassive(RelicEffectType.Trinket_RowEnemiesTakeMore) && target != null)
-            {
-                if (IsInSameRow(unitStatus, target))
-                {
-                    var data = GetPassiveData(RelicEffectType.Trinket_RowEnemiesTakeMore);
-                    modifier += data?.value2 ?? 0.1f;
-                }
-            }
-            
-            return modifier;
+            return 1f + GetPassiveDamageBonus(target);
         }
-        
+
         /// <summary>
-        /// Get damage modifier for incoming damage to this unit.
-        /// Called by damage calculation system.
+        /// Get passive damage reduction percentage.
+        /// </summary>
+        public float GetPassiveDamageReduction(UnitStatus attacker)
+        {
+            float reduction = 0f;
+
+            // Trinket_ReduceDamageFromClosest - MasterAtArms V1
+            if (HasPassive(RelicEffectType.Trinket_ReduceDamageFromClosest) && 
+                attacker != null && IsClosestEnemy(attacker))
+            {
+                reduction += 0.2f; // -20% from closest enemy
+            }
+
+            // Trinket_RowEnemiesLessDamage - Swashbuckler V1
+            if (HasPassive(RelicEffectType.Trinket_RowEnemiesLessDamage) && 
+                attacker != null && IsSameRow(attacker))
+            {
+                reduction += 0.1f; // -10% from same row enemies
+            }
+
+            return reduction;
+        }
+
+        /// <summary>
+        /// Get incoming damage modifier as multiplier (for DamageCalculator compatibility).
+        /// Returns 1.0 for no change, <1.0 for reduction.
         /// </summary>
         public float GetIncomingDamageModifier(UnitStatus attacker)
         {
-            float modifier = 1f;
-            if (equipment == null || unitStatus == null) return modifier;
-            
-            // === Master-at-Arms Trinket: Closest enemy does -20% ===
-            if (HasPassive(RelicEffectType.Trinket_ReduceDamageFromClosest) && attacker != null)
-            {
-                var closest = GetClosestEnemy();
-                if (closest != null && closest == attacker)
-                {
-                    var data = GetPassiveData(RelicEffectType.Trinket_ReduceDamageFromClosest);
-                    modifier -= data?.value2 ?? 0.2f;
-                }
-            }
-            
-            // === Swashbuckler Trinket: Enemies in row do -10% ===
-            if (HasPassive(RelicEffectType.Trinket_RowEnemiesLessDamage) && attacker != null)
-            {
-                if (IsInSameRow(unitStatus, attacker))
-                {
-                    var data = GetPassiveData(RelicEffectType.Trinket_RowEnemiesLessDamage);
-                    modifier -= data?.value2 ?? 0.1f;
-                }
-            }
-            
-            return Mathf.Max(0.1f, modifier); // Minimum 10% damage
+            return 1f - GetPassiveDamageReduction(attacker);
         }
-        
+
         /// <summary>
         /// Check if unit is immune to morale focus fire.
         /// </summary>
-        public bool IsImmuneMoraleFocusFire()
+        public bool IsImmuneTOMoraleFocus()
         {
             return HasPassive(RelicEffectType.Trinket_ImmuneMoraleFocusFire);
         }
-        
+
         /// <summary>
-        /// Get modified surrender threshold.
+        /// Alias for DamageCalculator compatibility.
         /// </summary>
-        public float GetSurrenderThreshold()
+        public bool IsImmuneMoraleFocusFire()
         {
-            // Default is 0.2 (20%)
-            float threshold = 0.2f;
-            
-            // === Boatswain PassiveUnique: Allies surrender at 10% ===
-            // This affects allies, so check all units with this passive
-            foreach (var ally in GetAllAllies())
-            {
-                var allyPassive = ally.GetComponent<PassiveRelicManager>();
-                if (allyPassive != null && allyPassive.HasPassive(RelicEffectType.PassiveUnique_LowerSurrenderThreshold))
-                {
-                    var data = allyPassive.GetPassiveData(RelicEffectType.PassiveUnique_LowerSurrenderThreshold);
-                    threshold = Mathf.Min(threshold, data?.value2 ?? 0.1f);
-                }
-            }
-            
-            return threshold;
+            return IsImmuneTOMoraleFocus();
         }
-        
+
         /// <summary>
-        /// Check if buzz penalties are disabled.
-        /// </summary>
-        public bool HasNoBuzzDownside()
-        {
-            return HasPassive(RelicEffectType.PassiveUnique_NoBuzzDownside);
-        }
-        
-        /// <summary>
-        /// Get enemy surrender threshold (for Boatswain Trinket).
+        /// Get enemy surrender threshold modifier.
         /// </summary>
         public float GetEnemySurrenderThreshold()
         {
+            // Trinket_EnemySurrenderEarly - Boatswain V1
             if (HasPassive(RelicEffectType.Trinket_EnemySurrenderEarly))
             {
-                var data = GetPassiveData(RelicEffectType.Trinket_EnemySurrenderEarly);
-                return data?.value2 ?? 0.3f; // Enemies surrender at 30%
+                return 0.3f; // Enemies surrender at 30%
             }
             return 0.2f; // Default 20%
         }
-        
+
+        /// <summary>
+        /// Get ally surrender threshold modifier.
+        /// </summary>
+        public float GetAllySurrenderThreshold()
+        {
+            // PassiveUnique_LowerSurrenderThreshold - Boatswain V1
+            if (HasPassive(RelicEffectType.PassiveUnique_LowerSurrenderThreshold))
+            {
+                return 0.1f; // Allies surrender at 10%
+            }
+            return 0.2f; // Default 20%
+        }
+
+        /// <summary>
+        /// Get surrender threshold (for DamageCalculator compatibility).
+        /// Returns ally threshold for own team.
+        /// </summary>
+        public float GetSurrenderThreshold()
+        {
+            return GetAllySurrenderThreshold();
+        }
+
+        /// <summary>
+        /// Check if buzz penalty is disabled.
+        /// </summary>
+        public bool IsBuzzPenaltyDisabled()
+        {
+            return HasPassive(RelicEffectType.PassiveUnique_NoBuzzDownside);
+        }
+
+        /// <summary>
+        /// Alias for DamageCalculator compatibility.
+        /// </summary>
+        public bool HasNoBuzzDownside()
+        {
+            return IsBuzzPenaltyDisabled();
+        }
+
+        /// <summary>
+        /// Check if relics are not consumed.
+        /// </summary>
+        public bool AreRelicsNotConsumed()
+        {
+            // PassiveUnique_RelicsNotConsumed not in current enum
+            // return HasPassive(RelicEffectType.PassiveUnique_RelicsNotConsumed);
+            return false;
+        }
+
+        /// <summary>
+        /// Get enemy movement limit.
+        /// </summary>
+        public int GetEnemyMovementLimit()
+        {
+            // PassiveUnique_EnemyBootsLimited not in current enum
+            // if (HasPassive(RelicEffectType.PassiveUnique_EnemyBootsLimited))
+            // {
+            //     return 1; // Enemies limited to 1 tile
+            // }
+            return -1; // No limit
+        }
+
+        /// <summary>
+        /// Get ally extra movement.
+        /// </summary>
+        public int GetAllyExtraMovement()
+        {
+            // PassiveUnique_AllAlliesExtraMove not in current enum
+            // if (HasPassive(RelicEffectType.PassiveUnique_AllAlliesExtraMove))
+            // {
+            //     return 1; // +1 movement for all allies
+            // }
+            return 0;
+        }
+
+        /// <summary>
+        /// Check if knockback increases enemy buzz.
+        /// </summary>
+        public bool KnockbackIncreasesBuzz()
+        {
+            return HasPassive(RelicEffectType.Trinket_KnockbackIncreasesBuzz);
+        }
+
+        /// <summary>
+        /// Check if nearby allies ignore obstacles.
+        /// </summary>
+        public bool NearbyAlliesIgnoreObstacles()
+        {
+            // Trinket_NearbyIgnoreObstacles not in current enum
+            // return HasPassive(RelicEffectType.Trinket_NearbyIgnoreObstacles);
+            return false;
+        }
+
+        /// <summary>
+        /// Check if nearby radius is global.
+        /// </summary>
+        public bool IsNearbyRadiusGlobal()
+        {
+            // Trinket_GlobalAllyRadius not in current enum
+            // return HasPassive(RelicEffectType.Trinket_GlobalAllyRadius);
+            return false;
+        }
+
+        /// <summary>
+        /// Get power bonus for nearby allies.
+        /// </summary>
+        public float GetNearbyAllyPowerBonus()
+        {
+            // Trinket_NearbyAlliesPowerBuff not in current enum
+            // if (HasPassive(RelicEffectType.Trinket_NearbyAlliesPowerBuff))
+            // {
+            //     return 0.3f; // +30% power to nearby
+            // }
+            return 0f;
+        }
+
+        /// <summary>
+        /// Get speed reduction for all enemies.
+        /// </summary>
+        public float GetEnemySpeedReduction()
+        {
+            // Trinket_EnemiesLoseSpeed not in current enum
+            // if (HasPassive(RelicEffectType.Trinket_EnemiesLoseSpeed))
+            // {
+            //     return 0.1f; // -10% speed to all enemies
+            // }
+            return 0f;
+        }
+
+        /// <summary>
+        /// Track hull destroyed for bonus damage.
+        /// </summary>
+        public void TrackHullDestroyed()
+        {
+            hullsDestroyedThisGame++;
+            Debug.Log($"Hulls destroyed this game: {hullsDestroyedThisGame}");
+        }
+
+        /// <summary>
+        /// Check if should discard enemy card on hull survive.
+        /// </summary>
+        public bool ShouldDiscardOnHullSurvive()
+        {
+            // Trinket_HullRegenOnSurvive not in current enum
+            // return HasPassive(RelicEffectType.Trinket_HullRegenOnSurvive);
+            return false;
+        }
+
         #endregion
-        
+
+        #region Aura Effects
+
+        /// <summary>
+        /// Get grit aura bonus for nearby allies.
+        /// </summary>
+        public float GetGritAuraBonus()
+        {
+            if (HasPassive(RelicEffectType.PassiveUnique_GritAura))
+            {
+                return unitStatus.Grit * 0.05f; // 5% of this unit's grit
+            }
+            return 0f;
+        }
+
+        /// <summary>
+        /// Apply aura effects to nearby allies.
+        /// </summary>
+        public void ApplyAuraEffects()
+        {
+            var allies = GetNearbyAllies(IsNearbyRadiusGlobal() ? 99 : 1);
+            
+            float gritBonus = GetGritAuraBonus();
+            float powerBonus = GetNearbyAllyPowerBonus();
+            
+            if (gritBonus > 0 || powerBonus > 0)
+            {
+                foreach (var ally in allies)
+                {
+                    var allyEffects = ally.GetComponent<StatusEffectManager>();
+                    if (allyEffects != null)
+                    {
+                        if (gritBonus > 0)
+                        {
+                            allyEffects.ApplyEffect(StatusEffect.CreateGritBoost(1, gritBonus, gameObject));
+                        }
+                        if (powerBonus > 0)
+                        {
+                            allyEffects.ApplyEffect(StatusEffect.CreatePowerBoost(1, powerBonus, gameObject));
+                        }
+                    }
+                }
+            }
+        }
+
+        #endregion
+
         #region Helper Methods
-        
-        private List<UnitStatus> GetAllAllies()
+
+        private List<UnitStatus> GetAllies()
         {
             return GameObject.FindGameObjectsWithTag("Unit")
                 .Select(go => go.GetComponent<UnitStatus>())
-                .Where(u => u != null && u.Team == unitStatus.Team && !u.HasSurrendered)
+                .Where(u => u != null && u.Team == unitStatus.Team && u != unitStatus && !u.HasSurrendered)
                 .ToList();
         }
-        
-        private UnitStatus GetClosestEnemy()
+
+        private List<UnitStatus> GetEnemies()
         {
-            Team enemyTeam = unitStatus.Team == Team.Player ? Team.Enemy : Team.Player;
-            
             return GameObject.FindGameObjectsWithTag("Unit")
                 .Select(go => go.GetComponent<UnitStatus>())
-                .Where(u => u != null && u.Team == enemyTeam && !u.HasSurrendered)
-                .OrderBy(u => Vector3.Distance(transform.position, u.transform.position))
-                .FirstOrDefault();
+                .Where(u => u != null && u.Team != unitStatus.Team && !u.HasSurrendered)
+                .ToList();
         }
-        
-        private bool IsInSameRow(UnitStatus a, UnitStatus b)
+
+        private List<UnitStatus> GetNearbyAllies(int range)
         {
-            if (gridManager == null)
-                gridManager = ServiceLocator.Get<GridManager>();
-            if (gridManager == null) return false;
+            var gridManager = ServiceLocator.Get<GridManager>();
+            if (gridManager == null) return new List<UnitStatus>();
+
+            Vector2Int myPos = gridManager.WorldToGridPosition(transform.position);
             
-            Vector2Int posA = gridManager.WorldToGridPosition(a.transform.position);
-            Vector2Int posB = gridManager.WorldToGridPosition(b.transform.position);
-            
-            return posA.y == posB.y;
+            return GetAllies().Where(ally =>
+            {
+                Vector2Int allyPos = gridManager.WorldToGridPosition(ally.transform.position);
+                int dist = Mathf.Abs(myPos.x - allyPos.x) + Mathf.Abs(myPos.y - allyPos.y);
+                return dist <= range;
+            }).ToList();
         }
-        
+
+        private bool IsSameRow(UnitStatus other)
+        {
+            var gridManager = ServiceLocator.Get<GridManager>();
+            if (gridManager == null) return false;
+
+            Vector2Int myPos = gridManager.WorldToGridPosition(transform.position);
+            Vector2Int otherPos = gridManager.WorldToGridPosition(other.transform.position);
+            
+            return myPos.y == otherPos.y;
+        }
+
+        private bool IsClosestEnemy(UnitStatus attacker)
+        {
+            var enemies = GetEnemies();
+            if (enemies.Count == 0) return false;
+
+            var closest = enemies.OrderBy(e => 
+                Vector3.Distance(transform.position, e.transform.position)).First();
+            
+            return closest == attacker;
+        }
+
+        /// <summary>
+        /// Check if Shipwright and Boatswain roles should be ignored.
+        /// </summary>
+        public bool ShouldIgnoreRoles()
+        {
+            return HasPassive(RelicEffectType.PassiveUnique_IgnoreRoles);
+        }
+
+        #endregion
+
+        #region Debug
+
+        public string GetPassivesDebugString()
+        {
+            if (activePassives.Count == 0) return "No passives";
+            return string.Join(", ", activePassives.Select(p => p.ToString()));
+        }
+
         #endregion
     }
 }

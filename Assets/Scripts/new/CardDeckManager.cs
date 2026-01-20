@@ -6,6 +6,7 @@ using TacticalGame.Units;
 using TacticalGame.Core;
 using TacticalGame.Grid;
 using TacticalGame.Managers;
+using TacticalGame.Combat;
 
 namespace TacticalGame.Equipment
 {
@@ -35,7 +36,7 @@ namespace TacticalGame.Equipment
     
     /// <summary>
     /// Manages the card deck for a unit.
-    /// Updated to use FlexibleUnitEquipment (slot-based system).
+    /// Integrates with StatusEffectManager for cost/draw modifiers.
     /// </summary>
     public class CardDeckManager : MonoBehaviour
     {
@@ -51,7 +52,9 @@ namespace TacticalGame.Equipment
         [SerializeField] private int maxHandSize = 7;
         
         private UnitStatus unitStatus;
-        private FlexibleUnitEquipment equipment;
+        private UnitEquipmentUpdated equipment;
+        private StatusEffectManager statusEffects;
+        private PassiveRelicManager passiveManager;
         
         // Tracking for effects
         private int cardsPlayedThisRound = 0;
@@ -77,7 +80,9 @@ namespace TacticalGame.Equipment
         private void Awake()
         {
             unitStatus = GetComponent<UnitStatus>();
-            equipment = GetComponent<FlexibleUnitEquipment>();
+            equipment = GetComponent<UnitEquipmentUpdated>();
+            statusEffects = GetComponent<StatusEffectManager>();
+            passiveManager = GetComponent<PassiveRelicManager>();
         }
         
         private void Start()
@@ -106,9 +111,11 @@ namespace TacticalGame.Equipment
         
         public void BuildDeck()
         {
-            // Get references if not set
+            // Get references if not set (for edit mode testing)
             if (unitStatus == null) unitStatus = GetComponent<UnitStatus>();
-            if (equipment == null) equipment = GetComponent<FlexibleUnitEquipment>();
+            if (equipment == null) equipment = GetComponent<UnitEquipmentUpdated>();
+            if (statusEffects == null) statusEffects = GetComponent<StatusEffectManager>();
+            if (passiveManager == null) passiveManager = GetComponent<PassiveRelicManager>();
             
             availableCards.Clear();
             spentCards.Clear();
@@ -116,40 +123,32 @@ namespace TacticalGame.Equipment
             
             if (equipment == null)
             {
-                Debug.LogWarning($"{gameObject.name}: No FlexibleUnitEquipment found");
+                Debug.LogWarning($"{gameObject.name}: No UnitEquipmentUpdated found");
                 return;
             }
             
-            // Iterate through all slots and add cards
-            for (int i = 0; i < FlexibleUnitEquipment.SLOT_COUNT; i++)
+            // Add weapon relic cards
+            if (equipment.WeaponRelic != null)
             {
-                var slot = equipment.GetSlot(i);
-                if (slot == null || slot.IsEmpty) continue;
-                
-                // Skip passive relics (they don't become cards)
-                if (slot.IsPassive()) continue;
-                
-                if (slot.hasWeapon && slot.weaponRelic != null)
+                int copies = equipment.WeaponRelic.baseWeaponData?.cardCopies ?? 2;
+                Debug.Log($"<color=green>Weapon: Adding {copies} copies of {equipment.WeaponRelic.relicName}</color>");
+                for (int i = 0; i < copies; i++)
                 {
-                    // Weapon card
-                    int copies = slot.weaponRelic.baseWeaponData?.cardCopies ?? 2;
-                    Debug.Log($"<color=green>Slot {i}: Adding {copies} copies of weapon {slot.weaponRelic.relicName}</color>");
-                    for (int c = 0; c < copies; c++)
-                    {
-                        availableCards.Add(CreateWeaponCard(slot.weaponRelic));
-                    }
-                }
-                else if (slot.categoryRelic != null)
-                {
-                    // Category relic card
-                    int copies = slot.categoryRelic.GetCopies();
-                    Debug.Log($"<color=green>Slot {i}: Adding {copies} copies of {slot.categoryRelic.category} - {slot.categoryRelic.relicName}</color>");
-                    for (int c = 0; c < copies; c++)
-                    {
-                        availableCards.Add(CreateRelicCard(slot.categoryRelic));
-                    }
+                    availableCards.Add(CreateWeaponCard(equipment.WeaponRelic));
                 }
             }
+            else
+            {
+                Debug.Log($"<color=orange>Weapon: No weapon relic equipped</color>");
+            }
+            
+            // Add category relic cards (non-passive only)
+            AddRelicCards(equipment.BootsRelic, "Boots");
+            AddRelicCards(equipment.GlovesRelic, "Gloves");
+            AddRelicCards(equipment.HatRelic, "Hat");
+            AddRelicCards(equipment.CoatRelic, "Coat");
+            AddRelicCards(equipment.TotemRelic, "Totem");
+            AddRelicCards(equipment.UltimateRelic, "Ultimate");
             
             Debug.Log($"<color=cyan>{gameObject.name} deck built: {availableCards.Count} cards total</color>");
             
@@ -162,6 +161,29 @@ namespace TacticalGame.Equipment
             else
             {
                 Debug.LogWarning($"<color=red>No cards were added to deck!</color>");
+            }
+        }
+        
+        private void AddRelicCards(EquippedRelic relic, string slotName = "")
+        {
+            if (relic == null)
+            {
+                Debug.Log($"<color=orange>{slotName}: No relic equipped</color>");
+                return;
+            }
+            
+            if (relic.IsPassive())
+            {
+                Debug.Log($"<color=gray>{slotName}: {relic.relicName} is passive, skipping</color>");
+                return;
+            }
+            
+            int copies = relic.GetCopies();
+            Debug.Log($"<color=green>{slotName}: Adding {copies} copies of {relic.relicName}</color>");
+            
+            for (int i = 0; i < copies; i++)
+            {
+                availableCards.Add(CreateRelicCard(relic));
             }
         }
         
@@ -235,27 +257,161 @@ namespace TacticalGame.Equipment
                 var card = availableCards[0];
                 availableCards.RemoveAt(0);
                 hand.Add(card);
+                Debug.Log($"<color=green>Drew: {card.GetDisplayName()}</color>");
                 return true;
             }
             
             return false;
         }
         
-        public bool PlayCard(int handIndex, UnitStatus target = null, GridCell targetCell = null)
+        /// <summary>
+        /// Check if unit can play any cards (not stunned/stasis).
+        /// </summary>
+        public bool CanPlayCards()
         {
-            if (handIndex < 0 || handIndex >= hand.Count)
-                return false;
+            if (statusEffects == null) return true;
             
-            var card = hand[handIndex];
-            
-            var energyManager = ServiceLocator.Get<EnergyManager>();
-            if (!energyManager.HasEnergy(card.energyCost))
+            if (statusEffects.IsStunned())
             {
-                Debug.Log("Not enough energy!");
+                Debug.Log($"<color=red>{gameObject.name} is stunned and cannot play cards!</color>");
                 return false;
             }
             
-            energyManager.TrySpendEnergy(card.energyCost);
+            if (statusEffects.IsInStasis())
+            {
+                Debug.Log($"<color=red>{gameObject.name} is in stasis and cannot act!</color>");
+                return false;
+            }
+            
+            return true;
+        }
+        
+        /// <summary>
+        /// Check if a specific relic card can be played (not disabled).
+        /// </summary>
+        public bool CanPlayRelic(RelicCard card)
+        {
+            if (statusEffects == null) return true;
+            
+            // Check if non-weapon relics are disabled
+            if (!card.IsWeaponCard && statusEffects.AreNonWeaponRelicsDisabled())
+            {
+                Debug.Log($"<color=red>Non-weapon relics are disabled!</color>");
+                return false;
+            }
+            
+            return true;
+        }
+        
+        /// <summary>
+        /// Get the actual energy cost of a card after modifiers.
+        /// </summary>
+        public int GetActualCardCost(RelicCard card)
+        {
+            int actualCost = card.energyCost;
+            
+            if (statusEffects != null)
+            {
+                // Add general cost increase
+                int costIncrease = statusEffects.GetCardCostIncrease();
+                actualCost += costIncrease;
+                
+                // Add weapon cost increase if applicable
+                if (card.IsWeaponCard)
+                {
+                    int weaponCostIncrease = statusEffects.GetWeaponCostIncrease();
+                    actualCost += weaponCostIncrease;
+                }
+                
+                // Check for ranged cost reduction (non-melee weapons and ranged relics)
+                bool isRanged = !card.IsWeaponCard || 
+                    (card.sourceWeaponRelic?.baseWeaponData?.attackType != WeaponType.Melee);
+                if (isRanged)
+                {
+                    int rangedReduction = statusEffects.GetRangedCostReduction();
+                    actualCost = Mathf.Max(0, actualCost - rangedReduction);
+                }
+                
+                // Free move for boots cards
+                if (card.category == RelicCategory.Boots && statusEffects.HasFreeMove())
+                {
+                    actualCost = 0;
+                }
+            }
+            
+            return Mathf.Max(0, actualCost);
+        }
+        
+        public bool PlayCard(int handIndex, UnitStatus target = null, GridCell targetCell = null)
+        {
+            if (handIndex < 0 || handIndex >= hand.Count)
+            {
+                Debug.LogWarning("Invalid card index");
+                return false;
+            }
+            
+            // Check if can play cards at all
+            if (!CanPlayCards())
+            {
+                return false;
+            }
+            
+            var card = hand[handIndex];
+            
+            // Check if this specific relic can be played
+            if (!CanPlayRelic(card))
+            {
+                return false;
+            }
+            
+            // Calculate actual cost with all modifiers
+            int actualCost = GetActualCardCost(card);
+            bool usedFreeMove = false;
+            bool usedRangedReduction = false;
+            
+            // Track if we're using free move
+            if (card.category == RelicCategory.Boots && statusEffects != null && statusEffects.HasFreeMove())
+            {
+                usedFreeMove = true;
+                Debug.Log("<color=green>Using free move!</color>");
+            }
+            
+            // Track if we're using ranged reduction
+            if (statusEffects != null && statusEffects.GetRangedCostReduction() > 0)
+            {
+                bool isRanged = !card.IsWeaponCard || 
+                    (card.sourceWeaponRelic?.baseWeaponData?.attackType != WeaponType.Melee);
+                if (isRanged)
+                {
+                    usedRangedReduction = true;
+                }
+            }
+            
+            var energyManager = ServiceLocator.Get<EnergyManager>();
+            if (!energyManager.HasEnergy(actualCost))
+            {
+                Debug.Log($"Not enough energy! Need {actualCost}, have {energyManager.CurrentEnergy}");
+                return false;
+            }
+            
+            // Spend energy
+            energyManager.TrySpendEnergy(actualCost);
+            
+            // Consume buffs that were used
+            if (usedFreeMove && statusEffects != null)
+            {
+                statusEffects.ConsumeFreeMove();
+            }
+            if (usedRangedReduction && statusEffects != null)
+            {
+                statusEffects.ConsumeRangedCostReduction();
+            }
+            
+            // Log cost changes
+            if (actualCost != card.energyCost)
+            {
+                Debug.Log($"<color=yellow>Cost modified: {card.energyCost} -> {actualCost}</color>");
+            }
             
             // Track for effects
             cardsPlayedThisRound++;
@@ -264,6 +420,7 @@ namespace TacticalGame.Equipment
                 gunnerRelicsUsedThisGame++;
             }
             
+            // Execute the card effect
             if (card.IsWeaponCard)
             {
                 ExecuteWeaponCard(card, target);
@@ -273,6 +430,15 @@ namespace TacticalGame.Equipment
                 RelicEffectExecutor.Execute(card.sourceRelic, unitStatus, target, targetCell);
             }
             
+            // Check if relics should not be consumed (Cook PassiveUnique V2)
+            if (passiveManager != null && passiveManager.AreRelicsNotConsumed())
+            {
+                Debug.Log("<color=cyan>Relic not consumed - can be replayed!</color>");
+                // Card stays in hand, don't move to spent
+                return true;
+            }
+            
+            // Normal flow: remove from hand, add to spent
             hand.RemoveAt(handIndex);
             spentCards.Add(card);
             
@@ -350,7 +516,21 @@ namespace TacticalGame.Equipment
         
         public void OnTurnStart()
         {
-            DrawCards(cardsPerTurn);
+            // Calculate cards to draw (base - reduction from effects)
+            int drawCount = cardsPerTurn;
+            
+            if (statusEffects != null)
+            {
+                int reduction = statusEffects.GetCardDrawReduction();
+                drawCount = Mathf.Max(0, cardsPerTurn - reduction);
+                
+                if (reduction > 0)
+                {
+                    Debug.Log($"<color=red>Draw reduced by {reduction} (drawing {drawCount} instead of {cardsPerTurn})</color>");
+                }
+            }
+            
+            DrawCards(drawCount);
             ApplyPassiveEffects();
         }
         
@@ -358,11 +538,9 @@ namespace TacticalGame.Equipment
         {
             if (equipment == null) return;
             
-            // Check passive slot
-            var passiveSlot = equipment.PassiveSlot;
-            if (passiveSlot != null && !passiveSlot.IsEmpty && passiveSlot.categoryRelic != null)
+            foreach (var relic in equipment.GetPassiveRelics())
             {
-                Debug.Log($"<color=gray>Passive active: {passiveSlot.categoryRelic.relicName}</color>");
+                Debug.Log($"<color=gray>Passive active: {relic.relicName}</color>");
             }
         }
         
@@ -460,16 +638,20 @@ namespace TacticalGame.Equipment
         
         public bool HasPlayableCards()
         {
+            if (!CanPlayCards()) return false;
+            
             var energyManager = ServiceLocator.Get<EnergyManager>();
-            return hand.Any(c => energyManager.HasEnergy(c.energyCost));
+            return hand.Any(c => CanPlayRelic(c) && energyManager.HasEnergy(GetActualCardCost(c)));
         }
         
         public RelicCard GetCheapestPlayableCard()
         {
+            if (!CanPlayCards()) return null;
+            
             var energyManager = ServiceLocator.Get<EnergyManager>();
             return hand
-                .Where(c => energyManager.HasEnergy(c.energyCost))
-                .OrderBy(c => c.energyCost)
+                .Where(c => CanPlayRelic(c) && energyManager.HasEnergy(GetActualCardCost(c)))
+                .OrderBy(c => GetActualCardCost(c))
                 .FirstOrDefault();
         }
         
@@ -485,7 +667,11 @@ namespace TacticalGame.Equipment
             sb.AppendLine("--- Hand ---");
             foreach (var card in hand)
             {
-                sb.AppendLine($"  [{card.energyCost}] {card.GetDisplayName()}");
+                int actualCost = GetActualCardCost(card);
+                string costStr = actualCost != card.energyCost 
+                    ? $"[{card.energyCost}->{actualCost}]" 
+                    : $"[{card.energyCost}]";
+                sb.AppendLine($"  {costStr} {card.GetDisplayName()}");
             }
             return sb.ToString();
         }
