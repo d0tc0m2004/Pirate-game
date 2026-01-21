@@ -137,17 +137,15 @@ namespace TacticalGame.Equipment
                 Debug.Log($"<color=cyan>{gameObject.name}: +1 energy from passive</color>");
             }
             
-            // PassiveUnique_ExtraCards / ExtraCardsEachTurn - Quartermaster V1/Captain V2
-            if (HasPassive(RelicEffectType.PassiveUnique_ExtraCards) || 
-                HasPassive(RelicEffectType.PassiveUnique_ExtraCards))
+            // PassiveUnique_ExtraCards - Quartermaster V1
+            if (HasPassive(RelicEffectType.PassiveUnique_ExtraCards))
             {
                 cardDeck?.DrawCards(2);
                 Debug.Log($"<color=cyan>{gameObject.name}: +2 cards from passive</color>");
             }
             
-            // PassiveUnique_DrawPerGrog / DrawPerGrogToken - MasterGunner V1/Helmsman V2
-            if (HasPassive(RelicEffectType.PassiveUnique_DrawPerGrog) || 
-                HasPassive(RelicEffectType.PassiveUnique_DrawPerGrog))
+            // PassiveUnique_DrawPerGrog - MasterGunner V1
+            if (HasPassive(RelicEffectType.PassiveUnique_DrawPerGrog))
             {
                 var energyManager = ServiceLocator.Get<EnergyManager>();
                 int grog = energyManager?.GrogTokens ?? 0;
@@ -158,9 +156,8 @@ namespace TacticalGame.Equipment
                 }
             }
             
-            // Trinket_DrawIfHighHP / DrawIfHighHealth - Navigator V1/Boatswain V2
-            if (HasPassive(RelicEffectType.Trinket_DrawIfHighHP) || 
-                HasPassive(RelicEffectType.Trinket_DrawIfHighHP))
+            // Trinket_DrawIfHighHP - Navigator V1
+            if (HasPassive(RelicEffectType.Trinket_DrawIfHighHP))
             {
                 if (unitStatus.HPPercent > 0.6f)
                 {
@@ -169,21 +166,36 @@ namespace TacticalGame.Equipment
                 }
             }
             
-            // Trinket_DrawIfLowHP - Cook V2 (not in current enum, commented out)
-            // if (HasPassive(RelicEffectType.Trinket_DrawIfLowHP))
-            // {
-            //     if (unitStatus.HPPercent < 0.5f)
-            //     {
-            //         cardDeck?.DrawCards(1);
-            //         Debug.Log($"<color=cyan>{gameObject.name}: +1 card (low HP)</color>");
-            //     }
-            // }
+            // ==================== V2 TURN START PASSIVES ====================
+            
+            // Trinket_V2_GrogOnTurnStart - Master Gunner V2 (25% chance for free grog)
+            if (HasPassive(RelicEffectType.Trinket_V2_GrogOnTurnStart))
+            {
+                if (UnityEngine.Random.value < 0.25f)
+                {
+                    var energyManager = ServiceLocator.Get<EnergyManager>();
+                    energyManager?.AddGrog(1);
+                    Debug.Log($"<color=cyan>{gameObject.name}: +1 grog from passive (25% chance)</color>");
+                }
+            }
+            
+            // PassiveUnique_V2_CardMaster - Quartermaster V2 (cards cost 1 less is handled in GetCardCostReduction)
         }
 
         private void OnPlayerTurnEnd()
         {
             // PassiveUnique_DrawOnLowDamage - MasterAtArms V1
             // This would need damage tracking per turn
+            
+            // ==================== V2 TURN END PASSIVES ====================
+            
+            // Trinket_V2_HealOnTurnEnd - Surgeon V2 (heal 3% at turn end)
+            if (HasPassive(RelicEffectType.Trinket_V2_HealOnTurnEnd))
+            {
+                int heal = Mathf.RoundToInt(unitStatus.MaxHP * 0.03f);
+                unitStatus.Heal(heal);
+                Debug.Log($"<color=cyan>{gameObject.name}: Healed {heal} at turn end</color>");
+            }
         }
 
         private void OnRoundStart(int round)
@@ -221,28 +233,30 @@ namespace TacticalGame.Equipment
 
         private void HandleDamageTaken(int damage)
         {
-            // Trinket_KnockbackAttacker / KnockbackAttackerOnce - Cook V1/Shipwright V2
-            if ((HasPassive(RelicEffectType.Trinket_KnockbackAttacker) || 
-                 HasPassive(RelicEffectType.Trinket_KnockbackAttacker)) && 
-                !knockbackAttackerUsedThisTurn)
+            // Trinket_KnockbackAttacker - Cook V1
+            if (HasPassive(RelicEffectType.Trinket_KnockbackAttacker) && !knockbackAttackerUsedThisTurn)
             {
                 // Would need attacker reference - handled by StatusEffectManager
                 knockbackAttackerUsedThisTurn = true;
             }
 
-            // Check hull destruction for BonusDmgPerHullDestroyed tracking
-            if (unitStatus.CurrentHullPool <= 0 && unitStatus.HasHull)
+            // ==================== V2 DAMAGE TAKEN PASSIVES ====================
+            
+            // PassiveUnique_V2_LastStand - Boatswain V2 (50% survive at 1 HP)
+            if (HasPassive(RelicEffectType.PassiveUnique_V2_LastStand))
             {
-                // Hull was destroyed this hit
-                // Track for enemy passive if they have it
+                if (unitStatus.CurrentHP <= 0 && UnityEngine.Random.value < 0.5f)
+                {
+                    unitStatus.Heal(1); // Survive at 1 HP
+                    Debug.Log($"<color=yellow>{gameObject.name}: Last Stand triggered! Survived at 1 HP</color>");
+                }
             }
         }
 
         private void HandleAllyDamaged(GameObject ally, int damage)
         {
-            // PassiveUnique_CounterAttack / CounterAttackAlly - Navigator V1/Boatswain V2
-            if (HasPassive(RelicEffectType.PassiveUnique_CounterAttack) || 
-                HasPassive(RelicEffectType.PassiveUnique_CounterAttack))
+            // PassiveUnique_CounterAttack - Navigator V1
+            if (HasPassive(RelicEffectType.PassiveUnique_CounterAttack))
             {
                 // Attack the enemy that damaged ally
                 if (unitAttack != null)
@@ -251,11 +265,18 @@ namespace TacticalGame.Equipment
                     unitAttack.TryMeleeAttack(); // Would need to target specific enemy
                 }
             }
+            
+            // PassiveUnique_V2_Riposte - Swashbuckler V2 (30% counter on self damage handled separately)
         }
 
         private void HandleCaptainDamaged(GameObject captain, int damage)
         {
-            // Trinket_HealOnCaptainDamage handled by StatusEffectManager
+            // Trinket_V2_DrawOnCaptainHit - Quartermaster V2
+            if (HasPassive(RelicEffectType.Trinket_V2_DrawOnCaptainHit))
+            {
+                cardDeck?.DrawCards(1);
+                Debug.Log($"<color=cyan>{gameObject.name}: Drew card because captain was hit</color>");
+            }
         }
 
         private void OnUnitHealed(GameObject unit, int amount)
@@ -283,25 +304,15 @@ namespace TacticalGame.Equipment
 
         private void HandleEnemyDeath(GameObject enemy)
         {
-            // PassiveUnique_KillRestoreHealth - MasterAtArms V2 (not in current enum)
-            // if (HasPassive(RelicEffectType.PassiveUnique_KillRestoreHealth))
-            // {
-            //     int heal = Mathf.RoundToInt(unitStatus.MaxHP * 0.2f);
-            //     unitStatus.Heal(heal);
-            //     Debug.Log($"<color=cyan>{gameObject.name}: Healed {heal} from kill</color>");
-            // }
-
-            // PassiveUnique_KillRestoreAllyHP - Surgeon V2 (not in current enum)
-            // if (HasPassive(RelicEffectType.PassiveUnique_KillRestoreAllyHP))
-            // {
-            //     var allies = GetAllies();
-            //     foreach (var ally in allies)
-            //     {
-            //         int heal = Mathf.RoundToInt(ally.MaxHP * 0.05f);
-            //         ally.Heal(heal);
-            //     }
-            //     Debug.Log($"<color=cyan>{gameObject.name}: Healed all allies 5% from kill</color>");
-            // }
+            // ==================== V2 KILL PASSIVES ====================
+            
+            // Trinket_V2_MoraleOnKill - Helmsman V2 (gain 10% morale on kill)
+            if (HasPassive(RelicEffectType.Trinket_V2_MoraleOnKill))
+            {
+                int moraleGain = Mathf.RoundToInt(unitStatus.MaxMorale * 0.10f);
+                unitStatus.RestoreMorale(moraleGain);
+                Debug.Log($"<color=cyan>{gameObject.name}: +{moraleGain} morale from kill</color>");
+            }
 
             // Totem_EnemyDeathMoraleSwing - Boatswain V1
             if (HasPassive(RelicEffectType.Totem_EnemyDeathMoraleSwing))
@@ -428,6 +439,44 @@ namespace TacticalGame.Equipment
                 bonus += 0.1f; // +10% vs same row enemies
             }
 
+            // ==================== V2 DAMAGE BONUSES ====================
+            
+            // Trinket_V2_BonusDamagePerAlly - Captain V2 (+5% per ally)
+            if (HasPassive(RelicEffectType.Trinket_V2_BonusDamagePerAlly))
+            {
+                int allyCount = GetAllies().Count;
+                bonus += allyCount * 0.05f;
+            }
+            
+            // Trinket_V2_CritChance - Swashbuckler V2 (15% chance for +50%)
+            if (HasPassive(RelicEffectType.Trinket_V2_CritChance))
+            {
+                if (UnityEngine.Random.value < 0.15f)
+                {
+                    bonus += 0.5f;
+                    Debug.Log($"<color=yellow>{gameObject.name}: Critical hit! +50% damage</color>");
+                }
+            }
+            
+            // Trinket_V2_BonusVsFullHP - Deckhand V2 (+25% vs full HP)
+            if (HasPassive(RelicEffectType.Trinket_V2_BonusVsFullHP) && 
+                target != null && target.HPPercent >= 0.99f)
+            {
+                bonus += 0.25f;
+            }
+            
+            // PassiveUnique_V2_Sniper - Deckhand V2 (+20% at max range)
+            if (HasPassive(RelicEffectType.PassiveUnique_V2_Sniper) && target != null)
+            {
+                float dist = Vector3.Distance(transform.position, target.transform.position);
+                if (dist >= 5f) // Max range assumed 5 tiles
+                {
+                    bonus += 0.2f;
+                }
+            }
+            
+            // PassiveUnique_V2_TeamLeader - Captain V2 (handled via aura)
+
             return bonus;
         }
 
@@ -460,6 +509,17 @@ namespace TacticalGame.Equipment
             {
                 reduction += 0.1f; // -10% from same row enemies
             }
+
+            // ==================== V2 DAMAGE REDUCTION ====================
+            
+            // Trinket_V2_ArmorOnLowHP - MasterAtArms V2 (+50% armor below 30%)
+            if (HasPassive(RelicEffectType.Trinket_V2_ArmorOnLowHP) && 
+                unitStatus.HPPercent < 0.3f)
+            {
+                reduction += 0.5f;
+            }
+            
+            // PassiveUnique_V2_Unstoppable - MasterAtArms V2 (handled in StatusEffectManager)
 
             return reduction;
         }
@@ -758,6 +818,164 @@ namespace TacticalGame.Equipment
         public bool ShouldIgnoreRoles()
         {
             return HasPassive(RelicEffectType.PassiveUnique_IgnoreRoles);
+        }
+        
+        // ==================== V2 PASSIVE METHODS ====================
+        
+        /// <summary>
+        /// Get card cost reduction from PassiveUnique_V2_CardMaster.
+        /// </summary>
+        public int GetCardCostReduction()
+        {
+            if (HasPassive(RelicEffectType.PassiveUnique_V2_CardMaster))
+            {
+                return 1; // All cards cost 1 less
+            }
+            return 0;
+        }
+        
+        /// <summary>
+        /// Get heal effectiveness multiplier from PassiveUnique_V2_Medic.
+        /// </summary>
+        public float GetHealEffectivenessMultiplier()
+        {
+            if (HasPassive(RelicEffectType.PassiveUnique_V2_Medic))
+            {
+                return 1.25f; // Heals are 25% more effective
+            }
+            return 1f;
+        }
+        
+        /// <summary>
+        /// Check if grog consumption should be halved (PassiveUnique_V2_Efficient).
+        /// </summary>
+        public bool ShouldHalveGrogConsumption()
+        {
+            if (HasPassive(RelicEffectType.PassiveUnique_V2_Efficient))
+            {
+                return UnityEngine.Random.value < 0.5f; // 50% chance not consumed
+            }
+            return false;
+        }
+        
+        /// <summary>
+        /// Check if buzz penalties become bonuses (PassiveUnique_V2_DrunkMaster).
+        /// </summary>
+        public bool BuzzGivesBonuses()
+        {
+            return HasPassive(RelicEffectType.PassiveUnique_V2_DrunkMaster);
+        }
+        
+        /// <summary>
+        /// Check if unit can't be stunned/slowed (PassiveUnique_V2_Unstoppable).
+        /// </summary>
+        public bool IsUnstoppable()
+        {
+            return HasPassive(RelicEffectType.PassiveUnique_V2_Unstoppable);
+        }
+        
+        /// <summary>
+        /// Get movement bonus from Trinket_V2_SpeedOnHighHP.
+        /// </summary>
+        public int GetSpeedBonus()
+        {
+            if (HasPassive(RelicEffectType.Trinket_V2_SpeedOnHighHP) && unitStatus.HPPercent > 0.7f)
+            {
+                return 1; // +1 movement above 70% HP
+            }
+            return 0;
+        }
+        
+        /// <summary>
+        /// Get food buff duration multiplier from Trinket_V2_FoodDoubleDuration.
+        /// </summary>
+        public int GetFoodDurationMultiplier()
+        {
+            if (HasPassive(RelicEffectType.Trinket_V2_FoodDoubleDuration))
+            {
+                return 2; // Food buffs last twice as long
+            }
+            return 1;
+        }
+        
+        /// <summary>
+        /// Check if ally should surrender at lower threshold (Trinket_V2_AllySurrenderLater).
+        /// </summary>
+        public bool AlliesSurrenderLater()
+        {
+            return HasPassive(RelicEffectType.Trinket_V2_AllySurrenderLater);
+        }
+        
+        /// <summary>
+        /// Check if buzz should not cause penalty (Trinket_V2_NoBuzzPenalty).
+        /// </summary>
+        public bool NoBuzzPenalty()
+        {
+            return HasPassive(RelicEffectType.Trinket_V2_NoBuzzPenalty) || 
+                   HasPassive(RelicEffectType.PassiveUnique_NoBuzzDownside);
+        }
+        
+        /// <summary>
+        /// Get additional heal from food (PassiveUnique_V2_Nourishing).
+        /// </summary>
+        public float GetFoodHealBonus()
+        {
+            if (HasPassive(RelicEffectType.PassiveUnique_V2_Nourishing))
+            {
+                return 0.1f; // Food heals 10% HP additionally
+            }
+            return 0f;
+        }
+        
+        /// <summary>
+        /// Check for counter-attack chance (PassiveUnique_V2_Riposte).
+        /// </summary>
+        public bool ShouldRiposte()
+        {
+            if (HasPassive(RelicEffectType.PassiveUnique_V2_Riposte))
+            {
+                return UnityEngine.Random.value < 0.3f; // 30% chance
+            }
+            return false;
+        }
+        
+        /// <summary>
+        /// Get ally morale bonus on attack (PassiveUnique_V2_Inspiring).
+        /// </summary>
+        public void TriggerInspiringOnAttack()
+        {
+            if (HasPassive(RelicEffectType.PassiveUnique_V2_Inspiring))
+            {
+                var allies = GetAllies();
+                foreach (var ally in allies)
+                {
+                    if (ally != unitStatus)
+                    {
+                        ally.RestoreMorale(Mathf.RoundToInt(ally.MaxMorale * 0.05f));
+                    }
+                }
+                Debug.Log($"<color=cyan>{gameObject.name}: Inspired allies +5% morale</color>");
+            }
+        }
+        
+        /// <summary>
+        /// Apply team leader aura (PassiveUnique_V2_TeamLeader).
+        /// </summary>
+        public void ApplyTeamLeaderAura()
+        {
+            if (HasPassive(RelicEffectType.PassiveUnique_V2_TeamLeader))
+            {
+                var allies = GetNearbyAllies(2); // 2 tile radius
+                foreach (var ally in allies)
+                {
+                    if (ally != unitStatus)
+                    {
+                        var effects = ally.GetComponent<StatusEffectManager>();
+                        effects?.ApplyEffect(StatusEffect.CreateDamageBoost(1, 0.1f, gameObject));
+                        effects?.ApplyEffect(StatusEffect.CreateDamageReduction(1, 0.1f, gameObject));
+                    }
+                }
+            }
         }
 
         #endregion
