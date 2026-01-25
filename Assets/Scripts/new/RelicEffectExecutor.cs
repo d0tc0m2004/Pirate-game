@@ -1327,23 +1327,58 @@ namespace TacticalGame.Equipment
         
         private static void DrawCards(UnitStatus unit, int count)
         {
-            var deck = unit.GetComponent<CardDeckManager>();
-            deck?.DrawCards(count);
-            Debug.Log($"{unit.UnitName} drew {count} cards");
+            var deckManager = BattleDeckManager.Instance;
+            if (deckManager != null)
+            {
+                for (int i = 0; i < count; i++)
+                {
+                    deckManager.DrawOneCard();
+                }
+                Debug.Log($"{unit.UnitName} drew {count} cards");
+            }
+            else
+            {
+                Debug.Log($"{unit.UnitName} tried to draw {count} cards but no deck manager");
+            }
         }
         
         private static void DrawUltimateCard(UnitStatus unit)
         {
-            var deck = unit.GetComponent<CardDeckManager>();
-            deck?.DrawCardByCategory(RelicCategory.Ultimate);
-            Debug.Log($"{unit.UnitName} drew an ultimate card");
+            var deckManager = BattleDeckManager.Instance;
+            if (deckManager != null)
+            {
+                deckManager.DrawCardByCategory(unit, RelicCategory.Ultimate);
+            }
+            else
+            {
+                Debug.Log($"{unit.UnitName} tried to draw ultimate but no deck manager");
+            }
         }
         
         private static void DrawWeaponRelicCard(UnitStatus unit)
         {
-            var deck = unit.GetComponent<CardDeckManager>();
-            deck?.DrawCardByCategory(RelicCategory.Gloves);
-            Debug.Log($"{unit.UnitName} drew a weapon relic card");
+            var deckManager = BattleDeckManager.Instance;
+            if (deckManager != null)
+            {
+                deckManager.DrawCardByCategory(unit, RelicCategory.Weapon);
+            }
+            else
+            {
+                Debug.Log($"{unit.UnitName} tried to draw weapon but no deck manager");
+            }
+        }
+        
+        private static void DrawBootsCard(UnitStatus unit)
+        {
+            var deckManager = BattleDeckManager.Instance;
+            if (deckManager != null)
+            {
+                deckManager.DrawCardByCategory(unit, RelicCategory.Boots);
+            }
+            else
+            {
+                Debug.Log($"{unit.UnitName} tried to draw boots but no deck manager");
+            }
         }
         
         private static void AddHighQualityRum(UnitStatus unit, int count)
@@ -1677,8 +1712,15 @@ namespace TacticalGame.Equipment
         
         private static void ForceDiscard(UnitStatus target, int count)
         {
-            // CardDeckManager doesn't have DiscardCards - log placeholder
-            Debug.Log($"{target.UnitName} forced to discard {count} cards (placeholder)");
+            var deckManager = BattleDeckManager.Instance;
+            if (deckManager == null)
+            {
+                Debug.Log($"{target.UnitName} forced to discard {count} cards (no deck manager)");
+                return;
+            }
+            
+            int discarded = deckManager.ForceDiscardFromUnit(target, count);
+            Debug.Log($"{target.UnitName} forced to discard {discarded} cards");
         }
         
         private static void ApplySlow(UnitStatus unit, int reduction, int duration)
@@ -1750,9 +1792,15 @@ namespace TacticalGame.Equipment
         
         private static void DrawBootsRelicCard(UnitStatus unit)
         {
-            var deck = unit.GetComponent<CardDeckManager>();
-            deck?.DrawCardByCategory(RelicCategory.Boots);
-            Debug.Log($"{unit.UnitName} drew a boots relic card");
+            var deckManager = BattleDeckManager.Instance;
+            if (deckManager != null)
+            {
+                deckManager.DrawCardByCategory(unit, RelicCategory.Boots);
+            }
+            else
+            {
+                Debug.Log($"{unit.UnitName} tried to draw boots but no deck manager");
+            }
         }
         
         private static void RestoreMoraleToAllAllies(UnitStatus caster, float percent)

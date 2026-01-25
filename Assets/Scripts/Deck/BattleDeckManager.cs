@@ -24,7 +24,7 @@ namespace TacticalGame.Equipment
             {
                 if (_instance == null)
                 {
-                    _instance = FindFirstObjectByType<BattleDeckManager>();
+                    _instance = FindObjectOfType<BattleDeckManager>();
                     if (_instance == null)
                     {
                         var go = new GameObject("BattleDeckManager");
@@ -345,6 +345,58 @@ namespace TacticalGame.Equipment
         }
         
         /// <summary>
+        /// Draw a specific card from deck to hand (for effects that draw specific card types).
+        /// </summary>
+        public bool DrawSpecificCard(BattleCard card)
+        {
+            if (card == null || !deck.Contains(card))
+            {
+                return false;
+            }
+            
+            deck.Remove(card);
+            hand.Add(card);
+            
+            OnCardDrawn?.Invoke(card);
+            OnHandChanged?.Invoke(hand);
+            
+            Debug.Log($"<color=green>Drew specific: {card.GetDisplayName()}</color>");
+            
+            return true;
+        }
+        
+        /// <summary>
+        /// Find and draw a card of specific category belonging to a unit.
+        /// </summary>
+        public bool DrawCardByCategory(UnitStatus unit, RelicCategory category)
+        {
+            var card = deck.FirstOrDefault(c => 
+                c.category == category && c.BelongsTo(unit));
+            
+            if (card != null)
+            {
+                return DrawSpecificCard(card);
+            }
+            
+            // Also check discard pile
+            card = discardPile.FirstOrDefault(c => 
+                c.category == category && c.BelongsTo(unit));
+            
+            if (card != null)
+            {
+                discardPile.Remove(card);
+                hand.Add(card);
+                OnCardDrawn?.Invoke(card);
+                OnHandChanged?.Invoke(hand);
+                Debug.Log($"<color=green>Drew from discard: {card.GetDisplayName()}</color>");
+                return true;
+            }
+            
+            Debug.Log($"{unit.UnitName} has no {category} card available");
+            return false;
+        }
+        
+        /// <summary>
         /// Discard all non-stowed cards from hand at end of turn.
         /// </summary>
         public void DiscardNonStowedCards()
@@ -566,6 +618,49 @@ namespace TacticalGame.Equipment
             Debug.Log($"<color=orange>Discarded {card.GetDisplayName()} and drew new card</color>");
             
             return true;
+        }
+        
+        /// <summary>
+        /// Force discard a card without energy cost (for enemy effects).
+        /// </summary>
+        public bool ForceDiscardCard(BattleCard card)
+        {
+            if (!hand.Contains(card))
+            {
+                return false;
+            }
+            
+            hand.Remove(card);
+            card.isStowed = false;
+            discardPile.Add(card);
+            
+            OnCardDiscarded?.Invoke(card);
+            OnHandChanged?.Invoke(hand);
+            
+            Debug.Log($"<color=red>Forced discard: {card.GetDisplayName()}</color>");
+            
+            return true;
+        }
+        
+        /// <summary>
+        /// Force discard random cards from a specific unit.
+        /// </summary>
+        public int ForceDiscardFromUnit(UnitStatus unit, int count)
+        {
+            var unitCards = hand.Where(c => c.BelongsTo(unit)).ToList();
+            int discarded = 0;
+            
+            for (int i = 0; i < count && unitCards.Count > 0; i++)
+            {
+                var card = unitCards[Random.Range(0, unitCards.Count)];
+                if (ForceDiscardCard(card))
+                {
+                    unitCards.Remove(card);
+                    discarded++;
+                }
+            }
+            
+            return discarded;
         }
         
         #endregion

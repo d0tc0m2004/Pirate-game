@@ -21,7 +21,6 @@ namespace TacticalGame.Equipment
 
         private UnitStatus unitStatus;
         private UnitAttack unitAttack;
-        private CardDeckManager cardDeck;
         private StatusEffectManager statusEffects;
         private UnitEquipmentUpdated equipment;
         
@@ -29,8 +28,8 @@ namespace TacticalGame.Equipment
         
         // Tracking for conditional passives
         private bool knockbackAttackerUsedThisTurn = false;
-        // private int weaponsUsedOnCurrentTarget = 0;
-        // private GameObject currentTarget;
+        private int weaponsUsedOnCurrentTarget = 0;
+        private GameObject currentTarget;
         private int hullsDestroyedThisGame = 0;
 
         #endregion
@@ -39,6 +38,16 @@ namespace TacticalGame.Equipment
 
         public IReadOnlyList<RelicEffectType> ActivePassives => activePassives;
         public int HullsDestroyedThisGame => hullsDestroyedThisGame;
+        
+        /// <summary>
+        /// Get shared deck manager or null.
+        /// </summary>
+        private BattleDeckManager DeckManager => BattleDeckManager.Instance;
+        
+        /// <summary>
+        /// Get cards in hand count from shared deck.
+        /// </summary>
+        private int CardsInHand => DeckManager?.HandCount ?? 0;
 
         #endregion
 
@@ -48,7 +57,6 @@ namespace TacticalGame.Equipment
         {
             unitStatus = GetComponent<UnitStatus>();
             unitAttack = GetComponent<UnitAttack>();
-            cardDeck = GetComponent<CardDeckManager>();
             statusEffects = GetComponent<StatusEffectManager>();
             equipment = GetComponent<UnitEquipmentUpdated>();
         }
@@ -140,7 +148,7 @@ namespace TacticalGame.Equipment
             // PassiveUnique_ExtraCards - Quartermaster V1
             if (HasPassive(RelicEffectType.PassiveUnique_ExtraCards))
             {
-                cardDeck?.DrawCards(2);
+                DrawFromSharedDeck(2);
                 Debug.Log($"<color=cyan>{gameObject.name}: +2 cards from passive</color>");
             }
             
@@ -151,7 +159,7 @@ namespace TacticalGame.Equipment
                 int grog = energyManager?.GrogTokens ?? 0;
                 if (grog > 0)
                 {
-                    cardDeck?.DrawCards(grog);
+                    DrawFromSharedDeck(grog);
                     Debug.Log($"<color=cyan>{gameObject.name}: +{grog} cards from grog</color>");
                 }
             }
@@ -161,7 +169,7 @@ namespace TacticalGame.Equipment
             {
                 if (unitStatus.HPPercent > 0.6f)
                 {
-                    cardDeck?.DrawCards(1);
+                    DrawFromSharedDeck(1);
                     Debug.Log($"<color=cyan>{gameObject.name}: +1 card (high HP)</color>");
                 }
             }
@@ -200,8 +208,8 @@ namespace TacticalGame.Equipment
 
         private void OnRoundStart(int round)
         {
-            // weaponsUsedOnCurrentTarget = 0;
-            // currentTarget = null;
+            weaponsUsedOnCurrentTarget = 0;
+            currentTarget = null;
         }
 
         private void OnUnitDamaged(GameObject unit, int damage)
@@ -274,7 +282,7 @@ namespace TacticalGame.Equipment
             // Trinket_V2_DrawOnCaptainHit - Quartermaster V2
             if (HasPassive(RelicEffectType.Trinket_V2_DrawOnCaptainHit))
             {
-                cardDeck?.DrawCards(1);
+                DrawFromSharedDeck(1);
                 Debug.Log($"<color=cyan>{gameObject.name}: Drew card because captain was hit</color>");
             }
         }
@@ -392,7 +400,7 @@ namespace TacticalGame.Equipment
             // Trinket_BonusDamagePerCard - Captain V1
             if (HasPassive(RelicEffectType.Trinket_BonusDamagePerCard))
             {
-                int cardsInHand = cardDeck?.CardsInHand ?? 0;
+                int cardsInHand = CardsInHand;
                 bonus += cardsInHand * 0.2f; // +20% per card
             }
 
@@ -810,6 +818,20 @@ namespace TacticalGame.Equipment
                 Vector3.Distance(transform.position, e.transform.position)).First();
             
             return closest == attacker;
+        }
+        
+        /// <summary>
+        /// Draw cards from the shared battle deck.
+        /// </summary>
+        private void DrawFromSharedDeck(int count)
+        {
+            if (DeckManager != null)
+            {
+                for (int i = 0; i < count; i++)
+                {
+                    DeckManager.DrawOneCard();
+                }
+            }
         }
 
         /// <summary>

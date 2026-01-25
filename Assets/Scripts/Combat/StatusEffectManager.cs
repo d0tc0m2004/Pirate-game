@@ -21,7 +21,6 @@ namespace TacticalGame.Combat
 
         private List<StatusEffect> activeEffects = new List<StatusEffect>();
         private UnitStatus unitStatus;
-        private CardDeckManager cardDeck;
         private UnitAttack unitAttack;
 
         #endregion
@@ -31,6 +30,11 @@ namespace TacticalGame.Combat
         public List<StatusEffect> ActiveEffects => activeEffects;
         public int DebuffCount => activeEffects.Count(e => e.isDebuff);
         public int BuffCount => activeEffects.Count(e => !e.isDebuff);
+        
+        /// <summary>
+        /// Get shared deck manager.
+        /// </summary>
+        private BattleDeckManager DeckManager => BattleDeckManager.Instance;
 
         /// <summary>
         /// Get all active debuffs on this unit.
@@ -67,7 +71,6 @@ namespace TacticalGame.Combat
         private void Awake()
         {
             unitStatus = GetComponent<UnitStatus>();
-            cardDeck = GetComponent<CardDeckManager>();
             unitAttack = GetComponent<UnitAttack>();
         }
 
@@ -755,7 +758,7 @@ namespace TacticalGame.Combat
                 StatusEffect effect = GetEffect(StatusEffectType.DrawOnEnemyAttack);
                 if (!effect.triggeredThisTurn && effect.value1 > 0)
                 {
-                    cardDeck?.DrawCards(1);
+                    DeckManager?.DrawOneCard();
                     effect.value1--;
                     effect.triggeredThisTurn = true;
                     Debug.Log($"{gameObject.name} drew a card from being attacked!");
