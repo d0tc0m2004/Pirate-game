@@ -70,6 +70,8 @@ namespace TacticalGame.Equipment
         
         #endregion
         
+        public bool IsTargeting => isTargeting;
+
         #region Unity Lifecycle
         
         private void Awake()

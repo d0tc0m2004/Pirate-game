@@ -82,6 +82,9 @@ namespace TacticalGame.Managers
 
             ResetUnitsForNewTurn();
             
+            // Initialize the deck system with deployed units
+            TacticalGame.Equipment.BattleDeckManager.Instance.BuildDeckFromScene();
+            
             GameEvents.TriggerBattleStart();
             GameEvents.TriggerRoundStart(currentRound);
             

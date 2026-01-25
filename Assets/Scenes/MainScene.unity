@@ -24552,6 +24552,71 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1489838085}
   m_CullTransparentMesh: 1
+--- !u!1 &1503336616
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1503336618}
+  - component: {fileID: 1503336617}
+  m_Layer: 0
+  m_Name: BattleDeckUI
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1503336617
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1503336616}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c5185a9b7cb3b974491faf6197dd5185, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::TacticalGame.Equipment.BattleDeckUI
+  handContainer: {fileID: 0}
+  deckPileContainer: {fileID: 0}
+  discardPileContainer: {fileID: 0}
+  passivesButton: {fileID: 0}
+  passivesPanel: {fileID: 0}
+  cardUIPrefab: {fileID: 0}
+  deckPileIcon: {fileID: 0}
+  deckCountText: {fileID: 0}
+  discardPileIcon: {fileID: 0}
+  discardCountText: {fileID: 0}
+  cardSpacing: 80
+  fanAngle: 5
+  fanArcHeight: 20
+  selectedLift: 50
+  hoverLift: 30
+  playableColor: {r: 1, g: 1, b: 1, a: 1}
+  unplayableColor: {r: 0.5, g: 0.5, b: 0.5, a: 0.8}
+  stowedColor: {r: 0.7, g: 0.9, b: 1, a: 1}
+  selectedColor: {r: 1, g: 1, b: 0.7, a: 1}
+  targetingOverlay: {fileID: 0}
+  targetingPrompt: {fileID: 0}
+--- !u!4 &1503336618
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1503336616}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 314.43335, y: 200.10545, z: -571.6873}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1506806515
 GameObject:
   m_ObjectHideFlags: 0
@@ -31639,20 +31704,20 @@ MonoBehaviour:
   cardWidth: 140
   cardHeight: 200
   cardSpacing: 15
-  bottomOffset: 30
+  fanAngle: 3
   hoverLift: 30
   hoverScale: 1.15
-  weaponColor: {r: 0.7, g: 0.25, b: 0.2, a: 1}
-  bootsColor: {r: 0.2, g: 0.5, b: 0.3, a: 1}
-  glovesColor: {r: 0.5, g: 0.35, b: 0.2, a: 1}
-  hatColor: {r: 0.3, g: 0.3, b: 0.6, a: 1}
-  coatColor: {r: 0.4, g: 0.25, b: 0.5, a: 1}
-  totemColor: {r: 0.5, g: 0.2, b: 0.4, a: 1}
-  trinketColor: {r: 0.3, g: 0.45, b: 0.45, a: 1}
-  ultimateColor: {r: 0.6, g: 0.4, b: 0.1, a: 1}
-  passiveColor: {r: 0.2, g: 0.4, b: 0.2, a: 1}
-  emptyColor: {r: 0.12, g: 0.12, b: 0.15, a: 1}
-  hoverTint: {r: 1.3, g: 1.3, b: 1.3, a: 1}
+  animationSpeed: 8
+  bottomOffset: 30
+  canvas: {fileID: 0}
+  cardContainer: {fileID: 0}
+  selectedUnit: {fileID: 0}
+  selectedEquipment: {fileID: 0}
+  selectedStatus: {fileID: 0}
+  isVisible: 0
+  hoveredIndex: -1
+  pendingUnit: {fileID: 0}
+  energyManager: {fileID: 0}
 --- !u!1 &1965020004
 GameObject:
   m_ObjectHideFlags: 0
@@ -34695,3 +34760,4 @@ SceneRoots:
   - {fileID: 1277437721}
   - {fileID: 377888728}
   - {fileID: 1951657235}
+  - {fileID: 1503336618}

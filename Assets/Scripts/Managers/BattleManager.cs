@@ -7,6 +7,7 @@ using TacticalGame.Grid;
 using TacticalGame.Units;
 using TacticalGame.Enums;
 using TacticalGame.Combat;
+using TacticalGame.Equipment;
 
 namespace TacticalGame.Managers
 {
@@ -120,6 +121,23 @@ namespace TacticalGame.Managers
             Ray ray = UnityEngine.Camera.main.ScreenPointToRay(Input.mousePosition);
             
             if (!Physics.Raycast(ray, out RaycastHit hit)) return;
+
+            // Handle Card Targeting (Deck System)
+            if (BattleDeckUI.Instance != null && BattleDeckUI.Instance.IsTargeting)
+            {
+                UnitStatus targetUnit = hit.collider.GetComponent<UnitStatus>();
+                GridCell targetCell = hit.collider.GetComponent<GridCell>();
+
+                // If we hit a unit, we can also check the cell under it
+                if (targetUnit != null)
+                {
+                    // Optionally get the cell under the unit if needed
+                    // But usually passing the unit is enough
+                }
+
+                BattleDeckUI.Instance.OnTargetSelected(targetUnit, targetCell);
+                return; // Block normal selection/movement
+            }
 
             // Handle swap mode
             if (isSwapping && selectedUnit != null)

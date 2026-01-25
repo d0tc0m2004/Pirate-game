@@ -1126,6 +1126,9 @@ GameObject:
   - component: {fileID: 56234268288940301}
   - component: {fileID: 9083857698501999579}
   - component: {fileID: 8347364024277081276}
+  - component: {fileID: 7316572330769245059}
+  - component: {fileID: -290446425479263322}
+  - component: {fileID: -952175799407359631}
   m_Layer: 0
   m_Name: Player_Boatswain
   m_TagString: Unit
@@ -1240,6 +1243,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 899ff689f5f535c469c80a3c5585b6e4, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::TacticalGame.Units.UnitAttack
+  attackEnergyCost: 1
 --- !u!114 &9083857698501999579
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1269,22 +1273,242 @@ MonoBehaviour:
   role: 2
   team: 0
   weaponType: 0
+  primaryStat: 0
+  secondaryPrimaryStat: 0
+  secondaryStat: 0
+  hasTwoPrimaryStats: 0
   maxHP: 100
   currentHP: 0
   maxMorale: 100
   currentMorale: 0
-  grit: 0
-  buzz: 0
   power: 0
   aim: 0
-  proficiency: 0
-  skill: 0
   tactics: 0
-  speed: 0
+  skill: 0
+  proficiency: 0
+  grit: 0
   hull: 0
+  speed: 0
+  maxBuzz: 100
   currentBuzz: 0
   currentArrows: 0
+  maxHullPool: 0
+  currentHullPool: 0
   whiteFlagVisual: {fileID: 0}
+--- !u!114 &7316572330769245059
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6888493511116314572}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9c122fb44c323e748856d188adb9fb32, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::TacticalGame.Equipment.UnitEquipmentUpdated
+  unitRole: 0
+  weaponFamily: 0
+  weaponRelic:
+    weaponFamily: 0
+    baseWeaponData: {fileID: 0}
+    roleTag: 0
+    effectTier: 0
+    effectData:
+      effectName: 
+      description: 
+      effectType: 0
+      value1: 0
+      value2: 0
+      duration: 0
+      bonusDamagePercent: 0
+      rarity: 0
+    relicName: 
+    fullDescription: 
+  bootsRelic:
+    category: 0
+    roleTag: 0
+    effectData:
+      category: 0
+      roleTag: 0
+      isVariant2: 0
+      effectName: 
+      rarity: 0
+      copies: 2
+      energyCost: 1
+      isPassive: 0
+      effectType: 0
+      description: 
+      value1: 0
+      value2: 0
+      duration: 0
+      tileRange: 1
+    relicName: 
+    fullDescription: 
+  glovesRelic:
+    category: 0
+    roleTag: 0
+    effectData:
+      category: 0
+      roleTag: 0
+      isVariant2: 0
+      effectName: 
+      rarity: 0
+      copies: 2
+      energyCost: 1
+      isPassive: 0
+      effectType: 0
+      description: 
+      value1: 0
+      value2: 0
+      duration: 0
+      tileRange: 1
+    relicName: 
+    fullDescription: 
+  hatRelic:
+    category: 0
+    roleTag: 0
+    effectData:
+      category: 0
+      roleTag: 0
+      isVariant2: 0
+      effectName: 
+      rarity: 0
+      copies: 2
+      energyCost: 1
+      isPassive: 0
+      effectType: 0
+      description: 
+      value1: 0
+      value2: 0
+      duration: 0
+      tileRange: 1
+    relicName: 
+    fullDescription: 
+  coatRelic:
+    category: 0
+    roleTag: 0
+    effectData:
+      category: 0
+      roleTag: 0
+      isVariant2: 0
+      effectName: 
+      rarity: 0
+      copies: 2
+      energyCost: 1
+      isPassive: 0
+      effectType: 0
+      description: 
+      value1: 0
+      value2: 0
+      duration: 0
+      tileRange: 1
+    relicName: 
+    fullDescription: 
+  trinketRelic:
+    category: 0
+    roleTag: 0
+    effectData:
+      category: 0
+      roleTag: 0
+      isVariant2: 0
+      effectName: 
+      rarity: 0
+      copies: 2
+      energyCost: 1
+      isPassive: 0
+      effectType: 0
+      description: 
+      value1: 0
+      value2: 0
+      duration: 0
+      tileRange: 1
+    relicName: 
+    fullDescription: 
+  totemRelic:
+    category: 0
+    roleTag: 0
+    effectData:
+      category: 0
+      roleTag: 0
+      isVariant2: 0
+      effectName: 
+      rarity: 0
+      copies: 2
+      energyCost: 1
+      isPassive: 0
+      effectType: 0
+      description: 
+      value1: 0
+      value2: 0
+      duration: 0
+      tileRange: 1
+    relicName: 
+    fullDescription: 
+  ultimateRelic:
+    category: 0
+    roleTag: 0
+    effectData:
+      category: 0
+      roleTag: 0
+      isVariant2: 0
+      effectName: 
+      rarity: 0
+      copies: 2
+      energyCost: 1
+      isPassive: 0
+      effectType: 0
+      description: 
+      value1: 0
+      value2: 0
+      duration: 0
+      tileRange: 1
+    relicName: 
+    fullDescription: 
+  passiveUniqueRelic:
+    category: 0
+    roleTag: 0
+    effectData:
+      category: 0
+      roleTag: 0
+      isVariant2: 0
+      effectName: 
+      rarity: 0
+      copies: 2
+      energyCost: 1
+      isPassive: 0
+      effectType: 0
+      description: 
+      value1: 0
+      value2: 0
+      duration: 0
+      tileRange: 1
+    relicName: 
+    fullDescription: 
+--- !u!114 &-290446425479263322
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6888493511116314572}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fe50c80d82257cb4e80f55d76de9eb8e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::TacticalGame.Equipment.PassiveRelicManager
+--- !u!114 &-952175799407359631
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6888493511116314572}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 47c08bbd525913940a333409260343b1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::TacticalGame.Combat.StatusEffectManager
 --- !u!1 &6931251000359353874
 GameObject:
   m_ObjectHideFlags: 0
@@ -1597,9 +1821,11 @@ MonoBehaviour:
   hpSlider: {fileID: 1448385738745759682}
   moraleSlider: {fileID: 8555329093321514294}
   buzzSlider: {fileID: 8431576664492871276}
+  hullSlider: {fileID: 0}
   hpNumberText: {fileID: 182401608769952675}
   moraleNumberText: {fileID: 1284809055380433698}
   arrowText: {fileID: 456247747550407562}
+  hullNumberText: {fileID: 0}
 --- !u!1 &8009854581901578320
 GameObject:
   m_ObjectHideFlags: 0

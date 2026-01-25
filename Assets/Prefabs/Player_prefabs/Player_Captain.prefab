@@ -1511,6 +1511,9 @@ GameObject:
   - component: {fileID: 6167906041568862755}
   - component: {fileID: 124647761238907364}
   - component: {fileID: 7589837826439877113}
+  - component: {fileID: 5431250343689487435}
+  - component: {fileID: -1278779466361436662}
+  - component: {fileID: -5454450040501640045}
   m_Layer: 0
   m_Name: Player_Captain
   m_TagString: Unit
@@ -1682,6 +1685,220 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::TacticalGame.Units.UnitMovement
   moveRange: 3
+--- !u!114 &5431250343689487435
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6888493511116314572}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 47c08bbd525913940a333409260343b1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::TacticalGame.Combat.StatusEffectManager
+--- !u!114 &-1278779466361436662
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6888493511116314572}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fe50c80d82257cb4e80f55d76de9eb8e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::TacticalGame.Equipment.PassiveRelicManager
+--- !u!114 &-5454450040501640045
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6888493511116314572}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9c122fb44c323e748856d188adb9fb32, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::TacticalGame.Equipment.UnitEquipmentUpdated
+  unitRole: 0
+  weaponFamily: 0
+  weaponRelic:
+    weaponFamily: 0
+    baseWeaponData: {fileID: 0}
+    roleTag: 0
+    effectTier: 0
+    effectData:
+      effectName: 
+      description: 
+      effectType: 0
+      value1: 0
+      value2: 0
+      duration: 0
+      bonusDamagePercent: 0
+      rarity: 0
+    relicName: 
+    fullDescription: 
+  bootsRelic:
+    category: 0
+    roleTag: 0
+    effectData:
+      category: 0
+      roleTag: 0
+      isVariant2: 0
+      effectName: 
+      rarity: 0
+      copies: 2
+      energyCost: 1
+      isPassive: 0
+      effectType: 0
+      description: 
+      value1: 0
+      value2: 0
+      duration: 0
+      tileRange: 1
+    relicName: 
+    fullDescription: 
+  glovesRelic:
+    category: 0
+    roleTag: 0
+    effectData:
+      category: 0
+      roleTag: 0
+      isVariant2: 0
+      effectName: 
+      rarity: 0
+      copies: 2
+      energyCost: 1
+      isPassive: 0
+      effectType: 0
+      description: 
+      value1: 0
+      value2: 0
+      duration: 0
+      tileRange: 1
+    relicName: 
+    fullDescription: 
+  hatRelic:
+    category: 0
+    roleTag: 0
+    effectData:
+      category: 0
+      roleTag: 0
+      isVariant2: 0
+      effectName: 
+      rarity: 0
+      copies: 2
+      energyCost: 1
+      isPassive: 0
+      effectType: 0
+      description: 
+      value1: 0
+      value2: 0
+      duration: 0
+      tileRange: 1
+    relicName: 
+    fullDescription: 
+  coatRelic:
+    category: 0
+    roleTag: 0
+    effectData:
+      category: 0
+      roleTag: 0
+      isVariant2: 0
+      effectName: 
+      rarity: 0
+      copies: 2
+      energyCost: 1
+      isPassive: 0
+      effectType: 0
+      description: 
+      value1: 0
+      value2: 0
+      duration: 0
+      tileRange: 1
+    relicName: 
+    fullDescription: 
+  trinketRelic:
+    category: 0
+    roleTag: 0
+    effectData:
+      category: 0
+      roleTag: 0
+      isVariant2: 0
+      effectName: 
+      rarity: 0
+      copies: 2
+      energyCost: 1
+      isPassive: 0
+      effectType: 0
+      description: 
+      value1: 0
+      value2: 0
+      duration: 0
+      tileRange: 1
+    relicName: 
+    fullDescription: 
+  totemRelic:
+    category: 0
+    roleTag: 0
+    effectData:
+      category: 0
+      roleTag: 0
+      isVariant2: 0
+      effectName: 
+      rarity: 0
+      copies: 2
+      energyCost: 1
+      isPassive: 0
+      effectType: 0
+      description: 
+      value1: 0
+      value2: 0
+      duration: 0
+      tileRange: 1
+    relicName: 
+    fullDescription: 
+  ultimateRelic:
+    category: 0
+    roleTag: 0
+    effectData:
+      category: 0
+      roleTag: 0
+      isVariant2: 0
+      effectName: 
+      rarity: 0
+      copies: 2
+      energyCost: 1
+      isPassive: 0
+      effectType: 0
+      description: 
+      value1: 0
+      value2: 0
+      duration: 0
+      tileRange: 1
+    relicName: 
+    fullDescription: 
+  passiveUniqueRelic:
+    category: 0
+    roleTag: 0
+    effectData:
+      category: 0
+      roleTag: 0
+      isVariant2: 0
+      effectName: 
+      rarity: 0
+      copies: 2
+      energyCost: 1
+      isPassive: 0
+      effectType: 0
+      description: 
+      value1: 0
+      value2: 0
+      duration: 0
+      tileRange: 1
+    relicName: 
+    fullDescription: 
 --- !u!1 &7108589934813182009
 GameObject:
   m_ObjectHideFlags: 0

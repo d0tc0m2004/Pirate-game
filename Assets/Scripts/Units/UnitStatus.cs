@@ -10,6 +10,9 @@ namespace TacticalGame.Units
     /// <summary>
     /// Core unit component handling stats, state, and status effects.
     /// </summary>
+    [RequireComponent(typeof(TacticalGame.Equipment.UnitEquipmentUpdated))]
+    [RequireComponent(typeof(TacticalGame.Equipment.PassiveRelicManager))]
+    [RequireComponent(typeof(StatusEffectManager))]
     public class UnitStatus : MonoBehaviour
     {
         #region Serialized Fields
