@@ -136,7 +136,7 @@ namespace TacticalGame.Equipment
             nameText.fontStyle = FontStyles.Bold;
             nameText.color = TEXT_COLOR;
             nameText.alignment = TextAlignmentOptions.Center;
-            nameText.enableWordWrapping = true;
+            nameText.textWrappingMode = TextWrappingModes.Normal;
             nameText.overflowMode = TextOverflowModes.Truncate;
             
             SetPrivateField(cardUI, "cardNameText", nameText);
@@ -175,7 +175,7 @@ namespace TacticalGame.Equipment
             descText.fontSize = 9;
             descText.color = TEXT_COLOR * 0.9f;
             descText.alignment = TextAlignmentOptions.Center;
-            descText.enableWordWrapping = true;
+            descText.textWrappingMode = TextWrappingModes.Normal;
             descText.overflowMode = TextOverflowModes.Ellipsis;
             
             SetPrivateField(cardUI, "descriptionText", descText);
@@ -242,7 +242,7 @@ namespace TacticalGame.Equipment
             tooltipText.fontSize = 11;
             tooltipText.color = Color.white;
             tooltipText.alignment = TextAlignmentOptions.TopLeft;
-            tooltipText.enableWordWrapping = true;
+            tooltipText.textWrappingMode = TextWrappingModes.Normal;
             
             tooltipGO.SetActive(false);
             SetPrivateField(cardUI, "tooltipPanel", tooltipGO);

@@ -24,7 +24,7 @@ namespace TacticalGame.Equipment
             {
                 if (_instance == null)
                 {
-                    _instance = FindObjectOfType<BattleDeckManager>();
+                    _instance = FindFirstObjectByType<BattleDeckManager>();
                     if (_instance == null)
                     {
                         var go = new GameObject("BattleDeckManager");

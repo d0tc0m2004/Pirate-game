@@ -430,7 +430,7 @@ namespace TacticalGame.Managers
             efRt.anchoredPosition = new Vector2(0, -55); efRt.sizeDelta = new Vector2(-8, 40);
             slotData.effectText = effectObj.GetComponent<TMP_Text>();
             slotData.effectText.color = textDimColor;
-            slotData.effectText.enableWordWrapping = true;
+            slotData.effectText.textWrappingMode = TextWrappingModes.Normal;
             slotData.effectText.overflowMode = TextOverflowModes.Ellipsis;
             
             GameObject jewelRow = new GameObject("JewelRow");

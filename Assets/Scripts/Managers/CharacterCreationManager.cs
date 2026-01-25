@@ -120,7 +120,7 @@ namespace TacticalGame.Managers
             // Find existing or create new
             if (equipmentUIBuilder == null)
             {
-                equipmentUIBuilder = FindObjectOfType<EquipmentUIBuilder>();
+                equipmentUIBuilder = FindFirstObjectByType<EquipmentUIBuilder>();
             }
             
             if (equipmentUIBuilder == null)

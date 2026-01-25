@@ -29,8 +29,8 @@ namespace TacticalGame.Equipment
         
         // Tracking for conditional passives
         private bool knockbackAttackerUsedThisTurn = false;
-        private int weaponsUsedOnCurrentTarget = 0;
-        private GameObject currentTarget;
+        // private int weaponsUsedOnCurrentTarget = 0;
+        // private GameObject currentTarget;
         private int hullsDestroyedThisGame = 0;
 
         #endregion
@@ -200,8 +200,8 @@ namespace TacticalGame.Equipment
 
         private void OnRoundStart(int round)
         {
-            weaponsUsedOnCurrentTarget = 0;
-            currentTarget = null;
+            // weaponsUsedOnCurrentTarget = 0;
+            // currentTarget = null;
         }
 
         private void OnUnitDamaged(GameObject unit, int damage)

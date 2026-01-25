@@ -2,6 +2,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using System.Collections.Generic;
 using TMPro;
+using TacticalGame.Enums;
 
 namespace TacticalGame.Equipment
 {
