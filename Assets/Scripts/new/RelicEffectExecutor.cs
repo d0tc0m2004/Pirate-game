@@ -524,9 +524,25 @@ namespace TacticalGame.Equipment
                     HealAdjacentAllies(caster, effect.value2);
                     break;
                 case RelicEffectType.Boots_V2_MovePoisonTile:
-                    // Would need to create hazard on previous position
-                    ExecuteMove(caster, targetCell, (int)effect.value1);
-                    Debug.Log("Poison tile created (placeholder)");
+                    {
+                        // Get current position before moving
+                        var gridManager = ServiceLocator.Get<GridManager>();
+                        GridCell previousCell = null;
+                        if (gridManager != null)
+                        {
+                            var coords = gridManager.WorldToGridPosition(caster.transform.position);
+                            previousCell = gridManager.GetCell(coords.x, coords.y);
+                        }
+                        
+                        // Move
+                        ExecuteMove(caster, targetCell, (int)effect.value1);
+                        
+                        // Create poison hazard on previous position
+                        if (previousCell != null)
+                        {
+                            CreatePoisonTile(previousCell, (int)effect.value2, effect.duration);
+                        }
+                    }
                     break;
                 case RelicEffectType.Boots_V2_MoveGainDodge:
                     ExecuteMove(caster, targetCell, (int)effect.value1);
@@ -792,8 +808,14 @@ namespace TacticalGame.Equipment
                     ShieldAllAllies(caster, (int)effect.value1);
                     break;
                 case RelicEffectType.Ultimate_V2_Teleport:
-                    // Would need UI for ally/tile selection
-                    Debug.Log("Teleport ultimate (needs UI selection)");
+                    // Use RelicTargetSelector to select ally then destination
+                    RelicTargetSelector.Instance.SelectAllyThenTile(
+                        "Select ally to teleport",
+                        (ally, destinationCell) => {
+                            TeleportUnit(ally, destinationCell);
+                        },
+                        () => Debug.Log("Teleport cancelled")
+                    );
                     break;
                 case RelicEffectType.Ultimate_V2_MassHeal:
                     MassHealAllAllies(caster, effect.value2);
@@ -867,8 +889,32 @@ namespace TacticalGame.Equipment
             var movement = ally.GetComponent<UnitMovement>();
             if (movement != null)
             {
-                // Movement would need to be triggered with UI selection
-                Debug.Log($"{ally.UnitName} can move {tiles} tiles (needs UI selection)");
+                // Use RelicTargetSelector to let player choose destination
+                RelicTargetSelector.Instance.SelectTile(
+                    $"Select destination for {ally.UnitName} (up to {tiles} tiles)",
+                    (destinationCell) => {
+                        // Validate range
+                        var gridManager = ServiceLocator.Get<GridManager>();
+                        if (gridManager != null)
+                        {
+                            Vector2Int allyPos = gridManager.WorldToGridPosition(ally.transform.position);
+                            int distance = Mathf.Abs(destinationCell.XPosition - allyPos.x) + 
+                                          Mathf.Abs(destinationCell.YPosition - allyPos.y);
+                            
+                            if (distance <= tiles)
+                            {
+                                movement.MoveToCell(destinationCell);
+                                Debug.Log($"{ally.UnitName} moved to ({destinationCell.XPosition}, {destinationCell.YPosition})");
+                            }
+                            else
+                            {
+                                Debug.Log("Destination too far!");
+                            }
+                        }
+                    },
+                    () => Debug.Log("Movement cancelled"),
+                    true // only empty tiles
+                );
             }
         }
         
@@ -881,6 +927,34 @@ namespace TacticalGame.Equipment
             {
                 ExecuteMove(caster, targetCell, 99);
             }
+        }
+        
+        /// <summary>
+        /// Instantly teleport a unit to a destination cell (no range limit).
+        /// </summary>
+        private static void TeleportUnit(UnitStatus unit, GridCell destination)
+        {
+            if (unit == null || destination == null) return;
+            
+            var gridManager = ServiceLocator.Get<GridManager>();
+            if (gridManager == null) return;
+            
+            // Get current cell and clear it
+            var coords = gridManager.WorldToGridPosition(unit.transform.position);
+            GridCell currentCell = gridManager.GetCell(coords.x, coords.y);
+            if (currentCell != null)
+            {
+                currentCell.RemoveUnit();
+            }
+            
+            // Place at destination
+            destination.PlaceUnit(unit.gameObject);
+            unit.transform.position = destination.GetWorldPosition();
+            
+            // Trigger move event
+            GameEvents.TriggerUnitMoved(unit.gameObject, currentCell, destination);
+            
+            Debug.Log($"{unit.UnitName} teleported to ({destination.XPosition}, {destination.YPosition})");
         }
         
         private static void PushUnit(UnitStatus target, UnitStatus source, int tiles)
@@ -1957,7 +2031,15 @@ namespace TacticalGame.Equipment
         // === Totem V2 Helpers ===
         private static void SummonHealingTotem(UnitStatus caster, GridCell cell, int healPerTurn, int duration)
         {
-            Debug.Log($"Summoned healing totem: heals {healPerTurn}/turn for {duration} turns (placeholder)");
+            var hazardManager = ServiceLocator.Get<HazardManager>();
+            if (hazardManager != null)
+            {
+                hazardManager.CreateHealingZone(cell, healPerTurn, duration);
+            }
+            else
+            {
+                Debug.Log($"Summoned healing totem: heals {healPerTurn}/turn for {duration} turns (no HazardManager)");
+            }
         }
         
         private static void ApplyWeaknessCurse(UnitStatus target, float percent, int duration)
@@ -1989,7 +2071,15 @@ namespace TacticalGame.Equipment
         
         private static void PlaceTrap(GridCell cell, int stunDuration)
         {
-            Debug.Log($"Placed trap: stuns for {stunDuration} turns (placeholder)");
+            var hazardManager = ServiceLocator.Get<HazardManager>();
+            if (hazardManager != null)
+            {
+                hazardManager.CreateTrap(cell, stunDuration);
+            }
+            else
+            {
+                Debug.Log($"Placed trap: stuns for {stunDuration} turns (no HazardManager)");
+            }
         }
         
         private static void SummonShieldGenerator(UnitStatus caster, GridCell cell, int shieldPerTurn, int duration)
@@ -1999,17 +2089,56 @@ namespace TacticalGame.Equipment
         
         private static void SummonSpeedBooster(UnitStatus caster, GridCell cell, int speedBonus, int duration)
         {
-            Debug.Log($"Summoned speed booster: +{speedBonus} movement for {duration} turns (placeholder)");
+            var hazardManager = ServiceLocator.Get<HazardManager>();
+            if (hazardManager != null)
+            {
+                hazardManager.CreateSpeedZone(cell, speedBonus, duration);
+            }
+            else
+            {
+                Debug.Log($"Summoned speed booster: +{speedBonus} movement for {duration} turns (no HazardManager)");
+            }
         }
         
         private static void SummonHealingWell(UnitStatus caster, GridCell cell, float healPercent, int duration)
         {
-            Debug.Log($"Summoned healing well: heals {healPercent*100}%/turn for {duration} turns (placeholder)");
+            var hazardManager = ServiceLocator.Get<HazardManager>();
+            if (hazardManager != null)
+            {
+                // Convert percent to flat heal amount based on caster's max HP
+                int healAmount = Mathf.RoundToInt(caster.MaxHP * healPercent);
+                hazardManager.CreateHealingZone(cell, healAmount, duration);
+            }
+            else
+            {
+                Debug.Log($"Summoned healing well: heals {healPercent*100}%/turn for {duration} turns (no HazardManager)");
+            }
         }
         
         private static void CreatePoisonCloud(GridCell cell, int damagePerTurn, int duration, int range)
         {
-            Debug.Log($"Created poison cloud: {damagePerTurn} dmg/turn for {duration} turns in {range} tiles (placeholder)");
+            var hazardManager = ServiceLocator.Get<HazardManager>();
+            if (hazardManager != null)
+            {
+                hazardManager.CreatePoisonCloud(cell, damagePerTurn, duration, range);
+            }
+            else
+            {
+                Debug.Log($"Created poison cloud (no HazardManager): {damagePerTurn} dmg/turn for {duration} turns");
+            }
+        }
+        
+        private static void CreatePoisonTile(GridCell cell, int damagePerTurn, int duration)
+        {
+            var hazardManager = ServiceLocator.Get<HazardManager>();
+            if (hazardManager != null)
+            {
+                hazardManager.CreatePoisonTile(cell, damagePerTurn, duration);
+            }
+            else
+            {
+                Debug.Log($"Created poison tile (no HazardManager)");
+            }
         }
         
         private static void SummonDecoy(UnitStatus caster, GridCell cell, int duration)
