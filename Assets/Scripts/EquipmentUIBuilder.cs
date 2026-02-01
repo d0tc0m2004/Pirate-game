@@ -590,14 +590,21 @@ namespace TacticalGame.Managers
             Button unequipButton = CreateButton(equipmentPanel.transform, "UnequipButton", "Unequip All", new Vector2(150, 45));
             RectTransform unequipRt = unequipButton.GetComponent<RectTransform>();
             unequipRt.anchorMin = new Vector2(0.5f, 0); unequipRt.anchorMax = new Vector2(0.5f, 0);
-            unequipRt.pivot = new Vector2(0.5f, 0); unequipRt.anchoredPosition = new Vector2(-100, 15);
+            unequipRt.pivot = new Vector2(0.5f, 0); unequipRt.anchoredPosition = new Vector2(-200, 15);
             unequipButton.onClick.AddListener(OnUnequipAll);
             unequipButton.GetComponent<Image>().color = new Color(0.5f, 0.2f, 0.2f);
             
+            Button autoEquipPlayersButton = CreateButton(equipmentPanel.transform, "AutoEquipPlayersButton", "Auto Equip Players", new Vector2(180, 45));
+            RectTransform autoEquipPlayerRt = autoEquipPlayersButton.GetComponent<RectTransform>();
+            autoEquipPlayerRt.anchorMin = new Vector2(0.5f, 0); autoEquipPlayerRt.anchorMax = new Vector2(0.5f, 0);
+            autoEquipPlayerRt.pivot = new Vector2(0.5f, 0); autoEquipPlayerRt.anchoredPosition = new Vector2(0, 15);
+            autoEquipPlayersButton.onClick.AddListener(OnAutoEquipPlayers);
+            autoEquipPlayersButton.GetComponent<Image>().color = new Color(0.2f, 0.4f, 0.5f);
+
             Button autoEquipButton = CreateButton(equipmentPanel.transform, "AutoEquipButton", "Auto Equip Enemies", new Vector2(180, 45));
             RectTransform autoEquipRt = autoEquipButton.GetComponent<RectTransform>();
             autoEquipRt.anchorMin = new Vector2(0.5f, 0); autoEquipRt.anchorMax = new Vector2(0.5f, 0);
-            autoEquipRt.pivot = new Vector2(0.5f, 0); autoEquipRt.anchoredPosition = new Vector2(100, 15);
+            autoEquipRt.pivot = new Vector2(0.5f, 0); autoEquipRt.anchoredPosition = new Vector2(200, 15);
             autoEquipButton.onClick.AddListener(OnAutoEquipEnemies);
             autoEquipButton.GetComponent<Image>().color = new Color(0.5f, 0.3f, 0.2f);
             
@@ -1106,6 +1113,37 @@ namespace TacticalGame.Managers
             else infoText.text = "Empty slot\n\nSelect a slot, then click a relic from the pool.\nUse tabs to filter by Weapon or Category.";
         }
         
+        private void OnAutoEquipPlayers()
+        {
+            foreach (UnitData unit in playerUnits)
+            {
+                // Initialize arrays if needed
+                if (unit.weaponRelics == null) unit.weaponRelics = new WeaponRelic[7];
+                if (unit.categoryRelics == null) unit.categoryRelics = new EquippedRelic[7];
+                
+                // Equip default weapon
+                if (unit.defaultWeaponRelic != null)
+                    unit.EquipWeaponRelic(0, unit.defaultWeaponRelic);
+                
+                // Random additional weapon relics
+                for (int slot = 1; slot <= 4; slot++)
+                {
+                    if (UnityEngine.Random.value > 0.7f) continue;
+                    
+                    WeaponRelic randomRelic = GenerateRandomRelicForUnit(unit);
+                    if (randomRelic != null)
+                        unit.EquipWeaponRelic(slot, randomRelic);
+                }
+            }
+            
+            if (selectedUnitIndex >= 0 && IsSelectedUnitPlayer())
+            {
+                UnitData unit = GetUnitByIndex(selectedUnitIndex);
+                if (unit != null) { RefreshSlots(unit); UpdateJewelBudget(unit); }
+            }
+            Debug.Log($"<color=cyan>Auto-equipped {playerUnits.Count} players!</color>");
+        }
+
         private void OnUnequipAll()
         {
             UnitData unit = GetUnitByIndex(selectedUnitIndex);

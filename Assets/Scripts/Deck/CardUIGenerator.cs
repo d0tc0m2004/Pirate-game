@@ -150,7 +150,7 @@ namespace TacticalGame.Equipment
             iconRT.sizeDelta = new Vector2(50, 50);
             
             var iconImage = iconGO.AddComponent<Image>();
-            iconImage.color = Color.white * 0.3f; // Placeholder
+            iconImage.color = Color.white * 0.1f; // Subtle watermark
             
             // Category letter as placeholder
             var iconTextGO = CreateChild(iconGO, "IconText");
@@ -165,13 +165,13 @@ namespace TacticalGame.Equipment
             // === DESCRIPTION (middle) ===
             var descGO = CreateChild(cardGO, "Description");
             var descRT = descGO.AddComponent<RectTransform>();
-            descRT.anchorMin = new Vector2(0, 0.15f);
-            descRT.anchorMax = new Vector2(1, 0.45f);
-            descRT.offsetMin = new Vector2(8, 0);
-            descRT.offsetMax = new Vector2(-8, 0);
+            descRT.anchorMin = new Vector2(0.05f, 0.15f);
+            descRT.anchorMax = new Vector2(0.95f, 0.70f);
+            descRT.offsetMin = Vector2.zero;
+            descRT.offsetMax = Vector2.zero;
             
             var descText = descGO.AddComponent<TextMeshProUGUI>();
-            descText.text = TruncateDescription(card.description, 60);
+            descText.text = card.description;
             descText.fontSize = 9;
             descText.color = TEXT_COLOR * 0.9f;
             descText.alignment = TextAlignmentOptions.Center;
@@ -221,32 +221,7 @@ namespace TacticalGame.Equipment
             stowedGO.SetActive(false);
             SetPrivateField(cardUI, "stowedIndicator", stowedGO);
             
-            // === TOOLTIP (hidden panel) ===
-            var tooltipGO = CreateChild(cardGO, "Tooltip");
-            var tooltipRT = tooltipGO.AddComponent<RectTransform>();
-            tooltipRT.anchorMin = new Vector2(0.5f, 1);
-            tooltipRT.anchorMax = new Vector2(0.5f, 1);
-            tooltipRT.pivot = new Vector2(0.5f, 0);
-            tooltipRT.anchoredPosition = new Vector2(0, 10);
-            tooltipRT.sizeDelta = new Vector2(200, 150);
-            
-            var tooltipBG = tooltipGO.AddComponent<Image>();
-            tooltipBG.color = new Color(0.1f, 0.1f, 0.15f, 0.95f);
-            
-            var tooltipTextGO = CreateChild(tooltipGO, "TooltipText");
-            var tooltipTextRT = SetFullStretch(tooltipTextGO);
-            tooltipTextRT.offsetMin = new Vector2(8, 8);
-            tooltipTextRT.offsetMax = new Vector2(-8, -8);
-            
-            var tooltipText = tooltipTextGO.AddComponent<TextMeshProUGUI>();
-            tooltipText.fontSize = 11;
-            tooltipText.color = Color.white;
-            tooltipText.alignment = TextAlignmentOptions.TopLeft;
-            tooltipText.textWrappingMode = TextWrappingModes.Normal;
-            
-            tooltipGO.SetActive(false);
-            SetPrivateField(cardUI, "tooltipPanel", tooltipGO);
-            SetPrivateField(cardUI, "tooltipText", tooltipText);
+
         }
         
         #region Helpers
@@ -301,12 +276,7 @@ namespace TacticalGame.Equipment
             }
         }
         
-        private static string TruncateDescription(string desc, int maxChars)
-        {
-            if (string.IsNullOrEmpty(desc)) return "";
-            if (desc.Length <= maxChars) return desc;
-            return desc.Substring(0, maxChars - 3) + "...";
-        }
+
         
         private static void SetPrivateField(object obj, string fieldName, object value)
         {

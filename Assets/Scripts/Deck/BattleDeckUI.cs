@@ -584,9 +584,6 @@ namespace TacticalGame.Equipment
             
             // Bring to front
             cardUI.transform.SetAsLastSibling();
-            
-            // Show tooltip
-            cardUI.ShowTooltip();
         }
         
         /// <summary>
@@ -605,8 +602,6 @@ namespace TacticalGame.Equipment
                 PositionCardInFan(cardUI, index, cardUIInstances.Count);
             }
             
-            // Hide tooltip
-            cardUI.HideTooltip();
         }
         
         /// <summary>

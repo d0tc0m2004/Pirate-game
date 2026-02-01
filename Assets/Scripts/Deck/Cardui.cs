@@ -30,9 +30,7 @@ namespace TacticalGame.Equipment
         [SerializeField] private GameObject stowedIndicator;
         [SerializeField] private GameObject weaponIndicator;
         
-        [Header("Tooltip")]
-        [SerializeField] private GameObject tooltipPanel;
-        [SerializeField] private TextMeshProUGUI tooltipText;
+
         
         [Header("Category Colors")]
         [SerializeField] private Color bootsColor = new Color(0.6f, 0.4f, 0.2f);
@@ -70,10 +68,7 @@ namespace TacticalGame.Equipment
                 canvasGroup = gameObject.AddComponent<CanvasGroup>();
             }
             
-            if (tooltipPanel != null)
-            {
-                tooltipPanel.SetActive(false);
-            }
+
             
             if (stowedIndicator != null)
             {
@@ -205,77 +200,7 @@ namespace TacticalGame.Equipment
         
         #endregion
         
-        #region Tooltip
-        
-        /// <summary>
-        /// Show the card tooltip.
-        /// </summary>
-        public void ShowTooltip()
-        {
-            if (tooltipPanel == null || card == null) return;
-            
-            tooltipPanel.SetActive(true);
-            
-            if (tooltipText != null)
-            {
-                string tooltip = BuildTooltip();
-                tooltipText.text = tooltip;
-            }
-        }
-        
-        /// <summary>
-        /// Hide the card tooltip.
-        /// </summary>
-        public void HideTooltip()
-        {
-            if (tooltipPanel != null)
-            {
-                tooltipPanel.SetActive(false);
-            }
-        }
-        
-        private string BuildTooltip()
-        {
-            if (card == null) return "";
-            
-            var sb = new System.Text.StringBuilder();
-            
-            // Header
-            sb.AppendLine($"<b>{card.GetDisplayName()}</b>");
-            sb.AppendLine($"<size=80%>{card.category} - {card.roleTag}</size>");
-            sb.AppendLine();
-            
-            // Cost
-            sb.AppendLine($"<color=yellow>Cost: {card.energyCost} Energy</color>");
-            
-            // Owner
-            sb.AppendLine($"<color=#88ff88>Owner: {card.GetOwnerName()}</color>");
-            sb.AppendLine();
-            
-            // Description
-            if (!string.IsNullOrEmpty(card.description))
-            {
-                sb.AppendLine(card.description);
-            }
-            
-            // Target type
-            if (card.RequiresTarget())
-            {
-                sb.AppendLine();
-                sb.AppendLine($"<color=#ffaa88>Target: {card.GetTargetType()}</color>");
-            }
-            
-            // Stowed status
-            if (card.isStowed)
-            {
-                sb.AppendLine();
-                sb.AppendLine("<color=#88ddff>[STOWED - Won't discard]</color>");
-            }
-            
-            return sb.ToString();
-        }
-        
-        #endregion
+
         
         #region Pointer Events
         

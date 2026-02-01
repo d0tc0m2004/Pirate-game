@@ -98,6 +98,12 @@ namespace TacticalGame.Equipment
         {
             if (IsWeaponCard)
             {
+                if (sourceWeaponRelic.baseWeaponData == null)
+                {
+                    Debug.LogWarning($"BattleCard {cardName} (Weapon) has missing baseWeaponData! Defaulting to AdjacentEnemy.");
+                    return CardTargetType.AdjacentEnemy;
+                }
+
                 return sourceWeaponRelic.baseWeaponData.attackType == WeaponType.Melee 
                     ? CardTargetType.AdjacentEnemy 
                     : CardTargetType.RangedEnemy;
