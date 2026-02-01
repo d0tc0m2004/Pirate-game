@@ -77,12 +77,39 @@ namespace TacticalGame.Equipment
         private void Awake()
         {
             _instance = this;
-            
+
             // Auto-generate UI if not assigned
             if (handContainer == null || deckPileContainer == null)
             {
                 AutoGenerateUI();
             }
+
+            // Hide UI initially - will show when battle starts (OnDeckBuilt)
+            HideUI();
+        }
+
+        /// <summary>
+        /// Hide all deck UI elements. Called initially and when leaving battle.
+        /// </summary>
+        public void HideUI()
+        {
+            if (handContainer != null) handContainer.gameObject.SetActive(false);
+            if (deckPileContainer != null) deckPileContainer.gameObject.SetActive(false);
+            if (discardPileContainer != null) discardPileContainer.gameObject.SetActive(false);
+            if (passivesButton != null) passivesButton.gameObject.SetActive(false);
+            if (targetingOverlay != null) targetingOverlay.SetActive(false);
+        }
+
+        /// <summary>
+        /// Show all deck UI elements. Called when battle starts.
+        /// </summary>
+        public void ShowUI()
+        {
+            if (handContainer != null) handContainer.gameObject.SetActive(true);
+            if (deckPileContainer != null) deckPileContainer.gameObject.SetActive(true);
+            if (discardPileContainer != null) discardPileContainer.gameObject.SetActive(true);
+            if (passivesButton != null) passivesButton.gameObject.SetActive(true);
+            // Note: targetingOverlay stays hidden until targeting mode
         }
         
         /// <summary>
@@ -279,13 +306,13 @@ namespace TacticalGame.Equipment
                 panelRT.pivot = new Vector2(0, 0.5f);
                 panelRT.anchoredPosition = new Vector2(20, 0);
                 panelRT.sizeDelta = new Vector2(250, 400);
-                
+
                 var panelBG = panelGO.AddComponent<Image>();
                 panelBG.color = new Color(0.15f, 0.15f, 0.2f, 0.95f);
-                
-                // Add PassiveRelicsPanel component
-                var passivePanel = panelGO.AddComponent<PassiveRelicsPanel>();
-                
+
+                // Create all children FIRST before adding PassiveRelicsPanel component
+                // (so Awake can find them)
+
                 // Header
                 var headerGO = new GameObject("Header");
                 headerGO.transform.SetParent(panelGO.transform, false);
@@ -301,23 +328,24 @@ namespace TacticalGame.Equipment
                 headerText.fontStyle = FontStyles.Bold;
                 headerText.color = Color.white;
                 headerText.alignment = TextAlignmentOptions.Center;
-                
+
                 // Content area with scroll
                 var contentGO = new GameObject("Content");
                 contentGO.transform.SetParent(panelGO.transform, false);
                 var contentRT = contentGO.AddComponent<RectTransform>();
                 contentRT.anchorMin = new Vector2(0, 0);
                 contentRT.anchorMax = new Vector2(1, 1);
-                contentRT.offsetMin = new Vector2(10, 10);
-                contentRT.offsetMax = new Vector2(-10, -50);
-                
+                contentRT.offsetMin = new Vector2(10, 50);
+                contentRT.offsetMax = new Vector2(-10, -10);
+
                 var vlg = contentGO.AddComponent<VerticalLayoutGroup>();
-                vlg.spacing = 5;
+                vlg.spacing = 8;
                 vlg.childControlHeight = false;
                 vlg.childControlWidth = true;
                 vlg.childForceExpandHeight = false;
                 vlg.childForceExpandWidth = true;
-                
+                vlg.padding = new RectOffset(5, 5, 5, 5);
+
                 // Close button
                 var closeGO = new GameObject("CloseButton");
                 closeGO.transform.SetParent(panelGO.transform, false);
@@ -327,13 +355,13 @@ namespace TacticalGame.Equipment
                 closeRT.pivot = new Vector2(1, 1);
                 closeRT.anchoredPosition = new Vector2(-5, -5);
                 closeRT.sizeDelta = new Vector2(30, 30);
-                
+
                 var closeBG = closeGO.AddComponent<Image>();
                 closeBG.color = new Color(0.6f, 0.2f, 0.2f);
-                
+
                 var closeBtn = closeGO.AddComponent<Button>();
                 closeBtn.onClick.AddListener(() => panelGO.SetActive(false));
-                
+
                 var closeTextGO = new GameObject("X");
                 closeTextGO.transform.SetParent(closeGO.transform, false);
                 var closeTextRT = closeTextGO.AddComponent<RectTransform>();
@@ -347,7 +375,10 @@ namespace TacticalGame.Equipment
                 closeText.fontStyle = FontStyles.Bold;
                 closeText.color = Color.white;
                 closeText.alignment = TextAlignmentOptions.Center;
-                
+
+                // Add PassiveRelicsPanel component LAST (after all children exist)
+                panelGO.AddComponent<PassiveRelicsPanel>();
+
                 panelGO.SetActive(false);
                 passivesPanel = panelGO;
             }
@@ -416,6 +447,9 @@ namespace TacticalGame.Equipment
         
         private void RefreshAll()
         {
+            // Show UI when deck is built (battle starts)
+            ShowUI();
+
             RefreshDeckPile();
             RefreshDiscardPile();
             RefreshHand(BattleDeckManager.Instance.Hand.ToList());
@@ -570,9 +604,9 @@ namespace TacticalGame.Equipment
         public void OnCardHoverEnter(CardUI cardUI)
         {
             if (isTargeting) return;
-            
+
             hoveredCard = cardUI;
-            
+
             // Lift card slightly
             var rt = cardUI.GetComponent<RectTransform>();
             if (rt != null)
@@ -581,9 +615,15 @@ namespace TacticalGame.Equipment
                 pos.y += hoverLift;
                 rt.anchoredPosition = pos;
             }
-            
+
             // Bring to front
             cardUI.transform.SetAsLastSibling();
+
+            // Show stow button if card belongs to selected unit
+            if (cardUI.Card.BelongsTo(BattleDeckManager.Instance.SelectedUnit))
+            {
+                cardUI.ShowStowButton(true);
+            }
         }
         
         /// <summary>
@@ -592,16 +632,18 @@ namespace TacticalGame.Equipment
         public void OnCardHoverExit(CardUI cardUI)
         {
             if (cardUI != hoveredCard) return;
-            
+
             hoveredCard = null;
-            
+
             // Restore position
             int index = cardUIInstances.IndexOf(cardUI);
             if (index >= 0)
             {
                 PositionCardInFan(cardUI, index, cardUIInstances.Count);
             }
-            
+
+            // Hide stow button
+            cardUI.ShowStowButton(false);
         }
         
         /// <summary>

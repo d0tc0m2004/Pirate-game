@@ -144,25 +144,34 @@ namespace TacticalGame.Equipment
             hand.Clear();
             discardPile.Clear();
             allPassiveRelics.Clear();
-            
+
             Debug.Log($"<color=cyan>=== Building Shared Battle Deck ===</color>");
-            
+
             foreach (var unit in playerUnits)
             {
                 if (unit == null || unit.HasSurrendered) continue;
-                
+
+                Debug.Log($"<color=green>Adding cards from {unit.UnitName}:</color>");
+
+                // Try FlexibleUnitEquipment first (new slot-based system)
+                var flexEquip = unit.GetComponent<FlexibleUnitEquipment>();
+                if (flexEquip != null)
+                {
+                    AddCardsFromFlexibleEquipment(flexEquip, unit);
+                    continue;
+                }
+
+                // Fall back to UnitEquipmentUpdated (old system)
                 var equipment = unit.GetComponent<UnitEquipmentUpdated>();
                 if (equipment == null)
                 {
                     Debug.LogWarning($"{unit.UnitName}: No equipment component found");
                     continue;
                 }
-                
-                Debug.Log($"<color=green>Adding cards from {unit.UnitName}:</color>");
-                
+
                 // Add weapon relic cards
                 AddWeaponCards(equipment.WeaponRelic, unit);
-                
+
                 // Add category relic cards (active only)
                 AddRelicCards(equipment.BootsRelic, unit);
                 AddRelicCards(equipment.GlovesRelic, unit);
@@ -170,19 +179,50 @@ namespace TacticalGame.Equipment
                 AddRelicCards(equipment.CoatRelic, unit);
                 AddRelicCards(equipment.TotemRelic, unit);
                 AddRelicCards(equipment.UltimateRelic, unit);
-                
+
                 // Track passive relics (Trinket + PassiveUnique)
                 AddPassiveRelic(equipment.TrinketRelic);
                 AddPassiveRelic(equipment.PassiveUniqueRelic);
             }
-            
+
             Debug.Log($"<color=cyan>Deck built: {deck.Count} active cards, {allPassiveRelics.Count} passives</color>");
-            
+
             // Shuffle the deck
             ShuffleDeck();
-            
+
             isInitialized = true;
             OnDeckBuilt?.Invoke();
+        }
+
+        /// <summary>
+        /// Add cards from FlexibleUnitEquipment (new slot-based system).
+        /// </summary>
+        private void AddCardsFromFlexibleEquipment(FlexibleUnitEquipment flexEquip, UnitStatus owner)
+        {
+            // Iterate through all slots
+            for (int i = 0; i < FlexibleUnitEquipment.SLOT_COUNT; i++)
+            {
+                var slot = flexEquip.GetSlot(i);
+                if (slot == null || slot.IsEmpty) continue;
+
+                if (slot.hasWeapon && slot.weaponRelic != null)
+                {
+                    // Add weapon cards
+                    AddWeaponCards(slot.weaponRelic, owner);
+                }
+                else if (slot.categoryRelic != null)
+                {
+                    // Add category relic cards or track as passive
+                    if (slot.categoryRelic.IsPassive())
+                    {
+                        AddPassiveRelic(slot.categoryRelic);
+                    }
+                    else
+                    {
+                        AddRelicCards(slot.categoryRelic, owner);
+                    }
+                }
+            }
         }
         
         /// <summary>
@@ -216,23 +256,38 @@ namespace TacticalGame.Equipment
         private void AddRelicCards(EquippedRelic relic, UnitStatus owner)
         {
             if (relic == null) return;
-            
+
+            // Skip relics with default/invalid category (Weapon = 0 is the default for uninitialized relics)
+            // Weapon relics should go through AddWeaponCards, not here
+            if (relic.category == RelicCategory.Weapon)
+            {
+                Debug.Log($"  ~ Skipping relic with Weapon category (use AddWeaponCards for weapons)");
+                return;
+            }
+
+            // Skip relics with empty/default name (uninitialized)
+            if (string.IsNullOrEmpty(relic.relicName) && relic.effectData == null)
+            {
+                Debug.Log($"  ~ Skipping uninitialized relic ({relic.category})");
+                return;
+            }
+
             // Skip passive relics - they don't go in deck
             if (relic.IsPassive())
             {
                 Debug.Log($"  ~ {relic.relicName} (Passive - not in deck)");
                 return;
             }
-            
+
             int copies = relic.GetCopies();
             if (copies <= 0) copies = 2; // Default
-            
+
             for (int i = 0; i < copies; i++)
             {
                 var card = BattleCard.FromRelic(relic, owner, i);
                 deck.Add(card);
             }
-            
+
             Debug.Log($"  + {copies}x {relic.relicName}");
         }
         
@@ -284,30 +339,29 @@ namespace TacticalGame.Equipment
         }
         
         /// <summary>
-        /// Draw cards to fill hand to handSize, accounting for stowed cards.
+        /// Draw cards at start of turn. Always draws handSize cards regardless of stowed cards.
         /// </summary>
         public void DrawToFillHand()
         {
-            // Count how many non-stowed slots we need to fill
+            // Count stowed cards before un-stowing
             int stowedCount = hand.Count(c => c.isStowed);
-            int emptySlots = handSize - hand.Count;
-            
+
             // Un-stow all cards at start of turn
             foreach (var card in hand)
             {
                 card.isStowed = false;
             }
-            
-            // Draw to fill hand
-            int toDraw = Mathf.Max(0, handSize - hand.Count);
-            
-            Debug.Log($"<color=cyan>Drawing {toDraw} cards (stowed: {stowedCount}, hand: {hand.Count})</color>");
-            
+
+            // Always draw handSize new cards (stowed cards + new cards = total hand)
+            int toDraw = handSize;
+
+            Debug.Log($"<color=cyan>Drawing {toDraw} new cards (had {stowedCount} stowed, total hand will be {hand.Count + toDraw})</color>");
+
             for (int i = 0; i < toDraw; i++)
             {
                 DrawOneCard();
             }
-            
+
             OnHandChanged?.Invoke(hand);
             OnTurnStartDraw?.Invoke();
         }

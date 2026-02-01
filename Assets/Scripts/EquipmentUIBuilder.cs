@@ -1117,31 +1117,86 @@ namespace TacticalGame.Managers
         {
             foreach (UnitData unit in playerUnits)
             {
-                // Initialize arrays if needed
-                if (unit.weaponRelics == null) unit.weaponRelics = new WeaponRelic[7];
-                if (unit.categoryRelics == null) unit.categoryRelics = new EquippedRelic[7];
-                
-                // Equip default weapon
-                if (unit.defaultWeaponRelic != null)
-                    unit.EquipWeaponRelic(0, unit.defaultWeaponRelic);
-                
-                // Random additional weapon relics
-                for (int slot = 1; slot <= 4; slot++)
-                {
-                    if (UnityEngine.Random.value > 0.7f) continue;
-                    
-                    WeaponRelic randomRelic = GenerateRandomRelicForUnit(unit);
-                    if (randomRelic != null)
-                        unit.EquipWeaponRelic(slot, randomRelic);
-                }
+                AutoEquipUnit(unit);
             }
-            
+
             if (selectedUnitIndex >= 0 && IsSelectedUnitPlayer())
             {
                 UnitData unit = GetUnitByIndex(selectedUnitIndex);
                 if (unit != null) { RefreshSlots(unit); UpdateJewelBudget(unit); }
             }
             Debug.Log($"<color=cyan>Auto-equipped {playerUnits.Count} players!</color>");
+        }
+
+        private void AutoEquipUnit(UnitData unit)
+        {
+            // Initialize arrays if needed
+            if (unit.weaponRelics == null) unit.weaponRelics = new WeaponRelic[7];
+            if (unit.categoryRelics == null) unit.categoryRelics = new EquippedRelic[7];
+
+            // Equip default weapon to slot 0
+            if (unit.defaultWeaponRelic != null)
+                unit.EquipWeaponRelic(0, unit.defaultWeaponRelic);
+
+            // Define which category relics to try equipping (in order of priority)
+            RelicCategory[] categoriesToEquip = {
+                RelicCategory.Boots,
+                RelicCategory.Gloves,
+                RelicCategory.Hat,
+                RelicCategory.Coat,
+                RelicCategory.Totem
+            };
+
+            int categoryIndex = 0;
+
+            // For slots 1-4, equip a mix of weapons and category relics
+            for (int slot = 1; slot <= 4; slot++)
+            {
+                // 50% chance for weapon, 50% for category relic
+                if (UnityEngine.Random.value < 0.5f && categoryIndex < categoriesToEquip.Length)
+                {
+                    // Equip a category relic
+                    var category = categoriesToEquip[categoryIndex];
+                    var relic = GetRandomCategoryRelic(category, unit.role);
+                    if (relic != null)
+                    {
+                        unit.EquipWeaponRelic(slot, null); // Clear weapon slot
+                        unit.EquipCategoryRelic(slot, relic);
+                        Debug.Log($"<color=green>Auto-equipped {relic.relicName} to slot {slot}</color>");
+                    }
+                    categoryIndex++;
+                }
+                else
+                {
+                    // Equip a weapon relic (70% chance to skip)
+                    if (UnityEngine.Random.value > 0.7f) continue;
+
+                    WeaponRelic randomRelic = GenerateRandomRelicForUnit(unit);
+                    if (randomRelic != null)
+                    {
+                        unit.EquipCategoryRelic(slot, null); // Clear category slot
+                        unit.EquipWeaponRelic(slot, randomRelic);
+                    }
+                }
+            }
+        }
+
+        private EquippedRelic GetRandomCategoryRelic(RelicCategory category, UnitRole unitRole)
+        {
+            // Get all relics of this category
+            var relicsOfCategory = categoryRelicPool.Where(r => r.category == category).ToList();
+            if (relicsOfCategory.Count == 0) return null;
+
+            // 60% chance to pick a matching role relic
+            if (UnityEngine.Random.value < 0.6f)
+            {
+                var matching = relicsOfCategory.FirstOrDefault(r => r.roleTag == unitRole);
+                if (matching != null) return new EquippedRelic(matching.effectData);
+            }
+
+            // Otherwise pick random
+            var randomRelic = relicsOfCategory[UnityEngine.Random.Range(0, relicsOfCategory.Count)];
+            return new EquippedRelic(randomRelic.effectData);
         }
 
         private void OnUnequipAll()
@@ -1163,25 +1218,9 @@ namespace TacticalGame.Managers
         {
             foreach (UnitData enemy in enemyUnits)
             {
-                // Initialize arrays if needed
-                if (enemy.weaponRelics == null) enemy.weaponRelics = new WeaponRelic[7];
-                if (enemy.categoryRelics == null) enemy.categoryRelics = new EquippedRelic[7];
-                
-                // Equip default weapon
-                if (enemy.defaultWeaponRelic != null)
-                    enemy.EquipWeaponRelic(0, enemy.defaultWeaponRelic);
-                
-                // Random additional weapon relics
-                for (int slot = 1; slot <= 4; slot++)
-                {
-                    if (UnityEngine.Random.value > 0.7f) continue;
-                    
-                    WeaponRelic randomRelic = GenerateRandomRelicForUnit(enemy);
-                    if (randomRelic != null)
-                        enemy.EquipWeaponRelic(slot, randomRelic);
-                }
+                AutoEquipUnit(enemy);
             }
-            
+
             if (selectedUnitIndex >= 0 && !IsSelectedUnitPlayer())
             {
                 UnitData enemy = GetUnitByIndex(selectedUnitIndex);

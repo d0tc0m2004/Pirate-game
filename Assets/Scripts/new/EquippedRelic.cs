@@ -19,13 +19,57 @@ namespace TacticalGame.Equipment
         [Header("Identity")]
         public RelicCategory category;
         public UnitRole roleTag;
-        
+
         [Header("Effect Data")]
-        public RelicEffectData effectData;
-        
+        [SerializeField] private RelicEffectData _effectData;
+
         [Header("Generated Info")]
         public string relicName;
         public string fullDescription;
+
+        // Flag to track if we've tried to lookup effect data
+        [System.NonSerialized] private bool _effectDataLookedUp = false;
+
+        /// <summary>
+        /// Get effect data, looking up from database if not set.
+        /// This handles the case where the relic was created via Unity Inspector serialization.
+        /// </summary>
+        public RelicEffectData effectData
+        {
+            get
+            {
+                // If effectData is null and we haven't looked it up yet, try to fetch from database
+                if (_effectData == null && !_effectDataLookedUp)
+                {
+                    _effectDataLookedUp = true;
+                    Debug.Log($"<color=magenta>EquippedRelic.effectData: Lazy-loading for {category}+{roleTag}</color>");
+                    var db = RelicEffectsDatabase.Instance;
+                    if (db != null)
+                    {
+                        _effectData = db.GetEffect(category, roleTag);
+                        if (_effectData != null)
+                        {
+                            Debug.Log($"<color=green>  Loaded: {_effectData.description}</color>");
+                            // Also populate relicName if it's empty
+                            if (string.IsNullOrEmpty(relicName))
+                            {
+                                relicName = _effectData.GetDisplayName();
+                            }
+                        }
+                        else
+                        {
+                            Debug.LogWarning($"<color=red>  Failed to load from database!</color>");
+                        }
+                    }
+                }
+                return _effectData;
+            }
+            set
+            {
+                _effectData = value;
+                _effectDataLookedUp = true;
+            }
+        }
         
         /// <summary>
         /// Create an equipped relic from effect data.

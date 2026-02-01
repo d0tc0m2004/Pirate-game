@@ -162,22 +162,34 @@ namespace TacticalGame.Equipment
             iconText.color = Color.white;
             iconText.alignment = TextAlignmentOptions.Center;
             
-            // === DESCRIPTION (middle) ===
-            var descGO = CreateChild(cardGO, "Description");
+            // === DESCRIPTION PANEL (middle with background) ===
+            var descPanelGO = CreateChild(cardGO, "DescriptionPanel");
+            var descPanelRT = descPanelGO.AddComponent<RectTransform>();
+            descPanelRT.anchorMin = new Vector2(0.05f, 0.18f);
+            descPanelRT.anchorMax = new Vector2(0.95f, 0.65f);
+            descPanelRT.offsetMin = Vector2.zero;
+            descPanelRT.offsetMax = Vector2.zero;
+
+            // Semi-transparent background for better readability
+            var descPanelBG = descPanelGO.AddComponent<Image>();
+            descPanelBG.color = new Color(0f, 0f, 0f, 0.35f);
+
+            // === DESCRIPTION TEXT ===
+            var descGO = CreateChild(descPanelGO, "Description");
             var descRT = descGO.AddComponent<RectTransform>();
-            descRT.anchorMin = new Vector2(0.05f, 0.15f);
-            descRT.anchorMax = new Vector2(0.95f, 0.70f);
-            descRT.offsetMin = Vector2.zero;
-            descRT.offsetMax = Vector2.zero;
-            
+            descRT.anchorMin = Vector2.zero;
+            descRT.anchorMax = Vector2.one;
+            descRT.offsetMin = new Vector2(4, 4);
+            descRT.offsetMax = new Vector2(-4, -4);
+
             var descText = descGO.AddComponent<TextMeshProUGUI>();
             descText.text = card.description;
-            descText.fontSize = 9;
-            descText.color = TEXT_COLOR * 0.9f;
+            descText.fontSize = 11;
+            descText.color = TEXT_COLOR;
             descText.alignment = TextAlignmentOptions.Center;
             descText.textWrappingMode = TextWrappingModes.Normal;
             descText.overflowMode = TextOverflowModes.Ellipsis;
-            
+
             SetPrivateField(cardUI, "descriptionText", descText);
             
             // === OWNER NAME (bottom) ===
@@ -220,7 +232,43 @@ namespace TacticalGame.Equipment
             
             stowedGO.SetActive(false);
             SetPrivateField(cardUI, "stowedIndicator", stowedGO);
-            
+
+            // === STOW BUTTON (bottom right, hidden by default) ===
+            var stowBtnGO = CreateChild(cardGO, "StowButton");
+            var stowBtnRT = stowBtnGO.AddComponent<RectTransform>();
+            stowBtnRT.anchorMin = new Vector2(1, 0);
+            stowBtnRT.anchorMax = new Vector2(1, 0);
+            stowBtnRT.pivot = new Vector2(1, 0);
+            stowBtnRT.anchoredPosition = new Vector2(-5, 25);
+            stowBtnRT.sizeDelta = new Vector2(28, 22);
+
+            var stowBtnBG = stowBtnGO.AddComponent<Image>();
+            stowBtnBG.color = new Color(0.2f, 0.5f, 0.8f, 0.95f);
+
+            var stowBtn = stowBtnGO.AddComponent<Button>();
+            stowBtn.targetGraphic = stowBtnBG;
+
+            // Button hover colors
+            var colors = stowBtn.colors;
+            colors.normalColor = new Color(0.2f, 0.5f, 0.8f, 0.95f);
+            colors.highlightedColor = new Color(0.3f, 0.6f, 0.9f, 1f);
+            colors.pressedColor = new Color(0.15f, 0.4f, 0.7f, 1f);
+            stowBtn.colors = colors;
+
+            var stowBtnTextGO = CreateChild(stowBtnGO, "Text");
+            SetFullStretch(stowBtnTextGO);
+            var stowBtnText = stowBtnTextGO.AddComponent<TextMeshProUGUI>();
+            stowBtnText.text = "STOW";
+            stowBtnText.fontSize = 10;
+            stowBtnText.fontStyle = FontStyles.Bold;
+            stowBtnText.color = Color.white;
+            stowBtnText.alignment = TextAlignmentOptions.Center;
+
+            // Wire up the button click to CardUI
+            stowBtn.onClick.AddListener(() => cardUI.OnStowButtonClicked());
+
+            stowBtnGO.SetActive(false);
+            SetPrivateField(cardUI, "stowButton", stowBtnGO);
 
         }
         

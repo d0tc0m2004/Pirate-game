@@ -28,20 +28,50 @@ namespace TacticalGame.Equipment
         #endregion
         
         #region Unity Lifecycle
-        
+
         private void Awake()
         {
+            // Auto-find components if not assigned (for auto-generated UI)
+            AutoFindComponents();
+
             if (closeButton != null)
             {
                 closeButton.onClick.AddListener(Close);
             }
         }
-        
+
         private void OnEnable()
         {
             Refresh();
         }
-        
+
+        private void AutoFindComponents()
+        {
+            // Find content container
+            if (contentContainer == null)
+            {
+                var content = transform.Find("Content");
+                if (content != null)
+                    contentContainer = content;
+            }
+
+            // Find header text
+            if (headerText == null)
+            {
+                var header = transform.Find("Header");
+                if (header != null)
+                    headerText = header.GetComponent<TextMeshProUGUI>();
+            }
+
+            // Find close button
+            if (closeButton == null)
+            {
+                var closeGO = transform.Find("CloseButton");
+                if (closeGO != null)
+                    closeButton = closeGO.GetComponent<Button>();
+            }
+        }
+
         #endregion
         
         #region Public Methods

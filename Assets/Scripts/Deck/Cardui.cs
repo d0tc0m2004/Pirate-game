@@ -29,6 +29,7 @@ namespace TacticalGame.Equipment
         [Header("Indicators")]
         [SerializeField] private GameObject stowedIndicator;
         [SerializeField] private GameObject weaponIndicator;
+        [SerializeField] private GameObject stowButton;
         
 
         
@@ -73,6 +74,11 @@ namespace TacticalGame.Equipment
             if (stowedIndicator != null)
             {
                 stowedIndicator.SetActive(false);
+            }
+
+            if (stowButton != null)
+            {
+                stowButton.SetActive(false);
             }
         }
         
@@ -135,6 +141,12 @@ namespace TacticalGame.Equipment
             {
                 stowedIndicator.SetActive(card.isStowed);
             }
+
+            // Hide stow button if card is stowed
+            if (stowButton != null && card.isStowed)
+            {
+                stowButton.SetActive(false);
+            }
         }
         
         #endregion
@@ -180,6 +192,19 @@ namespace TacticalGame.Equipment
             if (stowedIndicator != null)
             {
                 stowedIndicator.SetActive(stowed);
+            }
+        }
+
+        /// <summary>
+        /// Show/hide the stow button. Won't show if card is already stowed.
+        /// </summary>
+        public void ShowStowButton(bool show)
+        {
+            if (stowButton != null)
+            {
+                // Don't show stow button if card is already stowed
+                bool shouldShow = show && card != null && !card.isStowed;
+                stowButton.SetActive(shouldShow);
             }
         }
         
@@ -240,7 +265,11 @@ namespace TacticalGame.Equipment
         public void OnStowButtonClicked()
         {
             if (card == null) return;
-            BattleDeckManager.Instance.StowCard(card);
+            if (BattleDeckManager.Instance.StowCard(card))
+            {
+                // Hide the stow button after successful stow
+                ShowStowButton(false);
+            }
         }
         
         /// <summary>

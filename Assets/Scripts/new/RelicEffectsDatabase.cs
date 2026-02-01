@@ -26,10 +26,23 @@ namespace TacticalGame.Equipment
                     _instance = Resources.Load<RelicEffectsDatabase>("RelicEffectsDatabase");
                     if (_instance == null)
                     {
-                        Debug.LogWarning("RelicEffectsDatabase not found in Resources, creating default.");
+                        Debug.Log("<color=orange>RelicEffectsDatabase: Not found in Resources, creating runtime database...</color>");
                         _instance = CreateDefaultDatabase();
                     }
+                    else
+                    {
+                        Debug.Log($"<color=cyan>RelicEffectsDatabase: Loaded from Resources with {_instance.allEffects?.Count ?? 0} effects</color>");
+                    }
                 }
+
+                // Auto-populate if the database exists but is empty
+                if (_instance != null && (_instance.allEffects == null || _instance.allEffects.Count == 0))
+                {
+                    Debug.Log("<color=orange>RelicEffectsDatabase: Empty, populating with default effects...</color>");
+                    _instance.PopulateAllEffects();
+                    Debug.Log($"<color=cyan>RelicEffectsDatabase: Now has {_instance.allEffects.Count} effects</color>");
+                }
+
                 return _instance;
             }
         }
@@ -39,10 +52,21 @@ namespace TacticalGame.Equipment
         /// </summary>
         public RelicEffectData GetEffect(RelicCategory category, UnitRole roleTag, bool variant2 = false)
         {
-            return allEffects.FirstOrDefault(e => 
-                e.category == category && 
-                e.roleTag == roleTag && 
+            var result = allEffects.FirstOrDefault(e =>
+                e.category == category &&
+                e.roleTag == roleTag &&
                 e.isVariant2 == variant2);
+
+            if (result == null)
+            {
+                Debug.LogWarning($"<color=red>RelicEffectsDatabase: No effect found for {category}+{roleTag} (v2={variant2}). DB has {allEffects.Count} effects.</color>");
+            }
+            else
+            {
+                Debug.Log($"<color=green>RelicEffectsDatabase: Found effect for {category}+{roleTag}: {result.description}</color>");
+            }
+
+            return result;
         }
 
         /// <summary>
