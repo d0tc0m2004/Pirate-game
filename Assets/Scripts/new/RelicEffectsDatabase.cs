@@ -142,14 +142,14 @@ namespace TacticalGame.Equipment
                 RelicEffectType.Boots_SwapWithUnit,
                 "Swap location with another unit", 0, 0, 0);
             AddEffect(RelicCategory.Boots, UnitRole.Quartermaster, false, 2, 1, false,
-                RelicEffectType.Boots_MoveAlly,
-                "Move any allied unit 2 tiles", 2, 0, 0);
-            AddEffect(RelicCategory.Boots, UnitRole.Helmsmaster, false, 2, 1, false,
                 RelicEffectType.Boots_MoveRestoreMorale,
                 "Move 2 tiles and restore 10% morale", 2, 0.10f, 0);
+            AddEffect(RelicCategory.Boots, UnitRole.Helmsmaster, false, 2, 1, false,
+                RelicEffectType.Boots_MoveClearBuzz,
+                "Move 2 tiles and clear the buzz meter", 2, 0, 0);
             AddEffect(RelicCategory.Boots, UnitRole.Boatswain, false, 2, 1, false,
-                RelicEffectType.Boots_AllyFreeMoveLowestMorale,
-                "Lowest morale ally can move free this turn", 0, 0, 0);
+                RelicEffectType.Boots_MoveReduceDamage,
+                "Move 2 tiles, 20% reduced damage next enemy turn", 2, 0.20f, 1);
             AddEffect(RelicCategory.Boots, UnitRole.Shipwright, false, 2, 1, false,
                 RelicEffectType.Boots_MoveClearBuzz,
                 "Move 2 tiles and clear buzz meter", 2, 0, 0);
@@ -177,17 +177,17 @@ namespace TacticalGame.Equipment
 
             // ==================== BOOTS V2 ====================
             AddEffect(RelicCategory.Boots, UnitRole.Captain, true, 2, 1, false,
-                RelicEffectType.Boots_V2_SwapWithEnemy,
-                "Swap location with an enemy", 0, 0, 0);
+                RelicEffectType.Boots_MoveAlly,
+                "Move any allied unit 2 tiles", 2, 0, 0);
             AddEffect(RelicCategory.Boots, UnitRole.Quartermaster, true, 2, 1, false,
-                RelicEffectType.Boots_V2_MoveAllyGainShield,
-                "Move ally 2 tiles, they gain 30 shield", 2, 30, 0);
+                RelicEffectType.Boots_AllyFreeMoveLowestMorale,
+                "Lowest morale ally can move for free this turn 1 time", 0, 0, 0);
             AddEffect(RelicCategory.Boots, UnitRole.Helmsmaster, true, 2, 1, false,
-                RelicEffectType.Boots_V2_MoveGainMoraleOnKill,
-                "Move 2 tiles, gain 20% morale on next kill", 2, 0.20f, 1);
+                RelicEffectType.Boots_FreeIfGrog,
+                "Move 2 tiles, costs 0 energy if Grog tokens are available", 2, 0, 0);
             AddEffect(RelicCategory.Boots, UnitRole.Boatswain, true, 2, 1, false,
-                RelicEffectType.Boots_V2_AllAlliesMove1,
-                "All allies can move 1 tile free this turn", 1, 0, 1);
+                RelicEffectType.Boots_MoveAnyIfHighestHP,
+                "If highest current HP move any distance, otherwise move 2 tiles", 2, 0, 0);
             AddEffect(RelicCategory.Boots, UnitRole.Shipwright, true, 2, 1, false,
                 RelicEffectType.Boots_V2_MoveGainBuzzReduction,
                 "Move 2 tiles, buzz gain reduced 50% for 2 turns", 2, 0.50f, 2);
@@ -218,14 +218,14 @@ namespace TacticalGame.Equipment
                 RelicEffectType.Gloves_AttackReduceEnemyDraw,
                 "Attack, enemy draws 1 less next turn", 0, 1, 1);
             AddEffect(RelicCategory.Gloves, UnitRole.Quartermaster, false, 2, 1, false,
-                RelicEffectType.Gloves_AttackIncreaseEnemyCost,
-                "Attack, enemy next card costs +1", 0, 1, 1);
-            AddEffect(RelicCategory.Gloves, UnitRole.Helmsmaster, false, 2, 1, false,
                 RelicEffectType.Gloves_AttackBonusByMissingMorale,
-                "Attack, +damage by enemy missing morale", 0, 0, 0);
+                "Attack with weapon, increased damage based on enemy missing morale", 0, 0, 0);
+            AddEffect(RelicCategory.Gloves, UnitRole.Helmsmaster, false, 2, 1, false,
+                RelicEffectType.Gloves_AttackPreventBuzzReduce,
+                "Attack with weapon, prevent target from reducing buzz for 2 turns", 0, 0, 2);
             AddEffect(RelicCategory.Gloves, UnitRole.Boatswain, false, 2, 1, false,
-                RelicEffectType.Gloves_AttackMarkMoraleFocus,
-                "Attack, mark for morale focus 2 turns", 0, 0, 2);
+                RelicEffectType.Gloves_AttackBonusIfMoreHP,
+                "Attack with weapon, +20% damage if target has less current HP than this unit", 0, 0.20f, 0);
             AddEffect(RelicCategory.Gloves, UnitRole.Shipwright, false, 2, 1, false,
                 RelicEffectType.Gloves_AttackPreventBuzzReduce,
                 "Attack, prevent buzz reduction 2 turns", 0, 0, 2);
@@ -253,17 +253,17 @@ namespace TacticalGame.Equipment
 
             // ==================== GLOVES V2 ====================
             AddEffect(RelicCategory.Gloves, UnitRole.Captain, true, 2, 1, false,
-                RelicEffectType.Gloves_V2_AttackStealBuff,
-                "Attack, steal one buff from target", 0, 1, 0);
+                RelicEffectType.Gloves_AttackIncreaseEnemyCost,
+                "Attack with weapon, enemy next card costs +1 energy", 0, 1, 1);
             AddEffect(RelicCategory.Gloves, UnitRole.Quartermaster, true, 2, 1, false,
-                RelicEffectType.Gloves_V2_AttackDiscard,
-                "Attack, enemy discards 1 card", 0, 1, 0);
+                RelicEffectType.Gloves_AttackMarkMoraleFocus,
+                "Attack with weapon, mark target for morale focus fire for 2 turns", 0, 0, 2);
             AddEffect(RelicCategory.Gloves, UnitRole.Helmsmaster, true, 2, 1, false,
-                RelicEffectType.Gloves_V2_AttackMoraleDamage,
-                "Attack deals 50% bonus morale damage", 0, 0.50f, 0);
+                RelicEffectType.Gloves_AttackBonusPerGrog,
+                "Attack with weapon, +20% damage per available Grog token", 0, 0.20f, 0);
             AddEffect(RelicCategory.Gloves, UnitRole.Boatswain, true, 2, 1, false,
-                RelicEffectType.Gloves_V2_AttackHealAlly,
-                "Attack, heal lowest HP ally 15%", 0, 0.15f, 0);
+                RelicEffectType.Gloves_AttackLowerEnemyHealth,
+                "Attack with weapon, lower enemy health stat by 30% for 2 turns", 0, 0.30f, 2);
             AddEffect(RelicCategory.Gloves, UnitRole.Shipwright, true, 2, 1, false,
                 RelicEffectType.Gloves_V2_AttackReduceBuzz,
                 "Attack, reduce own buzz by 20", 0, 20, 0);
@@ -294,14 +294,14 @@ namespace TacticalGame.Equipment
                 RelicEffectType.Hat_DrawCardsVulnerable,
                 "Draw 2, take 200% damage for 2 turns", 2, 2.0f, 2);
             AddEffect(RelicCategory.Hat, UnitRole.Quartermaster, false, 2, 1, false,
-                RelicEffectType.Hat_DrawUltimate,
-                "Draw an ultimate ability", 1, 0, 0);
-            AddEffect(RelicCategory.Hat, UnitRole.Helmsmaster, false, 2, 1, false,
                 RelicEffectType.Hat_RestoreMoraleLowest,
-                "Restore 30% morale to lowest ally", 0, 0.30f, 0);
+                "Restore 30% morale to lowest morale ally", 0, 0.30f, 0);
+            AddEffect(RelicCategory.Hat, UnitRole.Helmsmaster, false, 2, 1, false,
+                RelicEffectType.Hat_FreeRumUsage,
+                "This round 3 rum usage cost no Grog", 3, 0, 0);
             AddEffect(RelicCategory.Hat, UnitRole.Boatswain, false, 2, 1, false,
-                RelicEffectType.Hat_RestoreMoraleNearby,
-                "10% morale to allies in 1 tile", 0, 0.10f, 0, 1);
+                RelicEffectType.Hat_ReturnDamage,
+                "For 2 turns, return 1 instance of damage back", 1, 0, 2);
             AddEffect(RelicCategory.Hat, UnitRole.Shipwright, false, 2, 1, false,
                 RelicEffectType.Hat_FreeRumUsage,
                 "3 rum usage free this round", 3, 0, 1);
@@ -329,17 +329,17 @@ namespace TacticalGame.Equipment
 
             // ==================== HAT V2 ====================
             AddEffect(RelicCategory.Hat, UnitRole.Captain, true, 2, 1, false,
-                RelicEffectType.Hat_V2_DrawAndShield,
-                "Draw 1 card, gain 30 shield", 1, 30, 0);
+                RelicEffectType.Hat_DrawUltimate,
+                "Draw an ultimate ability", 1, 0, 0);
             AddEffect(RelicCategory.Hat, UnitRole.Quartermaster, true, 2, 1, false,
-                RelicEffectType.Hat_V2_DrawBootsRelic,
-                "Draw a boots relic", 1, 0, 0);
+                RelicEffectType.Hat_RestoreMoraleNearby,
+                "All nearby allies in 1 tile range have 10% morale restored", 0, 0.10f, 0, 1);
             AddEffect(RelicCategory.Hat, UnitRole.Helmsmaster, true, 2, 1, false,
-                RelicEffectType.Hat_V2_RestoreMoraleAll,
-                "All allies restore 5% morale", 0, 0.05f, 0);
+                RelicEffectType.Hat_GenerateGrog,
+                "Generate 2 Grog tokens", 2, 0, 0);
             AddEffect(RelicCategory.Hat, UnitRole.Boatswain, true, 2, 1, false,
-                RelicEffectType.Hat_V2_PreventMoraleLoss,
-                "Allies can't lose morale this turn", 0, 0, 1);
+                RelicEffectType.Hat_IncreaseHealthStat,
+                "For 2 turns, health stat of this unit is increased by 25%", 0, 0.25f, 2);
             AddEffect(RelicCategory.Hat, UnitRole.Shipwright, true, 2, 1, false,
                 RelicEffectType.Hat_V2_RumHealsMore,
                 "Rum heals 50% more this turn", 0, 0.50f, 1);
@@ -368,16 +368,16 @@ namespace TacticalGame.Equipment
             // ==================== COAT V1 ====================
             AddEffect(RelicCategory.Coat, UnitRole.Captain, false, 2, 1, false,
                 RelicEffectType.Coat_BuffNearbyAimPower,
-                "+20% Aim/Power to allies in 1 tile", 0, 0.20f, 1, 1);
+                "Allies in 1 tile radius receive +20% Aim and Power for 2 turns", 0, 0.20f, 2, 1);
             AddEffect(RelicCategory.Coat, UnitRole.Quartermaster, false, 2, 1, false,
-                RelicEffectType.Coat_DrawOnEnemyAttack,
-                "Draw card per enemy attack, enemy discards", 1, 1, 1);
-            AddEffect(RelicCategory.Coat, UnitRole.Helmsmaster, false, 2, 1, false,
                 RelicEffectType.Coat_ReduceMoraleDamage,
-                "Allies take 30% less morale damage 2 turns", 0, 0.30f, 2);
+                "For 2 turns allies take 30% less morale damage", 0, 0.30f, 2);
+            AddEffect(RelicCategory.Coat, UnitRole.Helmsmaster, false, 2, 1, false,
+                RelicEffectType.Coat_ReduceRumEffect,
+                "Nearby allies in 1 tile radius have reduced rum effect this turn", 0, 0, 1, 1);
             AddEffect(RelicCategory.Coat, UnitRole.Boatswain, false, 2, 1, false,
-                RelicEffectType.Coat_PreventSurrender,
-                "If ally would surrender, restore 20% morale", 0, 0.20f, 0);
+                RelicEffectType.Coat_PreventDisplacement,
+                "Allies in 1 tile radius can't be displaced or knocked back next enemy turn", 0, 0, 1, 1);
             AddEffect(RelicCategory.Coat, UnitRole.Shipwright, false, 2, 1, false,
                 RelicEffectType.Coat_ReduceRumEffect,
                 "Nearby allies reduced rum effect", 0, 0.50f, 0, 1);
@@ -405,17 +405,17 @@ namespace TacticalGame.Equipment
 
             // ==================== COAT V2 ====================
             AddEffect(RelicCategory.Coat, UnitRole.Captain, true, 2, 1, false,
-                RelicEffectType.Coat_V2_ShieldNearby,
-                "Nearby allies gain 25 shield", 25, 0, 0, 1);
+                RelicEffectType.Coat_DrawOnEnemyAttack,
+                "For each enemy attack (3 max) next 2 turns, draw a card and enemy discards 1 next turn", 3, 1, 2);
             AddEffect(RelicCategory.Coat, UnitRole.Quartermaster, true, 2, 1, false,
-                RelicEffectType.Coat_V2_CounterOnAllyHit,
-                "Counter-attack when ally is hit", 0, 0, 2);
+                RelicEffectType.Coat_PreventSurrender,
+                "For 2 turns buff an ally, if that unit would surrender restore 20% morale instead", 0, 0.20f, 2);
             AddEffect(RelicCategory.Coat, UnitRole.Helmsmaster, true, 2, 1, false,
-                RelicEffectType.Coat_V2_MoraleShield,
-                "Absorb next 50 morale damage for allies", 50, 0, 1);
+                RelicEffectType.Coat_EnemyBuzzOnDamage,
+                "Next turn enemies buzz meter fills every time they do damage", 0, 0, 1);
             AddEffect(RelicCategory.Coat, UnitRole.Boatswain, true, 2, 1, false,
-                RelicEffectType.Coat_V2_RevivePrevent,
-                "Prevent one ally death this turn (1 HP)", 1, 0, 1);
+                RelicEffectType.Coat_ProtectLowHP,
+                "Lowest HP ally can only be targeted next turn by enemies with lower HP", 0, 0, 1);
             AddEffect(RelicCategory.Coat, UnitRole.Shipwright, true, 2, 1, false,
                 RelicEffectType.Coat_V2_BuzzImmunity,
                 "Nearby allies immune to buzz effects", 0, 0, 2, 1);
@@ -446,14 +446,14 @@ namespace TacticalGame.Equipment
                 RelicEffectType.Trinket_BonusDamagePerCard,
                 "Passive: +20% weapon damage per card in hand", 0.20f, 0);
             AddPassive(RelicCategory.Trinket, UnitRole.Quartermaster, false,
-                RelicEffectType.Trinket_BonusVsCaptain,
-                "Passive: +20% damage vs enemy captain", 0.20f, 0);
-            AddPassive(RelicCategory.Trinket, UnitRole.Helmsmaster, false,
                 RelicEffectType.Trinket_ImmuneMoraleFocusFire,
-                "Passive: Immune to morale focus fire", 0, 0);
+                "Passive: Unit is immune to morale focus fire effect", 0, 0);
+            AddPassive(RelicCategory.Trinket, UnitRole.Helmsmaster, false,
+                RelicEffectType.Trinket_DamageByBuzz,
+                "Passive: Increased damage based on own buzz state", 0, 0);
             AddPassive(RelicCategory.Trinket, UnitRole.Boatswain, false,
-                RelicEffectType.Trinket_EnemySurrenderEarly,
-                "Passive: Enemies surrender at 30% morale", 0.30f, 0);
+                RelicEffectType.Trinket_ReduceDamageFromClosest,
+                "Passive: Closest enemy does 20% less damage to this unit", 0.20f, 0);
             AddPassive(RelicCategory.Trinket, UnitRole.Shipwright, false,
                 RelicEffectType.Trinket_DamageByBuzz,
                 "Passive: +damage based on own buzz", 0, 0);
@@ -481,17 +481,17 @@ namespace TacticalGame.Equipment
 
             // ==================== TRINKET V2 (Passive) ====================
             AddPassive(RelicCategory.Trinket, UnitRole.Captain, true,
-                RelicEffectType.Trinket_V2_BonusDamagePerAlly,
-                "Passive: +5% damage per ally alive", 0.05f, 0);
+                RelicEffectType.Trinket_BonusVsCaptain,
+                "Passive: +20% extra damage vs enemy Captain", 0.20f, 0);
             AddPassive(RelicCategory.Trinket, UnitRole.Quartermaster, true,
-                RelicEffectType.Trinket_V2_DrawOnCaptainHit,
-                "Passive: Draw card when captain takes damage", 1, 0);
+                RelicEffectType.Trinket_EnemySurrenderEarly,
+                "Passive: Enemy units surrender at 30% morale", 0.30f, 0);
             AddPassive(RelicCategory.Trinket, UnitRole.Helmsmaster, true,
-                RelicEffectType.Trinket_V2_MoraleOnKill,
-                "Passive: Gain 10% morale on enemy kill", 0.10f, 0);
+                RelicEffectType.Trinket_KnockbackIncreasesBuzz,
+                "Passive: Knockback increases enemy buzz meter", 0, 0);
             AddPassive(RelicCategory.Trinket, UnitRole.Boatswain, true,
-                RelicEffectType.Trinket_V2_AllySurrenderLater,
-                "Passive: Allies surrender at 10% instead of 20%", 0.10f, 0);
+                RelicEffectType.Trinket_DrawIfHighHP,
+                "Passive: Draw an extra card each turn if HP is above 60%", 0.60f, 0);
             AddPassive(RelicCategory.Trinket, UnitRole.Shipwright, true,
                 RelicEffectType.Trinket_V2_NoBuzzPenalty,
                 "Passive: No penalty when buzz is full", 0, 0);
@@ -522,14 +522,14 @@ namespace TacticalGame.Equipment
                 RelicEffectType.Totem_SummonCannon,
                 "Summon cannon, 250 HP, attacks random enemy", 250, 0, 0);
             AddEffect(RelicCategory.Totem, UnitRole.Quartermaster, false, 2, 1, false,
-                RelicEffectType.Totem_CurseCaptainReflect,
-                "Captain damage reflects to nearby allies", 0, 0.50f, 2);
-            AddEffect(RelicCategory.Totem, UnitRole.Helmsmaster, false, 2, 1, false,
                 RelicEffectType.Totem_RallyNoMoraleDamage,
-                "Nearby allies no morale damage next turn", 0, 0, 1, 1);
+                "Rally: allies in 1 tile radius won't suffer morale damage next turn", 0, 0, 1, 1);
+            AddEffect(RelicCategory.Totem, UnitRole.Helmsmaster, false, 2, 1, false,
+                RelicEffectType.Totem_SummonHighQualityRum,
+                "Summon 2 high quality rum to inventory", 2, 0, 0);
             AddEffect(RelicCategory.Totem, UnitRole.Boatswain, false, 2, 1, false,
-                RelicEffectType.Totem_EnemyDeathMoraleSwing,
-                "Enemy death: enemies lose morale, allies gain", 0, 0.05f, 0);
+                RelicEffectType.Totem_StunOnKnockback,
+                "If target is knocked back next enemy turn, stun that target for that turn", 0, 0, 1);
             AddEffect(RelicCategory.Totem, UnitRole.Shipwright, false, 2, 1, false,
                 RelicEffectType.Totem_SummonHighQualityRum,
                 "Add 2 high quality rum", 2, 0, 0);
@@ -557,17 +557,17 @@ namespace TacticalGame.Equipment
 
             // ==================== TOTEM V2 ====================
             AddEffect(RelicCategory.Totem, UnitRole.Captain, true, 2, 1, false,
-                RelicEffectType.Totem_V2_SummonHealingTotem,
-                "Summon totem that heals nearby allies 10/turn", 10, 0, 3, 1);
-            AddEffect(RelicCategory.Totem, UnitRole.Quartermaster, true, 2, 1, false,
-                RelicEffectType.Totem_V2_CurseWeakness,
-                "Curse enemy: -20% damage for 3 turns", 0, 0.20f, 3);
-            AddEffect(RelicCategory.Totem, UnitRole.Helmsmaster, true, 2, 1, false,
-                RelicEffectType.Totem_V2_RallyDamageBoost,
-                "Nearby allies +15% damage for 2 turns", 0, 0.15f, 2, 1);
+                RelicEffectType.Totem_CurseCaptainReflect,
+                "Curse enemy captain this turn, damage captain suffers reflects to all other enemies", 0, 0, 1);
+            AddPassive(RelicCategory.Totem, UnitRole.Quartermaster, true,
+                RelicEffectType.Totem_EnemyDeathMoraleSwing,
+                "Passive: When enemy surrenders or dies, enemies lose morale and all player units gain 5% morale", 0, 0.05f);
+            AddEffect(RelicCategory.Totem, UnitRole.Helmsmaster, true, 2, 0, false,
+                RelicEffectType.Totem_ConvertGrogToEnergy,
+                "Convert 2 Grog tokens into 1 energy", 2, 1, 0);
             AddEffect(RelicCategory.Totem, UnitRole.Boatswain, true, 2, 1, false,
-                RelicEffectType.Totem_V2_SummonMoraleBanner,
-                "Banner prevents morale loss in radius for 2 turns", 0, 0, 2, 2);
+                RelicEffectType.Totem_SummonAnchorHealthBuff,
+                "Summon anchor on nearby tile, +25% health stat to allies in 1 tile radius for 2 turns", 0, 0.25f, 2, 1);
             AddEffect(RelicCategory.Totem, UnitRole.Shipwright, true, 2, 1, false,
                 RelicEffectType.Totem_V2_SummonGrogBarrel,
                 "Barrel gives 2 grog when destroyed", 2, 0, 0);
@@ -598,14 +598,14 @@ namespace TacticalGame.Equipment
                 RelicEffectType.Ultimate_ShipCannon,
                 "Fire ship cannon: 3 shots, 200 damage + fire hazard", 200, 3, 0, 1, RelicRarity.Unique);
             AddEffect(RelicCategory.Ultimate, UnitRole.Quartermaster, false, 1, 3, false,
-                RelicEffectType.Ultimate_MarkCaptainOnly,
-                "Attack enemy captain, mark as only target this turn", 0, 0, 1, 1, RelicRarity.Unique);
-            AddEffect(RelicCategory.Ultimate, UnitRole.Helmsmaster, false, 1, 3, false,
                 RelicEffectType.Ultimate_ReflectMoraleDamage,
-                "Morale damage to allies reflects to enemies next turn", 0, 0, 1, 1, RelicRarity.Unique);
+                "During enemy next turn, any morale allies suffer is reflected on enemies too", 0, 0, 1, 1, RelicRarity.Unique);
+            AddEffect(RelicCategory.Ultimate, UnitRole.Helmsmaster, false, 1, 3, false,
+                RelicEffectType.Ultimate_FullBuzzAttack,
+                "Attack target with weapon, target buzz meter full for 2 turns", 0, 0, 2, 1, RelicRarity.Unique);
             AddEffect(RelicCategory.Ultimate, UnitRole.Boatswain, false, 1, 3, false,
-                RelicEffectType.Ultimate_ReviveAlly,
-                "Revive dead or surrendered ally at 30%", 0, 0.30f, 0, 1, RelicRarity.Unique);
+                RelicEffectType.Ultimate_SummonHardObstacles,
+                "Summon 3 hard obstacles in front row empty tiles, last 2 turns", 3, 0, 2, 1, RelicRarity.Unique);
             AddEffect(RelicCategory.Ultimate, UnitRole.Shipwright, false, 1, 3, false,
                 RelicEffectType.Ultimate_FullBuzzAttack,
                 "Attack, make target buzz full for 2 turns", 0, 0, 2, 1, RelicRarity.Unique);
@@ -633,17 +633,17 @@ namespace TacticalGame.Equipment
 
             // ==================== ULTIMATE V2 ====================
             AddEffect(RelicCategory.Ultimate, UnitRole.Captain, true, 1, 3, false,
-                RelicEffectType.Ultimate_V2_TeamwideBuff,
-                "All allies +25% damage and armor for 2 turns", 0, 0.25f, 2, 99, RelicRarity.Unique);
+                RelicEffectType.Ultimate_MarkCaptainOnly,
+                "Attack enemy captain with weapon, mark as only target this turn", 0, 0, 1, 1, RelicRarity.Unique);
             AddEffect(RelicCategory.Ultimate, UnitRole.Quartermaster, true, 1, 3, false,
-                RelicEffectType.Ultimate_V2_ExecuteBelow20,
-                "Instantly kill enemy below 20% HP", 0, 0.20f, 0, 1, RelicRarity.Unique);
+                RelicEffectType.Ultimate_ReviveAlly,
+                "Revive a dead or surrendered ally with 30% health and morale", 0, 0.30f, 0, 1, RelicRarity.Unique);
             AddEffect(RelicCategory.Ultimate, UnitRole.Helmsmaster, true, 1, 3, false,
-                RelicEffectType.Ultimate_V2_FullMoraleRestore,
-                "Fully restore all allies' morale", 0, 1.0f, 0, 99, RelicRarity.Unique);
+                RelicEffectType.Ultimate_RumBottleAoE,
+                "Throw rum bottle at target, 200 damage in 1 tile radius, rum spill increases buzz for 3 turns", 200, 0, 3, 1, RelicRarity.Unique);
             AddEffect(RelicCategory.Ultimate, UnitRole.Boatswain, true, 1, 3, false,
-                RelicEffectType.Ultimate_V2_MassRevive,
-                "Revive all dead allies at 20% HP", 0, 0.20f, 0, 99, RelicRarity.Unique);
+                RelicEffectType.Ultimate_IgnoreHighestHP,
+                "This turn, highest HP enemy besides captain is ignored", 0, 0, 1, 1, RelicRarity.Unique);
             AddEffect(RelicCategory.Ultimate, UnitRole.Shipwright, true, 1, 3, false,
                 RelicEffectType.Ultimate_V2_BuzzExplosion,
                 "All enemies buzz fills, take damage = buzz", 0, 0, 0, 99, RelicRarity.Unique);
@@ -674,14 +674,14 @@ namespace TacticalGame.Equipment
                 RelicEffectType.PassiveUnique_ExtraEnergy,
                 "Passive: +1 max energy each turn", 1, 0, RelicRarity.Unique);
             AddPassive(RelicCategory.PassiveUnique, UnitRole.Quartermaster, false,
-                RelicEffectType.PassiveUnique_ExtraCards,
-                "Passive: +2 cards each turn", 2, 0, RelicRarity.Unique);
-            AddPassive(RelicCategory.PassiveUnique, UnitRole.Helmsmaster, false,
                 RelicEffectType.PassiveUnique_DeathStrikeByMorale,
-                "Passive: Higher morale = chance to attack on death", 0, 0, RelicRarity.Unique);
+                "Passive: Higher morale on death = higher chance to do a default weapon attack before dying", 0, 0, RelicRarity.Unique);
+            AddPassive(RelicCategory.PassiveUnique, UnitRole.Helmsmaster, false,
+                RelicEffectType.PassiveUnique_NoBuzzDownside,
+                "Passive: No downside if the buzz meter is full", 0, 0, RelicRarity.Unique);
             AddPassive(RelicCategory.PassiveUnique, UnitRole.Boatswain, false,
-                RelicEffectType.PassiveUnique_LowerSurrenderThreshold,
-                "Passive: Allies surrender at 10% instead of 20%", 0.10f, 0, RelicRarity.Unique);
+                RelicEffectType.PassiveUnique_DrawOnLowDamage,
+                "Passive: Draw a card next turn if this unit takes less than 20% current HP damage in 1 turn", 0.20f, 0, RelicRarity.Unique);
             AddPassive(RelicCategory.PassiveUnique, UnitRole.Shipwright, false,
                 RelicEffectType.PassiveUnique_NoBuzzDownside,
                 "Passive: No penalty when buzz full", 0, 0, RelicRarity.Unique);
@@ -709,17 +709,17 @@ namespace TacticalGame.Equipment
 
             // ==================== PASSIVE UNIQUE V2 ====================
             AddPassive(RelicCategory.PassiveUnique, UnitRole.Captain, true,
-                RelicEffectType.PassiveUnique_V2_TeamLeader,
-                "Passive: Allies in 2 tiles +10% all stats", 0.10f, 0, RelicRarity.Unique);
+                RelicEffectType.PassiveUnique_ExtraCards,
+                "Passive: Gain 2 extra cards each turn", 2, 0, RelicRarity.Unique);
             AddPassive(RelicCategory.PassiveUnique, UnitRole.Quartermaster, true,
-                RelicEffectType.PassiveUnique_V2_CardMaster,
-                "Passive: Cards cost 1 less (min 0)", 1, 0, RelicRarity.Unique);
+                RelicEffectType.PassiveUnique_LowerSurrenderThreshold,
+                "Passive: Lower the surrender threshold of allies to 10%", 0.10f, 0, RelicRarity.Unique);
             AddPassive(RelicCategory.PassiveUnique, UnitRole.Helmsmaster, true,
-                RelicEffectType.PassiveUnique_V2_Inspiring,
-                "Passive: Allies gain 5% morale when this unit attacks", 0.05f, 0, RelicRarity.Unique);
+                RelicEffectType.PassiveUnique_DrawPerGrog,
+                "Passive: Each turn draw extra cards based on available Grog", 0, 0, RelicRarity.Unique);
             AddPassive(RelicCategory.PassiveUnique, UnitRole.Boatswain, true,
-                RelicEffectType.PassiveUnique_V2_LastStand,
-                "Passive: 50% chance ally survives at 1 HP", 0.50f, 0, RelicRarity.Unique);
+                RelicEffectType.PassiveUnique_CounterAttack,
+                "Passive: Every time an ally takes damage, counter-attack that enemy with default weapon", 0, 0, RelicRarity.Unique);
             AddPassive(RelicCategory.PassiveUnique, UnitRole.Shipwright, true,
                 RelicEffectType.PassiveUnique_V2_DrunkMaster,
                 "Passive: Buzz gives bonuses instead of penalties", 0, 0, RelicRarity.Unique);
