@@ -151,29 +151,29 @@ namespace TacticalGame.Equipment
                 RelicEffectType.Boots_MoveReduceDamage,
                 "Move 2 tiles, 20% reduced damage next enemy turn", 2, 0.20f, 1);
             AddEffect(RelicCategory.Boots, UnitRole.Shipwright, false, 2, 1, false,
-                RelicEffectType.Boots_MoveClearBuzz,
-                "Move 2 tiles and clear buzz meter", 2, 0, 0);
-            AddEffect(RelicCategory.Boots, UnitRole.MasterGunner, false, 2, 1, false,
-                RelicEffectType.Boots_FreeIfGrog,
-                "Move 2 tiles. Free if grog available", 2, 0, 0);
-            AddEffect(RelicCategory.Boots, UnitRole.MasterAtArms, false, 2, 1, false,
-                RelicEffectType.Boots_MoveReduceDamage,
-                "Move 2 tiles, take 20% less damage next turn", 2, 0.20f, 1);
-            AddEffect(RelicCategory.Boots, UnitRole.Navigator, false, 2, 1, false,
-                RelicEffectType.Boots_MoveAnyIfHighestHP,
-                "Move any distance if highest HP, else 2 tiles", 2, 99, 0);
-            AddEffect(RelicCategory.Boots, UnitRole.Surgeon, false, 2, 1, false,
                 RelicEffectType.Boots_MoveToNeutral,
                 "Move to any tile in neutral zone", 0, 0, 0);
-            AddEffect(RelicCategory.Boots, UnitRole.Cook, false, 2, 1, false,
-                RelicEffectType.Boots_MoveGainGrit,
-                "Move 2 tiles, gain 20% Grit for 2 turns", 2, 0.20f, 2);
-            AddEffect(RelicCategory.Boots, UnitRole.Swashbuckler, false, 2, 1, false,
+            AddEffect(RelicCategory.Boots, UnitRole.MasterGunner, false, 2, 1, false,
                 RelicEffectType.Boots_MoveGainAim,
-                "Move 2 tiles, gain 50% Aim this turn", 2, 0.50f, 1);
+                "Move 2 tiles, gain 50% increased Aim stat this turn", 2, 0.50f, 1);
+            AddEffect(RelicCategory.Boots, UnitRole.MasterAtArms, false, 2, 1, false,
+                RelicEffectType.Boots_MoveBonusWeaponDamage,
+                "Move 2 tiles, 30% increased damage to next weapon attack", 2, 0.30f, 0);
+            AddEffect(RelicCategory.Boots, UnitRole.Navigator, false, 2, 1, false,
+                RelicEffectType.Boots_MoveFarDistance,
+                "Move 4 tiles in any direction", 4, 0, 0);
+            AddEffect(RelicCategory.Boots, UnitRole.Surgeon, false, 2, 1, false,
+                RelicEffectType.Boots_MoveRestoreHealth,
+                "Move 2 tiles, restore 20% health", 2, 0.20f, 0);
+            AddEffect(RelicCategory.Boots, UnitRole.Cook, false, 2, 1, false,
+                RelicEffectType.Boots_MoveDrawCard,
+                "Move 1 tile, draw a card, if cook relic reduce cost by 1", 1, 1, 0);
+            AddEffect(RelicCategory.Boots, UnitRole.Swashbuckler, false, 2, 1, false,
+                RelicEffectType.Boots_MoveBySpeed,
+                "Move 2 tiles, if highest speed move 4 tiles", 2, 4, 0);
             AddEffect(RelicCategory.Boots, UnitRole.Deckhand, false, 2, 1, false,
-                RelicEffectType.Boots_MoveReduceRangedCost,
-                "Move 1 tile, reduce next ranged cost by 1", 1, 1, 0);
+                RelicEffectType.Boots_MoveColumnOnly,
+                "Move any tile in same column, 1 tile on row", 0, 1, 0);
 
             // ==================== BOOTS V2 ====================
             AddEffect(RelicCategory.Boots, UnitRole.Captain, true, 2, 1, false,
@@ -189,29 +189,29 @@ namespace TacticalGame.Equipment
                 RelicEffectType.Boots_MoveAnyIfHighestHP,
                 "If highest current HP move any distance, otherwise move 2 tiles", 2, 0, 0);
             AddEffect(RelicCategory.Boots, UnitRole.Shipwright, true, 2, 1, false,
-                RelicEffectType.Boots_V2_MoveGainBuzzReduction,
-                "Move 2 tiles, buzz gain reduced 50% for 2 turns", 2, 0.50f, 2);
+                RelicEffectType.Boots_MoveGainGrit,
+                "Move 2 tiles, gain 20% Grit stat for 2 turns", 2, 0.20f, 2);
             AddEffect(RelicCategory.Boots, UnitRole.MasterGunner, true, 2, 1, false,
-                RelicEffectType.Boots_V2_MoveGainGrog,
-                "Move 2 tiles, gain 1 grog", 2, 1, 0);
+                RelicEffectType.Boots_MoveReduceRangedCost,
+                "Move 1 tile, reduce cost of next ranged weapon relic by 1 this turn", 1, 1, 0);
             AddEffect(RelicCategory.Boots, UnitRole.MasterAtArms, true, 2, 1, false,
-                RelicEffectType.Boots_V2_MoveGainArmor,
-                "Move 2 tiles, gain 50 hull", 2, 50, 0);
-            AddEffect(RelicCategory.Boots, UnitRole.Navigator, true, 2, 1, false,
-                RelicEffectType.Boots_V2_MoveExtraIfLowHP,
-                "Move 2 tiles (+2 if below 50% HP)", 2, 2, 0);
-            AddEffect(RelicCategory.Boots, UnitRole.Surgeon, true, 2, 1, false,
-                RelicEffectType.Boots_V2_MoveHealAdjacent,
-                "Move 2 tiles, heal adjacent allies 10%", 2, 0.10f, 0, 1);
+                RelicEffectType.Boots_V2_MoveDestroyObstacle,
+                "In 2 tile radius can move to an obstacle tile, destroying it", 2, 0, 0);
+            AddEffect(RelicCategory.Boots, UnitRole.Navigator, true, 2, 0, false,
+                RelicEffectType.Boots_V2_MoveFree,
+                "Move 2 tiles in any direction", 2, 0, 0);
+            AddEffect(RelicCategory.Boots, UnitRole.Surgeon, true, 2, 0, false,
+                RelicEffectType.Boots_V2_SwapLowestHealthAlly,
+                "Swap with lowest health ally (0 energy)", 0, 0, 0);
             AddEffect(RelicCategory.Boots, UnitRole.Cook, true, 2, 1, false,
-                RelicEffectType.Boots_V2_MovePoisonTile,
-                "Move 2 tiles, leave poison on previous tile", 2, 10, 3);
+                RelicEffectType.Boots_V2_MoveBoostProficiency,
+                "Move 2 tiles, +100% proficiency this turn", 2, 1.0f, 1);
             AddEffect(RelicCategory.Boots, UnitRole.Swashbuckler, true, 2, 1, false,
-                RelicEffectType.Boots_V2_MoveGainDodge,
-                "Move 2 tiles, 30% dodge next attack", 2, 0.30f, 1);
+                RelicEffectType.Boots_V2_MoveRowOnly,
+                "Move any tile in same row, 1 tile on column", 0, 1, 0);
             AddEffect(RelicCategory.Boots, UnitRole.Deckhand, true, 2, 1, false,
-                RelicEffectType.Boots_V2_MoveDrawCard,
-                "Move 1 tile, draw a card", 1, 1, 0);
+                RelicEffectType.Boots_V2_MoveRestoreHull,
+                "Move 2 tiles, restore 50 hull shield", 2, 50, 0);
 
             // ==================== GLOVES V1 ====================
             AddEffect(RelicCategory.Gloves, UnitRole.Captain, false, 2, 1, false,
@@ -227,29 +227,29 @@ namespace TacticalGame.Equipment
                 RelicEffectType.Gloves_AttackBonusIfMoreHP,
                 "Attack with weapon, +20% damage if target has less current HP than this unit", 0, 0.20f, 0);
             AddEffect(RelicCategory.Gloves, UnitRole.Shipwright, false, 2, 1, false,
-                RelicEffectType.Gloves_AttackPreventBuzzReduce,
-                "Attack, prevent buzz reduction 2 turns", 0, 0, 2);
-            AddEffect(RelicCategory.Gloves, UnitRole.MasterGunner, false, 2, 1, false,
-                RelicEffectType.Gloves_AttackBonusPerGrog,
-                "Attack, +20% per grog token", 0, 0.20f, 0);
-            AddEffect(RelicCategory.Gloves, UnitRole.MasterAtArms, false, 2, 1, false,
-                RelicEffectType.Gloves_AttackBonusIfMoreHP,
-                "Attack, +20% if more HP than target", 0, 0.20f, 0);
-            AddEffect(RelicCategory.Gloves, UnitRole.Navigator, false, 2, 1, false,
-                RelicEffectType.Gloves_AttackLowerEnemyHealth,
-                "Attack, lower enemy health stat 30% for 2 turns", 0, 0.30f, 2);
-            AddEffect(RelicCategory.Gloves, UnitRole.Surgeon, false, 2, 1, false,
                 RelicEffectType.Gloves_AttackPushForward,
-                "Attack, push target forward 1 tile", 0, 1, 0);
-            AddEffect(RelicCategory.Gloves, UnitRole.Cook, false, 2, 1, false,
-                RelicEffectType.Gloves_AttackForceTargetClosest,
-                "Attack, force enemy to attack closest next turn", 0, 0, 1);
-            AddEffect(RelicCategory.Gloves, UnitRole.Swashbuckler, false, 2, 1, false,
+                "Attack with weapon, push target forward 1 tile", 0, 1, 0);
+            AddEffect(RelicCategory.Gloves, UnitRole.MasterGunner, false, 2, 1, false,
                 RelicEffectType.Gloves_AttackBonusPerCardPlayed,
-                "Attack, +10% per card played this round", 0, 0.10f, 0);
+                "Attack with weapon, +10% damage for each card played this round", 0, 0.10f, 0);
+            AddEffect(RelicCategory.Gloves, UnitRole.MasterAtArms, false, 2, 1, false,
+                RelicEffectType.Gloves_AttackBonusPerNearbyAlly,
+                "Attack with weapon, +20% bonus damage for each nearby allied unit in 1 tile radius", 0, 0.20f, 0, 1);
+            AddEffect(RelicCategory.Gloves, UnitRole.Navigator, false, 2, 1, false,
+                RelicEffectType.Gloves_DisableWeaponEffect,
+                "Disable enemy weapon role effects next turn, damage still applies", 0, 0, 1);
+            AddEffect(RelicCategory.Gloves, UnitRole.Surgeon, false, 2, 1, false,
+                RelicEffectType.Gloves_AttackHealLowestAlly,
+                "Attack, restore 200 HP to lowest ally", 0, 200, 0);
+            AddEffect(RelicCategory.Gloves, UnitRole.Cook, false, 2, 1, false,
+                RelicEffectType.Gloves_AttackDetonateBuff,
+                "Attack applies debuff, detonates on next hit for 200 AoE per turn remained", 200, 0, 0, 1);
+            AddEffect(RelicCategory.Gloves, UnitRole.Swashbuckler, false, 2, 1, false,
+                RelicEffectType.Gloves_AttackTwice,
+                "Attack with default weapon 2 times", 2, 0, 0);
             AddEffect(RelicCategory.Gloves, UnitRole.Deckhand, false, 2, 1, false,
-                RelicEffectType.Gloves_AttackBonusPerGunnerRelic,
-                "Attack, +10% per gunner relic used this game", 0, 0.10f, 0);
+                RelicEffectType.Gloves_AttackDrawOnHullDestroyed,
+                "Attack with default weapon, if hull destroyed draw 1 card", 0, 1, 0);
 
             // ==================== GLOVES V2 ====================
             AddEffect(RelicCategory.Gloves, UnitRole.Captain, true, 2, 1, false,
@@ -265,29 +265,29 @@ namespace TacticalGame.Equipment
                 RelicEffectType.Gloves_AttackLowerEnemyHealth,
                 "Attack with weapon, lower enemy health stat by 30% for 2 turns", 0, 0.30f, 2);
             AddEffect(RelicCategory.Gloves, UnitRole.Shipwright, true, 2, 1, false,
-                RelicEffectType.Gloves_V2_AttackReduceBuzz,
-                "Attack, reduce own buzz by 20", 0, 20, 0);
+                RelicEffectType.Gloves_AttackForceTargetClosest,
+                "Attack with weapon, debuff forces target to only attack closest target next turn", 0, 0, 1);
             AddEffect(RelicCategory.Gloves, UnitRole.MasterGunner, true, 2, 1, false,
-                RelicEffectType.Gloves_V2_AttackSpendGrogBonus,
-                "Spend 1 grog for +50% damage", 1, 0.50f, 0);
+                RelicEffectType.Gloves_AttackBonusPerGunnerRelic,
+                "Attack with weapon, +10% damage for each Master Gunner relic used this game", 0, 0.10f, 0);
             AddEffect(RelicCategory.Gloves, UnitRole.MasterAtArms, true, 2, 1, false,
-                RelicEffectType.Gloves_V2_AttackGainHullOnKill,
-                "Attack, kill grants 30 hull", 0, 30, 0);
+                RelicEffectType.Gloves_V2_AttackBonusPerRelicInHand,
+                "Attack with weapon, +10% damage for each Master-at-Arms relic card in hand", 0, 0.10f, 0);
             AddEffect(RelicCategory.Gloves, UnitRole.Navigator, true, 2, 1, false,
-                RelicEffectType.Gloves_V2_AttackSlowEnemy,
-                "Attack, slow enemy 1 tile for 2 turns", 0, 1, 2);
-            AddEffect(RelicCategory.Gloves, UnitRole.Surgeon, true, 2, 1, false,
-                RelicEffectType.Gloves_V2_AttackPullEnemy,
-                "Attack, pull enemy 1 tile toward you", 0, 1, 0);
+                RelicEffectType.Gloves_V2_AttackBonusPerBootsCard,
+                "Attack with weapon, +30% bonus damage for each boots relic card in deck", 0, 0.30f, 0);
+            AddPassive(RelicCategory.Gloves, UnitRole.Surgeon, true,
+                RelicEffectType.Gloves_V2_AttackHealedEnemy,
+                "Passive: Attack any enemy that gets healed", 0, 0);
             AddEffect(RelicCategory.Gloves, UnitRole.Cook, true, 2, 1, false,
-                RelicEffectType.Gloves_V2_AttackApplyPoison,
-                "Attack applies poison (10 dmg/turn, 3 turns)", 0, 10, 3);
+                RelicEffectType.Gloves_V2_StasisClosest,
+                "Stasis closest target 1 turn, can't attack or be attacked", 0, 0, 1);
             AddEffect(RelicCategory.Gloves, UnitRole.Swashbuckler, true, 2, 1, false,
-                RelicEffectType.Gloves_V2_AttackBonusVsDebuffed,
-                "Attack, +30% vs debuffed enemies", 0, 0.30f, 0);
+                RelicEffectType.Gloves_V2_AttackStunOnMove,
+                "Attack, if target moves in 2 turns stun for 1 turn", 0, 0, 2);
             AddEffect(RelicCategory.Gloves, UnitRole.Deckhand, true, 2, 1, false,
-                RelicEffectType.Gloves_V2_AttackChainToAdjacent,
-                "Attack chains 50% damage to adjacent enemy", 0, 0.50f, 0, 1);
+                RelicEffectType.Gloves_V2_AttackEnergyOnHullDestroyed,
+                "Attack with default weapon, if hull destroyed get 1 energy", 0, 1, 0);
 
             // ==================== HAT V1 ====================
             AddEffect(RelicCategory.Hat, UnitRole.Captain, false, 2, 1, false,
@@ -303,29 +303,29 @@ namespace TacticalGame.Equipment
                 RelicEffectType.Hat_ReturnDamage,
                 "For 2 turns, return 1 instance of damage back", 1, 0, 2);
             AddEffect(RelicCategory.Hat, UnitRole.Shipwright, false, 2, 1, false,
-                RelicEffectType.Hat_FreeRumUsage,
-                "3 rum usage free this round", 3, 0, 1);
-            AddEffect(RelicCategory.Hat, UnitRole.MasterGunner, false, 2, 1, false,
-                RelicEffectType.Hat_GenerateGrog,
-                "Generate 2 grog tokens", 2, 0, 0);
-            AddEffect(RelicCategory.Hat, UnitRole.MasterAtArms, false, 2, 1, false,
-                RelicEffectType.Hat_ReturnDamage,
-                "Return 1 damage instance for 2 turns", 1, 0, 2);
-            AddEffect(RelicCategory.Hat, UnitRole.Navigator, false, 2, 1, false,
-                RelicEffectType.Hat_IncreaseHealthStat,
-                "+25% health stat for 2 turns", 0, 0.25f, 2);
-            AddEffect(RelicCategory.Hat, UnitRole.Surgeon, false, 2, 1, false,
                 RelicEffectType.Hat_EnergyOnKnockback,
-                "+2 energy if knocked back next turn", 2, 0, 1);
-            AddEffect(RelicCategory.Hat, UnitRole.Cook, false, 2, 1, false,
-                RelicEffectType.Hat_SwapEnemyByGrit,
-                "Swap highest/lowest grit enemies", 0, 0, 0);
-            AddEffect(RelicCategory.Hat, UnitRole.Swashbuckler, false, 2, 1, false,
+                "Get 2 extra energy next turn if this unit is knocked back", 2, 0, 1);
+            AddEffect(RelicCategory.Hat, UnitRole.MasterGunner, false, 2, 1, false,
                 RelicEffectType.Hat_WeaponUseTwice,
-                "Next weapon can be used twice", 0, 0, 1);
+                "Next weapon relic can be used twice", 0, 0, 0);
+            AddEffect(RelicCategory.Hat, UnitRole.MasterAtArms, false, 2, 1, false,
+                RelicEffectType.Hat_ReduceUltimateCost,
+                "Reduce the cost of your next ultimate ability by 2", 2, 0, 0);
+            AddEffect(RelicCategory.Hat, UnitRole.Navigator, false, 2, 1, false,
+                RelicEffectType.Hat_DisableEnemyUltimates,
+                "Enemies can't use ultimate abilities next turn", 0, 0, 1);
+            AddEffect(RelicCategory.Hat, UnitRole.Surgeon, false, 2, 1, false,
+                RelicEffectType.Hat_DrawTrinketReduceCost,
+                "Draw trinket card, reduce cost by 1", 1, 0, 0);
+            AddEffect(RelicCategory.Hat, UnitRole.Cook, false, 2, 1, false,
+                RelicEffectType.Hat_ReduceLowestAllyCardCost,
+                "Reduce cost of lowest health ally's relic cards by 1 this turn", 1, 0, 1);
+            AddEffect(RelicCategory.Hat, UnitRole.Swashbuckler, false, 2, 1, false,
+                RelicEffectType.Hat_DrawWeaponReduceCost,
+                "Draw a card, if weapon reduce cost by 1", 1, 0, 0);
             AddEffect(RelicCategory.Hat, UnitRole.Deckhand, false, 2, 1, false,
-                RelicEffectType.Hat_DrawWeaponRelic,
-                "Draw a weapon relic", 1, 0, 0);
+                RelicEffectType.Hat_NearbyHullIncrease,
+                "Nearby allies in 1 tile radius have hull shield increased by 30%", 0.30f, 0, 0, 1);
 
             // ==================== HAT V2 ====================
             AddEffect(RelicCategory.Hat, UnitRole.Captain, true, 2, 1, false,
@@ -341,29 +341,29 @@ namespace TacticalGame.Equipment
                 RelicEffectType.Hat_IncreaseHealthStat,
                 "For 2 turns, health stat of this unit is increased by 25%", 0, 0.25f, 2);
             AddEffect(RelicCategory.Hat, UnitRole.Shipwright, true, 2, 1, false,
-                RelicEffectType.Hat_V2_RumHealsMore,
-                "Rum heals 50% more this turn", 0, 0.50f, 1);
+                RelicEffectType.Hat_SwapEnemyByGrit,
+                "Swap position of enemy with highest grit stat with enemy with lowest grit stat", 0, 0, 0);
             AddEffect(RelicCategory.Hat, UnitRole.MasterGunner, true, 2, 1, false,
-                RelicEffectType.Hat_V2_GrogOnEnemyKill,
-                "Gain 1 grog per enemy killed this turn", 1, 0, 1);
+                RelicEffectType.Hat_DrawWeaponRelic,
+                "Draw a weapon relic", 1, 0, 0);
             AddEffect(RelicCategory.Hat, UnitRole.MasterAtArms, true, 2, 1, false,
-                RelicEffectType.Hat_V2_DamageReductionBuff,
-                "Gain 30% damage reduction for 2 turns", 0, 0.30f, 2);
+                RelicEffectType.Hat_V2_IncreaseEnemyWeaponCost,
+                "Increase the cost of enemy next weapon relic by 1", 1, 0, 0);
             AddEffect(RelicCategory.Hat, UnitRole.Navigator, true, 2, 1, false,
-                RelicEffectType.Hat_V2_SpeedBoost,
-                "+2 movement this turn", 2, 0, 1);
+                RelicEffectType.Hat_V2_DrawBootsCard,
+                "Get a boots card relic in hand", 1, 0, 0);
             AddEffect(RelicCategory.Hat, UnitRole.Surgeon, true, 2, 1, false,
-                RelicEffectType.Hat_V2_HealOnCardPlay,
-                "Heal 5% HP per card played this turn", 0, 0.05f, 1);
+                RelicEffectType.Hat_V2_HealOnCaptainDamage,
+                "Allies that damage captain healed 10%", 0, 0.10f, 0);
             AddEffect(RelicCategory.Hat, UnitRole.Cook, true, 2, 1, false,
-                RelicEffectType.Hat_V2_BuffFoodEffects,
-                "Food effects doubled this turn", 0, 2.0f, 1);
+                RelicEffectType.Hat_V2_MoveForwardHeal,
+                "Move unit forward 1 tile, heal 10%", 1, 0.10f, 0);
             AddEffect(RelicCategory.Hat, UnitRole.Swashbuckler, true, 2, 1, false,
-                RelicEffectType.Hat_V2_DrawPerEnemyInRange,
-                "Draw 1 card per enemy in 2 tiles", 0, 1, 0, 2);
+                RelicEffectType.Hat_V2_StealEnemyCard,
+                "Steal random enemy card, if weapon reduce cost by 1", 1, 0, 0);
             AddEffect(RelicCategory.Hat, UnitRole.Deckhand, true, 2, 1, false,
-                RelicEffectType.Hat_V2_ReduceAllCosts,
-                "All card costs -1 this turn", 0, 1, 1);
+                RelicEffectType.Hat_V2_DestroyObstaclesGainHull,
+                "Destroy all soft obstacles, +20% hull per obstacle destroyed", 0, 0.20f, 0);
 
             // ==================== COAT V1 ====================
             AddEffect(RelicCategory.Coat, UnitRole.Captain, false, 2, 1, false,
@@ -379,29 +379,29 @@ namespace TacticalGame.Equipment
                 RelicEffectType.Coat_PreventDisplacement,
                 "Allies in 1 tile radius can't be displaced or knocked back next enemy turn", 0, 0, 1, 1);
             AddEffect(RelicCategory.Coat, UnitRole.Shipwright, false, 2, 1, false,
-                RelicEffectType.Coat_ReduceRumEffect,
-                "Nearby allies reduced rum effect", 0, 0.50f, 0, 1);
-            AddEffect(RelicCategory.Coat, UnitRole.MasterGunner, false, 2, 1, false,
-                RelicEffectType.Coat_EnemyBuzzOnDamage,
-                "Enemy buzz fills when dealing damage to you", 0, 20, 2);
-            AddEffect(RelicCategory.Coat, UnitRole.MasterAtArms, false, 2, 1, false,
-                RelicEffectType.Coat_PreventDisplacement,
-                "Allies can't be knocked back this turn", 0, 0, 1, 2);
-            AddEffect(RelicCategory.Coat, UnitRole.Navigator, false, 2, 1, false,
-                RelicEffectType.Coat_ProtectLowHP,
-                "Lowest HP can only be targeted by lower HP units", 0, 0, 1);
-            AddEffect(RelicCategory.Coat, UnitRole.Surgeon, false, 2, 1, false,
                 RelicEffectType.Coat_RowCantBeTargeted,
-                "Allies behind in row can't be targeted", 0, 0, 1);
-            AddEffect(RelicCategory.Coat, UnitRole.Cook, false, 2, 1, false,
-                RelicEffectType.Coat_ColumnDamageBoost,
-                "+40% damage to allies in same column", 0, 0.40f, 1);
-            AddEffect(RelicCategory.Coat, UnitRole.Swashbuckler, false, 2, 1, false,
+                "For 2 turns allies in same row behind this unit can't be targeted", 0, 0, 2);
+            AddEffect(RelicCategory.Coat, UnitRole.MasterGunner, false, 2, 1, false,
                 RelicEffectType.Coat_FreeStow,
-                "Next 2 stows free", 2, 0, 0);
+                "Next 2 stows have no cost", 2, 0, 0);
+            AddEffect(RelicCategory.Coat, UnitRole.MasterAtArms, false, 2, 1, false,
+                RelicEffectType.Coat_BonusDamageNearbyAllies,
+                "Give 20% extra damage to all nearby allies in 1 tile radius", 0, 0.20f, 0, 1);
+            AddEffect(RelicCategory.Coat, UnitRole.Navigator, false, 2, 1, false,
+                RelicEffectType.Coat_HealthDamageImmunity,
+                "Take 0 health damage from next attack for 2 turns, morale damage still counts", 0, 0, 2);
+            AddEffect(RelicCategory.Coat, UnitRole.Surgeon, false, 2, 1, false,
+                RelicEffectType.Coat_DoubleAllyStats,
+                "+100% primary+secondary stat 1 turn", 1.0f, 0, 1);
+            AddEffect(RelicCategory.Coat, UnitRole.Cook, false, 2, 1, false,
+                RelicEffectType.Coat_StunOnAllyAttacked,
+                "Buff closest ally 1 turn, if attacked stun enemy 1 turn", 0, 0, 1);
+            AddPassive(RelicCategory.Coat, UnitRole.Swashbuckler, false,
+                RelicEffectType.Coat_NearbyAllyDamageReduction,
+                "Passive: Nearby allies in 1 tile take 15% less damage if attacker has lower speed", 0.15f, 0);
             AddEffect(RelicCategory.Coat, UnitRole.Deckhand, false, 2, 1, false,
-                RelicEffectType.Coat_RowRangedProtection,
-                "Row takes 50% less ranged damage", 0, 0.50f, 2);
+                RelicEffectType.Coat_HullBonusDamage,
+                "Bonus weapon damage = 50% of hull shield for self and nearby allies 1 tile", 0, 0.50f, 1, 1);
 
             // ==================== COAT V2 ====================
             AddEffect(RelicCategory.Coat, UnitRole.Captain, true, 2, 1, false,
@@ -417,29 +417,29 @@ namespace TacticalGame.Equipment
                 RelicEffectType.Coat_ProtectLowHP,
                 "Lowest HP ally can only be targeted next turn by enemies with lower HP", 0, 0, 1);
             AddEffect(RelicCategory.Coat, UnitRole.Shipwright, true, 2, 1, false,
-                RelicEffectType.Coat_V2_BuzzImmunity,
-                "Nearby allies immune to buzz effects", 0, 0, 2, 1);
+                RelicEffectType.Coat_ColumnDamageBoost,
+                "Give 40% increased damage to all allied units in the same column", 0, 0.40f, 0);
             AddEffect(RelicCategory.Coat, UnitRole.MasterGunner, true, 2, 1, false,
-                RelicEffectType.Coat_V2_GrogShield,
-                "Spend 1 grog, gain 50 shield", 1, 50, 0);
+                RelicEffectType.Coat_RowRangedProtection,
+                "Allies in same row take 50% less damage from ranged attacks next turn", 0, 0.50f, 1);
             AddEffect(RelicCategory.Coat, UnitRole.MasterAtArms, true, 2, 1, false,
-                RelicEffectType.Coat_V2_ThornsAura,
-                "Attackers take 20 damage for 2 turns", 20, 0, 2);
+                RelicEffectType.Coat_V2_ReduceEnemyPower,
+                "All enemies next turn have 35% less Power stat", 0, 0.35f, 1);
             AddEffect(RelicCategory.Coat, UnitRole.Navigator, true, 2, 1, false,
-                RelicEffectType.Coat_V2_DodgeAura,
-                "Nearby allies 15% dodge chance for 2 turns", 0, 0.15f, 2, 1);
-            AddEffect(RelicCategory.Coat, UnitRole.Surgeon, true, 2, 1, false,
-                RelicEffectType.Coat_V2_HealingAura,
-                "Nearby allies heal 5% at turn end for 2 turns", 0, 0.05f, 2, 1);
+                RelicEffectType.Coat_V2_DodgeFirstAttack,
+                "Next turn first ally that gets attacked dodges by moving 1 tile back", 0, 0, 1);
+            AddPassive(RelicCategory.Coat, UnitRole.Surgeon, true,
+                RelicEffectType.Coat_V2_KnockbackOnAllyDeath,
+                "Passive: Knockback enemy on ally death in 1 tile", 1, 0);
             AddEffect(RelicCategory.Coat, UnitRole.Cook, true, 2, 1, false,
-                RelicEffectType.Coat_V2_WellFed,
-                "Nearby allies +10% max HP for 2 turns", 0, 0.10f, 2, 1);
+                RelicEffectType.Coat_V2_ClearDebuffsNearby,
+                "Clear all debuffs from nearby allies 1 tile radius", 0, 0, 0, 1);
             AddEffect(RelicCategory.Coat, UnitRole.Swashbuckler, true, 2, 1, false,
-                RelicEffectType.Coat_V2_Evasion,
-                "Gain 25% evasion for 2 turns", 0, 0.25f, 2);
+                RelicEffectType.Coat_V2_CurseEmptyTile,
+                "Curse random empty tile on enemy side, enemy can't leave and takes 10% more damage", 0, 0.10f, 0);
             AddEffect(RelicCategory.Coat, UnitRole.Deckhand, true, 2, 1, false,
-                RelicEffectType.Coat_V2_RangedBlock,
-                "Block next ranged attack completely", 1, 0, 1);
+                RelicEffectType.Coat_V2_BuffTileDamageExchange,
+                "Buff random tile, units take 15% damage and do 15% more damage", 0.15f, 0.15f, 0);
 
             // ==================== TRINKET V1 (Passive) ====================
             AddPassive(RelicCategory.Trinket, UnitRole.Captain, false,
@@ -455,29 +455,29 @@ namespace TacticalGame.Equipment
                 RelicEffectType.Trinket_ReduceDamageFromClosest,
                 "Passive: Closest enemy does 20% less damage to this unit", 0.20f, 0);
             AddPassive(RelicCategory.Trinket, UnitRole.Shipwright, false,
-                RelicEffectType.Trinket_DamageByBuzz,
-                "Passive: +damage based on own buzz", 0, 0);
-            AddPassive(RelicCategory.Trinket, UnitRole.MasterGunner, false,
-                RelicEffectType.Trinket_KnockbackIncreasesBuzz,
-                "Passive: Knockback increases enemy buzz", 20, 0);
-            AddPassive(RelicCategory.Trinket, UnitRole.MasterAtArms, false,
-                RelicEffectType.Trinket_ReduceDamageFromClosest,
-                "Passive: Closest enemy does -20% damage", 0.20f, 0);
-            AddPassive(RelicCategory.Trinket, UnitRole.Navigator, false,
-                RelicEffectType.Trinket_DrawIfHighHP,
-                "Passive: Draw extra if HP above 60%", 0.60f, 1);
-            AddPassive(RelicCategory.Trinket, UnitRole.Surgeon, false,
                 RelicEffectType.Trinket_TauntFirstAttack,
-                "Passive: Taunt first attack per enemy turn", 1, 0);
-            AddPassive(RelicCategory.Trinket, UnitRole.Cook, false,
-                RelicEffectType.Trinket_KnockbackAttacker,
-                "Passive: Knockback attacker once per turn", 1, 0);
-            AddPassive(RelicCategory.Trinket, UnitRole.Swashbuckler, false,
+                "Passive: 1 time per enemy turn, taunt the first attack", 0, 0);
+            AddPassive(RelicCategory.Trinket, UnitRole.MasterGunner, false,
                 RelicEffectType.Trinket_RowEnemiesLessDamage,
-                "Passive: Enemies in row do -10% damage", 0.10f, 0);
+                "Passive: Enemy units in the same row do 10% less damage", 0.10f, 0);
+            AddPassive(RelicCategory.Trinket, UnitRole.MasterAtArms, false,
+                RelicEffectType.Trinket_CounterAttackOnHit,
+                "Passive: If attacked, hits back with default weapon", 0, 0);
+            AddPassive(RelicCategory.Trinket, UnitRole.Navigator, false,
+                RelicEffectType.Trinket_NearbyTacticsBoost,
+                "Passive: Nearby allies in 1 tile radius have tactics stat increased by 30%", 0.30f, 0);
+            AddPassive(RelicCategory.Trinket, UnitRole.Surgeon, false,
+                RelicEffectType.Trinket_BlockEnemyRowMovement,
+                "Passive: Enemies can't move in same row", 0, 0);
+            AddPassive(RelicCategory.Trinket, UnitRole.Cook, false,
+                RelicEffectType.Trinket_HazardSizeIncrease,
+                "Passive: All hazards on enemy side spawn with +1 tile size", 1, 0);
+            AddPassive(RelicCategory.Trinket, UnitRole.Swashbuckler, false,
+                RelicEffectType.Trinket_BonusDamageIfAlone,
+                "Passive: +20% bonus damage if no nearby allies in 1 tile radius", 0.20f, 0);
             AddPassive(RelicCategory.Trinket, UnitRole.Deckhand, false,
-                RelicEffectType.Trinket_RowEnemiesTakeMore,
-                "Passive: Enemies in row take +10% damage", 0.10f, 0);
+                RelicEffectType.Trinket_HullFullRegen,
+                "Passive: If hull is not fully destroyed it will fully regen", 0, 0);
 
             // ==================== TRINKET V2 (Passive) ====================
             AddPassive(RelicCategory.Trinket, UnitRole.Captain, true,
@@ -493,29 +493,29 @@ namespace TacticalGame.Equipment
                 RelicEffectType.Trinket_DrawIfHighHP,
                 "Passive: Draw an extra card each turn if HP is above 60%", 0.60f, 0);
             AddPassive(RelicCategory.Trinket, UnitRole.Shipwright, true,
-                RelicEffectType.Trinket_V2_NoBuzzPenalty,
-                "Passive: No penalty when buzz is full", 0, 0);
+                RelicEffectType.Trinket_KnockbackAttacker,
+                "Passive: 1 time per turn, knock back attacker 1 tile when attacked", 0, 0);
             AddPassive(RelicCategory.Trinket, UnitRole.MasterGunner, true,
-                RelicEffectType.Trinket_V2_GrogOnTurnStart,
-                "Passive: 25% chance for free grog each turn", 0.25f, 0);
+                RelicEffectType.Trinket_RowEnemiesTakeMore,
+                "Passive: Enemies in the same row take 10% increased damage", 0.10f, 0);
             AddPassive(RelicCategory.Trinket, UnitRole.MasterAtArms, true,
-                RelicEffectType.Trinket_V2_ArmorOnLowHP,
-                "Passive: +50% armor when below 30% HP", 0.50f, 0.30f);
+                RelicEffectType.Trinket_V2_NearbyPowerBoost,
+                "Passive: Nearby allies in 1 tile radius have Power stat increased by 30%", 0.30f, 0);
             AddPassive(RelicCategory.Trinket, UnitRole.Navigator, true,
-                RelicEffectType.Trinket_V2_SpeedOnHighHP,
-                "Passive: +1 movement when above 70% HP", 1, 0.70f);
+                RelicEffectType.Trinket_V2_IgnoreSoftObstacles,
+                "Passive: Nearby allies in 1 tile ignore soft obstacles when attacking", 0, 0);
             AddPassive(RelicCategory.Trinket, UnitRole.Surgeon, true,
-                RelicEffectType.Trinket_V2_HealOnTurnEnd,
-                "Passive: Heal 3% at turn end", 0.03f, 0);
+                RelicEffectType.Trinket_V2_GlobalRadius,
+                "Passive: Nearby radius = whole board", 0, 0);
             AddPassive(RelicCategory.Trinket, UnitRole.Cook, true,
-                RelicEffectType.Trinket_V2_FoodDoubleDuration,
-                "Passive: Food buffs last twice as long", 2, 0);
+                RelicEffectType.Trinket_V2_DrawExtraBelow50,
+                "Passive: If below 50% HP draw an extra card each turn", 0.50f, 0);
             AddPassive(RelicCategory.Trinket, UnitRole.Swashbuckler, true,
-                RelicEffectType.Trinket_V2_CritChance,
-                "Passive: 15% chance for +50% damage", 0.15f, 0.50f);
+                RelicEffectType.Trinket_V2_EnemySpeedReduction,
+                "Passive: All enemies lose 10% from their speed stat", 0.10f, 0);
             AddPassive(RelicCategory.Trinket, UnitRole.Deckhand, true,
-                RelicEffectType.Trinket_V2_BonusVsFullHP,
-                "Passive: +25% damage vs full HP targets", 0.25f, 0);
+                RelicEffectType.Trinket_V2_HullDiscardOnSurvive,
+                "Passive: If hull survives enemy attack, discard an enemy card", 0, 0);
 
             // ==================== TOTEM V1 ====================
             AddEffect(RelicCategory.Totem, UnitRole.Captain, false, 2, 1, false,
@@ -531,29 +531,29 @@ namespace TacticalGame.Equipment
                 RelicEffectType.Totem_StunOnKnockback,
                 "If target is knocked back next enemy turn, stun that target for that turn", 0, 0, 1);
             AddEffect(RelicCategory.Totem, UnitRole.Shipwright, false, 2, 1, false,
-                RelicEffectType.Totem_SummonHighQualityRum,
-                "Add 2 high quality rum", 2, 0, 0);
-            AddEffect(RelicCategory.Totem, UnitRole.MasterGunner, false, 2, 1, false,
-                RelicEffectType.Totem_ConvertGrogToEnergy,
-                "Convert 2 grog to 1 energy", 2, 1, 0);
-            AddEffect(RelicCategory.Totem, UnitRole.MasterAtArms, false, 2, 1, false,
-                RelicEffectType.Totem_StunOnKnockback,
-                "If knocked back, stun attacker 1 turn", 0, 0, 1);
-            AddEffect(RelicCategory.Totem, UnitRole.Navigator, false, 2, 1, false,
-                RelicEffectType.Totem_SummonAnchorHealthBuff,
-                "Summon anchor, +25% health to nearby allies", 0, 0.25f, 0, 1);
-            AddEffect(RelicCategory.Totem, UnitRole.Surgeon, false, 2, 1, false,
                 RelicEffectType.Totem_SummonTargetDummy,
-                "Summon target dummy in front row (250 HP)", 250, 0, 0);
-            AddEffect(RelicCategory.Totem, UnitRole.Cook, false, 2, 1, false,
-                RelicEffectType.Totem_SummonObstacleDisplace,
-                "Summon obstacle at target, displace them", 0, 0, 0);
-            AddEffect(RelicCategory.Totem, UnitRole.Swashbuckler, false, 2, 1, false,
+                "Summon a target dummy in the front row with 250 HP", 250, 0, 0);
+            AddEffect(RelicCategory.Totem, UnitRole.MasterGunner, false, 2, 1, false,
                 RelicEffectType.Totem_SummonExplodingBarrels,
-                "Summon 3 barrels that explode after 2 turns", 3, 100, 2);
+                "Summon 3 barrels at random enemy tiles, explode in 1 tile radius after 2 turns dealing damage and stunning for 1 turn", 3, 0, 2);
+            AddEffect(RelicCategory.Totem, UnitRole.MasterAtArms, false, 2, 1, false,
+                RelicEffectType.Totem_DisableEnemyWeapons,
+                "Disable enemy default weapons for next turn", 0, 0, 1);
+            AddEffect(RelicCategory.Totem, UnitRole.Navigator, false, 2, 1, false,
+                RelicEffectType.Totem_DisableEnemyMovement,
+                "Disable all enemy movement for 1 turn, they can still attack", 0, 0, 1);
+            AddPassive(RelicCategory.Totem, UnitRole.Surgeon, false,
+                RelicEffectType.Totem_StunHealedEnemy,
+                "Passive: Stun enemy that gets healed", 0, 0);
+            AddPassive(RelicCategory.Totem, UnitRole.Cook, false,
+                RelicEffectType.Totem_HealLowestOnDamage,
+                "Passive: Each time this unit takes damage heal the lowest health ally", 0, 0);
+            AddEffect(RelicCategory.Totem, UnitRole.Swashbuckler, false, 2, 1, false,
+                RelicEffectType.Totem_SummonInvisibleTraps,
+                "Summon 2 invisible traps in random tiles, enemies entering are stunned 1 turn", 2, 0, 1);
             AddEffect(RelicCategory.Totem, UnitRole.Deckhand, false, 2, 1, false,
-                RelicEffectType.Totem_CurseRangedWeapons,
-                "Curse: enemy ranged -50% damage next turn", 0, 0.50f, 1);
+                RelicEffectType.Totem_CreateSoftObstacles,
+                "Create 2 soft obstacles in 2 random tiles", 2, 0, 0);
 
             // ==================== TOTEM V2 ====================
             AddEffect(RelicCategory.Totem, UnitRole.Captain, true, 2, 1, false,
@@ -569,29 +569,29 @@ namespace TacticalGame.Equipment
                 RelicEffectType.Totem_SummonAnchorHealthBuff,
                 "Summon anchor on nearby tile, +25% health stat to allies in 1 tile radius for 2 turns", 0, 0.25f, 2, 1);
             AddEffect(RelicCategory.Totem, UnitRole.Shipwright, true, 2, 1, false,
-                RelicEffectType.Totem_V2_SummonGrogBarrel,
-                "Barrel gives 2 grog when destroyed", 2, 0, 0);
+                RelicEffectType.Totem_SummonObstacleDisplace,
+                "Summon soft obstacle at target location, displace target to nearby available tile", 0, 0, 0);
             AddEffect(RelicCategory.Totem, UnitRole.MasterGunner, true, 2, 1, false,
-                RelicEffectType.Totem_V2_TrapTile,
-                "Place trap that stuns for 1 turn", 0, 0, 1);
+                RelicEffectType.Totem_CurseRangedWeapons,
+                "Curse enemy ranged weapons next turn, they do 50% less damage", 0, 0.50f, 1);
             AddEffect(RelicCategory.Totem, UnitRole.MasterAtArms, true, 2, 1, false,
-                RelicEffectType.Totem_V2_SummonShieldGenerator,
-                "Generator gives 10 shield/turn for 3 turns", 10, 0, 3, 1);
+                RelicEffectType.Totem_V2_EarthquakeHazard,
+                "3 random tiles get earthquake hazard, units on tile at end of round are moved to nearby empty tile", 3, 0, 1);
             AddEffect(RelicCategory.Totem, UnitRole.Navigator, true, 2, 1, false,
-                RelicEffectType.Totem_V2_SummonSpeedBooster,
-                "Tile gives +1 movement to allies for 3 turns", 1, 0, 3);
+                RelicEffectType.Totem_V2_DisableNonWeaponRelics,
+                "Disable all enemy non-weapon relics for 1 turn", 0, 0, 1);
             AddEffect(RelicCategory.Totem, UnitRole.Surgeon, true, 2, 1, false,
-                RelicEffectType.Totem_V2_SummonHealingWell,
-                "Well heals unit standing on it 15%/turn", 0, 0.15f, 3);
+                RelicEffectType.Totem_V2_SummonHealingPotions,
+                "3 random healing potions 200 HP", 3, 200, 0);
             AddEffect(RelicCategory.Totem, UnitRole.Cook, true, 2, 1, false,
-                RelicEffectType.Totem_V2_PoisonCloud,
-                "Poison cloud: 15 dmg/turn for 3 turns", 15, 0, 3, 1);
+                RelicEffectType.Totem_V2_SummonStatDebuffObstacle,
+                "Summon soft obstacle, -50% primary+secondary to nearby enemies 1 tile radius", 0, 0.50f, 0, 1);
             AddEffect(RelicCategory.Totem, UnitRole.Swashbuckler, true, 2, 1, false,
-                RelicEffectType.Totem_V2_SummonDecoy,
-                "Decoy taunts enemies for 2 turns", 0, 0, 2);
+                RelicEffectType.Totem_V2_DisableEnemyPassives,
+                "Next turn enemies can't use any passive effects", 0, 0, 1);
             AddEffect(RelicCategory.Totem, UnitRole.Deckhand, true, 2, 1, false,
-                RelicEffectType.Totem_V2_CurseSlow,
-                "Curse enemy: -2 movement for 2 turns", 2, 0, 2);
+                RelicEffectType.Totem_V2_PullNearbyToRow,
+                "Pull all nearby enemies in 1 tile to same row as this unit", 0, 0, 0, 1);
 
             // ==================== ULTIMATE V1 ====================
             AddEffect(RelicCategory.Ultimate, UnitRole.Captain, false, 1, 3, false,
@@ -607,29 +607,29 @@ namespace TacticalGame.Equipment
                 RelicEffectType.Ultimate_SummonHardObstacles,
                 "Summon 3 hard obstacles in front row empty tiles, last 2 turns", 3, 0, 2, 1, RelicRarity.Unique);
             AddEffect(RelicCategory.Ultimate, UnitRole.Shipwright, false, 1, 3, false,
-                RelicEffectType.Ultimate_FullBuzzAttack,
-                "Attack, make target buzz full for 2 turns", 0, 0, 2, 1, RelicRarity.Unique);
-            AddEffect(RelicCategory.Ultimate, UnitRole.MasterGunner, false, 1, 3, false,
-                RelicEffectType.Ultimate_RumBottleAoE,
-                "200 damage AoE, rum spill increases buzz 3 turns", 200, 0, 3, 1, RelicRarity.Unique);
-            AddEffect(RelicCategory.Ultimate, UnitRole.MasterAtArms, false, 1, 3, false,
-                RelicEffectType.Ultimate_SummonHardObstacles,
-                "Summon 3 hard obstacles in front row for 2 turns", 3, 0, 2, 1, RelicRarity.Unique);
-            AddEffect(RelicCategory.Ultimate, UnitRole.Navigator, false, 1, 3, false,
-                RelicEffectType.Ultimate_IgnoreHighestHP,
-                "Highest HP enemy (except captain) ignored this turn", 0, 0, 1, 1, RelicRarity.Unique);
-            AddEffect(RelicCategory.Ultimate, UnitRole.Surgeon, false, 1, 3, false,
                 RelicEffectType.Ultimate_KnockbackToLastColumn,
-                "Attack, knockback target to last column", 0, 0, 0, 1, RelicRarity.Unique);
-            AddEffect(RelicCategory.Ultimate, UnitRole.Cook, false, 1, 3, false,
-                RelicEffectType.Ultimate_AttackKnockbackNearby,
-                "Attack, knockback nearby enemies 1 tile", 0, 1, 0, 1, RelicRarity.Unique);
-            AddEffect(RelicCategory.Ultimate, UnitRole.Swashbuckler, false, 1, 3, false,
+                "Attack with weapon, knock target back to last column", 0, 0, 0, 1, RelicRarity.Unique);
+            AddEffect(RelicCategory.Ultimate, UnitRole.MasterGunner, false, 1, 3, false,
                 RelicEffectType.Ultimate_StunAoE,
-                "Attack, stun target and nearby enemies 1 turn", 0, 0, 1, 1, RelicRarity.Unique);
+                "Attack with weapon, stun target and all nearby enemies in 1 tile radius for next turn", 0, 0, 1, 1, RelicRarity.Unique);
+            AddEffect(RelicCategory.Ultimate, UnitRole.MasterAtArms, false, 1, 3, false,
+                RelicEffectType.Ultimate_AttackAllEnemies,
+                "Attack with default weapon all enemies 1 time", 0, 0, 0, 99, RelicRarity.Unique);
+            AddEffect(RelicCategory.Ultimate, UnitRole.Navigator, false, 1, 3, false,
+                RelicEffectType.Ultimate_MarkReflectToCaptain,
+                "Mark target this round, any damage target suffers is reflected on the captain", 0, 0, 1, 1, RelicRarity.Unique);
+            AddEffect(RelicCategory.Ultimate, UnitRole.Surgeon, false, 1, 3, false,
+                RelicEffectType.Ultimate_PreventDeath,
+                "Prevent unit from dying/surrendering", 0, 0, 0, 1, RelicRarity.Unique);
+            AddEffect(RelicCategory.Ultimate, UnitRole.Cook, false, 1, 3, false,
+                RelicEffectType.Ultimate_SwapHealthClosest,
+                "Swap this unit's health with closest enemy", 0, 0, 0, 1, RelicRarity.Unique);
+            AddEffect(RelicCategory.Ultimate, UnitRole.Swashbuckler, false, 1, 3, false,
+                RelicEffectType.Ultimate_ForceLowestAndCaptainFight,
+                "Lowest health unit and captain attack each other with default weapons", 0, 0, 0, 1, RelicRarity.Unique);
             AddEffect(RelicCategory.Ultimate, UnitRole.Deckhand, false, 1, 3, false,
-                RelicEffectType.Ultimate_MassiveSingleTarget,
-                "+300% damage if no nearby enemies", 0, 3.0f, 0, 1, RelicRarity.Unique);
+                RelicEffectType.Ultimate_MassiveHullBuff,
+                "Give a unit 300% hull for 2 turns", 0, 3.0f, 2, 1, RelicRarity.Unique);
 
             // ==================== ULTIMATE V2 ====================
             AddEffect(RelicCategory.Ultimate, UnitRole.Captain, true, 1, 3, false,
@@ -645,29 +645,29 @@ namespace TacticalGame.Equipment
                 RelicEffectType.Ultimate_IgnoreHighestHP,
                 "This turn, highest HP enemy besides captain is ignored", 0, 0, 1, 1, RelicRarity.Unique);
             AddEffect(RelicCategory.Ultimate, UnitRole.Shipwright, true, 1, 3, false,
-                RelicEffectType.Ultimate_V2_BuzzExplosion,
-                "All enemies buzz fills, take damage = buzz", 0, 0, 0, 99, RelicRarity.Unique);
+                RelicEffectType.Ultimate_AttackKnockbackNearby,
+                "Attack with weapon, nearby enemies in 1 tile radius are knocked back 1 tile", 0, 0, 0, 1, RelicRarity.Unique);
             AddEffect(RelicCategory.Ultimate, UnitRole.MasterGunner, true, 1, 3, false,
-                RelicEffectType.Ultimate_V2_GrogRain,
-                "Gain 5 grog instantly", 5, 0, 0, 1, RelicRarity.Unique);
+                RelicEffectType.Ultimate_MassiveSingleTarget,
+                "Attack with weapon, +300% bonus damage if no nearby enemies in 1 tile radius", 0, 3.0f, 0, 1, RelicRarity.Unique);
             AddEffect(RelicCategory.Ultimate, UnitRole.MasterAtArms, true, 1, 3, false,
-                RelicEffectType.Ultimate_V2_Fortress,
-                "All allies gain 100 shield", 100, 0, 0, 99, RelicRarity.Unique);
+                RelicEffectType.Ultimate_V2_AttackRowDamage,
+                "Attack closest target with weapon, deal weapon damage + 350 damage to all units in same row", 350, 0, 0, 1, RelicRarity.Unique);
             AddEffect(RelicCategory.Ultimate, UnitRole.Navigator, true, 1, 3, false,
-                RelicEffectType.Ultimate_V2_Teleport,
-                "Teleport any ally to any tile", 0, 0, 0, 99, RelicRarity.Unique);
+                RelicEffectType.Ultimate_V2_SwapClosestFurthest,
+                "Swap the position of the closest enemy with the furthest enemy", 0, 0, 0, 1, RelicRarity.Unique);
             AddEffect(RelicCategory.Ultimate, UnitRole.Surgeon, true, 1, 3, false,
-                RelicEffectType.Ultimate_V2_MassHeal,
-                "Heal all allies 40% HP", 0, 0.40f, 0, 99, RelicRarity.Unique);
+                RelicEffectType.Ultimate_V2_FullHealthRestore,
+                "Fully restore health of any unit", 0, 1.0f, 0, 99, RelicRarity.Unique);
             AddEffect(RelicCategory.Ultimate, UnitRole.Cook, true, 1, 3, false,
-                RelicEffectType.Ultimate_V2_Feast,
-                "All allies heal 30% HP and gain 20% morale", 0.30f, 0.20f, 0, 99, RelicRarity.Unique);
-            AddEffect(RelicCategory.Ultimate, UnitRole.Swashbuckler, true, 1, 3, false,
-                RelicEffectType.Ultimate_V2_BladeStorm,
-                "Attack all enemies in range for 75% damage", 0, 0.75f, 0, 2, RelicRarity.Unique);
+                RelicEffectType.Ultimate_V2_FireColumn,
+                "Set fire to closest target's whole column", 0, 0, 0, 1, RelicRarity.Unique);
+            AddPassive(RelicCategory.Ultimate, UnitRole.Swashbuckler, true,
+                RelicEffectType.Ultimate_V2_SurrenderOn4Weapons,
+                "Passive: Attacking same target with 4 weapons in a single turn = instant surrender", 4, 0, RelicRarity.Unique);
             AddEffect(RelicCategory.Ultimate, UnitRole.Deckhand, true, 1, 3, false,
-                RelicEffectType.Ultimate_V2_PerfectShot,
-                "Guaranteed crit (200% damage) ignoring armor", 0, 2.0f, 0, 99, RelicRarity.Unique);
+                RelicEffectType.Ultimate_V2_ClearHazardsPlayerSide,
+                "Clear all hazards on player side and prevent new ones from appearing", 0, 0, 0, 99, RelicRarity.Unique);
 
             // ==================== PASSIVE UNIQUE V1 ====================
             AddPassive(RelicCategory.PassiveUnique, UnitRole.Captain, false,
@@ -683,29 +683,29 @@ namespace TacticalGame.Equipment
                 RelicEffectType.PassiveUnique_DrawOnLowDamage,
                 "Passive: Draw a card next turn if this unit takes less than 20% current HP damage in 1 turn", 0.20f, 0, RelicRarity.Unique);
             AddPassive(RelicCategory.PassiveUnique, UnitRole.Shipwright, false,
-                RelicEffectType.PassiveUnique_NoBuzzDownside,
-                "Passive: No penalty when buzz full", 0, 0, RelicRarity.Unique);
-            AddPassive(RelicCategory.PassiveUnique, UnitRole.MasterGunner, false,
-                RelicEffectType.PassiveUnique_DrawPerGrog,
-                "Passive: Draw extra cards based on grog", 1, 0, RelicRarity.Unique);
-            AddPassive(RelicCategory.PassiveUnique, UnitRole.MasterAtArms, false,
-                RelicEffectType.PassiveUnique_DrawOnLowDamage,
-                "Passive: Draw card if damage taken < 20% HP", 0.20f, 0, RelicRarity.Unique);
-            AddPassive(RelicCategory.PassiveUnique, UnitRole.Navigator, false,
-                RelicEffectType.PassiveUnique_CounterAttack,
-                "Passive: Attack back when ally damaged", 0, 0, RelicRarity.Unique);
-            AddPassive(RelicCategory.PassiveUnique, UnitRole.Surgeon, false,
                 RelicEffectType.PassiveUnique_GritAura,
-                "Passive: Nearby allies +5% of this unit's grit", 0.05f, 0, RelicRarity.Unique);
-            AddPassive(RelicCategory.PassiveUnique, UnitRole.Cook, false,
-                RelicEffectType.PassiveUnique_BonusVsLowGrit,
-                "Passive: +20% damage vs lower grit targets", 0.20f, 0, RelicRarity.Unique);
-            AddPassive(RelicCategory.PassiveUnique, UnitRole.Swashbuckler, false,
+                "Passive: Nearby allies in 1 tile radius have 5% increased grit from this unit's total grit", 0.05f, 0, RelicRarity.Unique);
+            AddPassive(RelicCategory.PassiveUnique, UnitRole.MasterGunner, false,
                 RelicEffectType.PassiveUnique_IgnoreRoles,
-                "Passive: Ignore Shipwright/Boatswain roles", 0, 0, RelicRarity.Unique);
+                "Passive: Attacks skip enemy Shipwright and Boatswain units when selecting targets", 0, 0, RelicRarity.Unique);
+            AddPassive(RelicCategory.PassiveUnique, UnitRole.MasterAtArms, false,
+                RelicEffectType.PassiveUnique_WeaponRelicOnKill,
+                "Passive: Killing enemies or making them surrender gets a melee weapon relic in hand", 0, 0, RelicRarity.Unique);
+            AddPassive(RelicCategory.PassiveUnique, UnitRole.Navigator, false,
+                RelicEffectType.PassiveUnique_FreeMovement,
+                "Passive: Can move 3 tiles without boots relic", 3, 0, RelicRarity.Unique);
+            AddPassive(RelicCategory.PassiveUnique, UnitRole.Surgeon, false,
+                RelicEffectType.PassiveUnique_HealingAura,
+                "Passive: 5% heal to nearby allies at turn end", 0.05f, 0, RelicRarity.Unique);
+            AddPassive(RelicCategory.PassiveUnique, UnitRole.Cook, false,
+                RelicEffectType.PassiveUnique_DisplaceOnWeaponUse,
+                "Passive: Every time a unit uses a weapon card relic, displace it to a random nearby empty tile", 0, 0, RelicRarity.Unique);
+            AddPassive(RelicCategory.PassiveUnique, UnitRole.Swashbuckler, false,
+                RelicEffectType.PassiveUnique_EnemyDiscardOnBoot,
+                "Passive: Enemy discards a card every time they use a boots relic card", 0, 0, RelicRarity.Unique);
             AddPassive(RelicCategory.PassiveUnique, UnitRole.Deckhand, false,
-                RelicEffectType.PassiveUnique_BonusVsLowHP,
-                "Passive: Bonus damage vs <50% HP targets", 0.50f, 0, RelicRarity.Unique);
+                RelicEffectType.PassiveUnique_HullDestroyedRestoreHealth,
+                "Passive: When hull is destroyed restore health", 0, 0, RelicRarity.Unique);
 
             // ==================== PASSIVE UNIQUE V2 ====================
             AddPassive(RelicCategory.PassiveUnique, UnitRole.Captain, true,
@@ -721,29 +721,29 @@ namespace TacticalGame.Equipment
                 RelicEffectType.PassiveUnique_CounterAttack,
                 "Passive: Every time an ally takes damage, counter-attack that enemy with default weapon", 0, 0, RelicRarity.Unique);
             AddPassive(RelicCategory.PassiveUnique, UnitRole.Shipwright, true,
-                RelicEffectType.PassiveUnique_V2_DrunkMaster,
-                "Passive: Buzz gives bonuses instead of penalties", 0, 0, RelicRarity.Unique);
+                RelicEffectType.PassiveUnique_BonusVsLowGrit,
+                "Passive: +20% bonus weapon damage if target grit stat is lower", 0.20f, 0, RelicRarity.Unique);
             AddPassive(RelicCategory.PassiveUnique, UnitRole.MasterGunner, true,
-                RelicEffectType.PassiveUnique_V2_Efficient,
-                "Passive: 50% chance grog not consumed", 0.50f, 0, RelicRarity.Unique);
+                RelicEffectType.PassiveUnique_BonusVsLowHP,
+                "Passive: Bonus damage on all attacks if target is below 50% health", 0.50f, 0, RelicRarity.Unique);
             AddPassive(RelicCategory.PassiveUnique, UnitRole.MasterAtArms, true,
-                RelicEffectType.PassiveUnique_V2_Unstoppable,
-                "Passive: Can't be stunned or slowed", 0, 0, RelicRarity.Unique);
+                RelicEffectType.PassiveUnique_V2_HealOnKill,
+                "Passive: Killing enemies or making them surrender restores 20% health", 0.20f, 0, RelicRarity.Unique);
             AddPassive(RelicCategory.PassiveUnique, UnitRole.Navigator, true,
-                RelicEffectType.PassiveUnique_V2_Scout,
-                "Passive: See enemy cards and cooldowns", 0, 0, RelicRarity.Unique);
+                RelicEffectType.PassiveUnique_V2_AllyMovementBoost,
+                "Passive: All allies can move 1 tile distance extra", 1, 0, RelicRarity.Unique);
             AddPassive(RelicCategory.PassiveUnique, UnitRole.Surgeon, true,
-                RelicEffectType.PassiveUnique_V2_Medic,
-                "Passive: Heals are 25% more effective", 0.25f, 0, RelicRarity.Unique);
+                RelicEffectType.PassiveUnique_V2_TeamHealOnKill,
+                "Passive: Kill/surrender restores 5% to all allies", 0.05f, 0, RelicRarity.Unique);
             AddPassive(RelicCategory.PassiveUnique, UnitRole.Cook, true,
-                RelicEffectType.PassiveUnique_V2_Nourishing,
-                "Passive: Food heals 10% HP additionally", 0.10f, 0, RelicRarity.Unique);
+                RelicEffectType.PassiveUnique_V2_RelicsNotConsumed,
+                "Passive: Relic cards not consumed when played, can replay if energy allows, discard at end of turn", 0, 0, RelicRarity.Unique);
             AddPassive(RelicCategory.PassiveUnique, UnitRole.Swashbuckler, true,
-                RelicEffectType.PassiveUnique_V2_Riposte,
-                "Passive: 30% chance to counter-attack", 0.30f, 0, RelicRarity.Unique);
+                RelicEffectType.PassiveUnique_V2_EnemyBootsLimit,
+                "Passive: Enemies can only move 1 tile with their boots relics", 1, 0, RelicRarity.Unique);
             AddPassive(RelicCategory.PassiveUnique, UnitRole.Deckhand, true,
-                RelicEffectType.PassiveUnique_V2_Sniper,
-                "Passive: +20% damage at max range", 0.20f, 0, RelicRarity.Unique);
+                RelicEffectType.PassiveUnique_V2_HullDestroyedDamageBonus,
+                "Passive: +30% weapon damage per hull destroyed this game (allies and enemies)", 0.30f, 0, RelicRarity.Unique);
 
             Debug.Log($"RelicEffectsDatabase populated with {allEffects.Count} effects (expected 192)");
         }

@@ -280,6 +280,114 @@ namespace TacticalGame.Equipment
         PassiveUnique_IgnoreRoles,       // Swashbuckler: Ignore Shipwright/Boatswain
         PassiveUnique_BonusVsLowHP,      // Deckhand: Bonus vs <50% HP targets
         
+        // ==================== SURGEON SPECIFIC ====================
+        Boots_MoveRestoreHealth,         // Surgeon: Move 2 tiles, restore 20% health
+        Boots_V2_SwapLowestHealthAlly,   // Surgeon: Swap with lowest health ally (0 energy)
+        Gloves_AttackHealLowestAlly,     // Surgeon: Attack, restore 200 HP to lowest ally
+        Gloves_V2_AttackHealedEnemy,     // Surgeon: Passive - attack any enemy that gets healed
+        Hat_DrawTrinketReduceCost,       // Surgeon: Draw trinket card, reduce cost by 1
+        Hat_V2_HealOnCaptainDamage,     // Surgeon: Allies that damage captain healed 10%
+        Coat_DoubleAllyStats,            // Surgeon: +100% primary+secondary stat 1 turn
+        Coat_V2_KnockbackOnAllyDeath,   // Surgeon: Passive - knockback enemy on ally death in 1 tile
+        Trinket_BlockEnemyRowMovement,   // Surgeon: Enemies can't move in same row
+        Trinket_V2_GlobalRadius,         // Surgeon: Nearby radius = whole board
+        Totem_StunHealedEnemy,           // Surgeon: Passive - stun enemy that gets healed
+        Totem_V2_SummonHealingPotions,   // Surgeon: 3 random healing potions 200 HP
+        Ultimate_PreventDeath,           // Surgeon: Prevent unit from dying/surrendering
+        Ultimate_V2_FullHealthRestore,   // Surgeon: Fully restore health of any unit
+        PassiveUnique_HealingAura,       // Surgeon: 5% heal to nearby allies at turn end
+        PassiveUnique_V2_TeamHealOnKill, // Surgeon: Kill/surrender restores 5% to all allies
+
+        // ==================== COOK SPECIFIC ====================
+        Boots_MoveDrawCard,              // Cook: Move 1 tile, draw card, if cook relic reduce cost by 1
+        Boots_V2_MoveBoostProficiency,   // Cook: Move 2 tiles, +100% proficiency this turn
+        Gloves_AttackDetonateBuff,       // Cook: Attack applies debuff, detonates on next hit for 200 AoE per turn remained
+        Gloves_V2_StasisClosest,         // Cook: Stasis closest target 1 turn, can't attack or be attacked
+        Hat_ReduceLowestAllyCardCost,    // Cook: Reduce cost of lowest health ally's relic cards by 1 this turn
+        Hat_V2_MoveForwardHeal,          // Cook: Move unit forward 1 tile, heal 10%
+        Coat_StunOnAllyAttacked,         // Cook: Buff closest ally, if attacked stun enemy 1 turn
+        Coat_V2_ClearDebuffsNearby,      // Cook: Clear all debuffs from nearby allies 1 tile radius
+        Trinket_HazardSizeIncrease,      // Cook: Passive - hazards on enemy side spawn +1 tile size
+        Trinket_V2_DrawExtraBelow50,     // Cook: Passive - draw extra card if below 50% HP
+        Totem_HealLowestOnDamage,        // Cook: Passive - heal lowest ally each time this unit takes damage
+        Totem_V2_SummonStatDebuffObstacle,// Cook: Summon obstacle, -50% primary+secondary to nearby enemies
+        Ultimate_SwapHealthClosest,      // Cook: Swap health with closest enemy
+        Ultimate_V2_FireColumn,          // Cook: Set fire to closest target's whole column
+        PassiveUnique_DisplaceOnWeaponUse,// Cook: Weapon card use displaces unit to random nearby tile
+        PassiveUnique_V2_RelicsNotConsumed,// Cook: Relic cards not consumed, can replay if energy allows
+
+        // ==================== SWASHBUCKLER SPECIFIC ====================
+        Boots_MoveBySpeed,               // Swashbuckler: Move 2 tiles, if highest speed move 4
+        Boots_V2_MoveRowOnly,            // Swashbuckler: Move any tile in same row, 1 tile on column
+        Gloves_AttackTwice,              // Swashbuckler: Attack with default weapon 2 times
+        Gloves_V2_AttackStunOnMove,      // Swashbuckler: Attack, if target moves in 2 turns stun 1 turn
+        Hat_DrawWeaponReduceCost,        // Swashbuckler: Draw card, if weapon reduce cost by 1
+        Hat_V2_StealEnemyCard,           // Swashbuckler: Steal random enemy card, if weapon reduce cost by 1
+        Coat_NearbyAllyDamageReduction,  // Swashbuckler: Passive - nearby allies -15% damage if attacker has lower speed
+        Coat_V2_CurseEmptyTile,          // Swashbuckler: Curse empty tile, enemy can't leave + 10% more damage
+        Trinket_BonusDamageIfAlone,      // Swashbuckler: Passive - +20% damage if no nearby allies in 1 tile
+        Trinket_V2_EnemySpeedReduction,  // Swashbuckler: Passive - all enemies lose 10% speed
+        Totem_SummonInvisibleTraps,      // Swashbuckler: Summon 2 invisible traps, stun 1 turn
+        Totem_V2_DisableEnemyPassives,   // Swashbuckler: Next turn enemies can't use passive effects
+        Ultimate_ForceLowestAndCaptainFight,// Swashbuckler: Lowest health unit and captain attack each other
+        Ultimate_V2_SurrenderOn4Weapons, // Swashbuckler: Passive - 4 weapon hits same target = surrender
+        PassiveUnique_EnemyDiscardOnBoot,// Swashbuckler: Enemy discards card when using boots relic
+        PassiveUnique_V2_EnemyBootsLimit,// Swashbuckler: Enemies can only move 1 tile with boots
+
+        // ==================== DECKHAND SPECIFIC ====================
+        Boots_MoveColumnOnly,            // Deckhand: Move any tile in same column, 1 tile on row
+        Boots_V2_MoveRestoreHull,        // Deckhand: Move 2 tiles, restore 50 hull shield
+        Gloves_AttackDrawOnHullDestroyed,// Deckhand: Attack, if hull destroyed draw 1 card
+        Gloves_V2_AttackEnergyOnHullDestroyed,// Deckhand: Attack, if hull destroyed get 1 energy
+        Hat_NearbyHullIncrease,          // Deckhand: Nearby allies +30% hull shield
+        Hat_V2_DestroyObstaclesGainHull, // Deckhand: Destroy all soft obstacles, +20% hull per obstacle
+        Coat_HullBonusDamage,            // Deckhand: Bonus weapon damage = 50% of hull for self and nearby allies
+        Coat_V2_BuffTileDamageExchange,  // Deckhand: Buff random tile, units take 15% damage and do 15% more
+        Trinket_HullFullRegen,           // Deckhand: Passive - hull fully regens if not fully destroyed
+        Trinket_V2_HullDiscardOnSurvive, // Deckhand: Passive - if hull survives enemy attack discard enemy card
+        Totem_CreateSoftObstacles,       // Deckhand: Create 2 soft obstacles in random tiles
+        Totem_V2_PullNearbyToRow,        // Deckhand: Pull nearby enemies in 1 tile to same row
+        Ultimate_MassiveHullBuff,        // Deckhand: Give unit 300% hull for 2 turns
+        Ultimate_V2_ClearHazardsPlayerSide,// Deckhand: Clear all hazards on player side, prevent new ones
+        PassiveUnique_HullDestroyedRestoreHealth,// Deckhand: When hull destroyed restore health
+        PassiveUnique_V2_HullDestroyedDamageBonus,// Deckhand: +30% weapon damage per hull destroyed this game
+
+        // ==================== NAVIGATOR SPECIFIC ====================
+        Boots_MoveFarDistance,           // Navigator: Move 4 tiles
+        Boots_V2_MoveFree,              // Navigator: Move 2 tiles, 0 energy
+        Gloves_DisableWeaponEffect,     // Navigator: Disable enemy weapon role effect next turn
+        Gloves_V2_AttackBonusPerBootsCard, // Navigator: Attack, +30% per boots card in deck
+        Hat_DisableEnemyUltimates,      // Navigator: Enemies can't use ultimates next turn
+        Hat_V2_DrawBootsCard,           // Navigator: Get a boots card in hand
+        Coat_HealthDamageImmunity,      // Navigator: 0 health damage from next attack for 2 turns
+        Coat_V2_DodgeFirstAttack,       // Navigator: First ally attacked dodges by moving 1 back
+        Trinket_NearbyTacticsBoost,     // Navigator: Nearby allies +30% tactics
+        Trinket_V2_IgnoreSoftObstacles, // Navigator: Nearby allies ignore soft obstacles when attacking
+        Totem_DisableEnemyMovement,     // Navigator: Disable all enemy movement 1 turn
+        Totem_V2_DisableNonWeaponRelics,// Navigator: Disable enemy non-weapon relics 1 turn
+        Ultimate_MarkReflectToCaptain,  // Navigator: Mark target, damage reflects to captain
+        Ultimate_V2_SwapClosestFurthest,// Navigator: Swap closest/furthest enemy positions
+        PassiveUnique_FreeMovement,     // Navigator: Move 3 tiles without boots relic
+        PassiveUnique_V2_AllyMovementBoost, // Navigator: All allies +1 tile movement
+
+        // ==================== MASTER-AT-ARMS SPECIFIC ====================
+        Boots_MoveBonusWeaponDamage,     // Master-at-Arms: Move 2, +30% next weapon damage
+        Boots_V2_MoveDestroyObstacle,    // Master-at-Arms: Move to obstacle in 2 tiles, destroy it
+        Gloves_AttackBonusPerNearbyAlly, // Master-at-Arms: Attack, +20% per nearby ally in 1 tile
+        Gloves_V2_AttackBonusPerRelicInHand, // Master-at-Arms: Attack, +10% per MaA card in hand
+        Hat_ReduceUltimateCost,          // Master-at-Arms: Reduce next ultimate cost by 2
+        Hat_V2_IncreaseEnemyWeaponCost,  // Master-at-Arms: Enemy next weapon +1 cost
+        Coat_BonusDamageNearbyAllies,    // Master-at-Arms: +20% damage to nearby allies
+        Coat_V2_ReduceEnemyPower,        // Master-at-Arms: Enemies -35% Power next turn
+        Trinket_CounterAttackOnHit,      // Master-at-Arms: If attacked, hit back with default weapon
+        Trinket_V2_NearbyPowerBoost,     // Master-at-Arms: Nearby allies +30% Power
+        Totem_DisableEnemyWeapons,       // Master-at-Arms: Disable enemy default weapons next turn
+        Totem_V2_EarthquakeHazard,       // Master-at-Arms: 3 random earthquake tiles
+        Ultimate_AttackAllEnemies,       // Master-at-Arms: Attack all enemies 1 time
+        Ultimate_V2_AttackRowDamage,     // Master-at-Arms: Attack closest + 350 damage to row
+        PassiveUnique_WeaponRelicOnKill, // Master-at-Arms: Kill/surrender grants melee weapon relic
+        PassiveUnique_V2_HealOnKill,     // Master-at-Arms: Kill/surrender restores 20% health
+
         // ==================== PASSIVE UNIQUE V2 ====================
         PassiveUnique_V2_TeamLeader,     // Captain: Allies in 2 tiles +10% all stats
         PassiveUnique_V2_CardMaster,     // Quartermaster: Cards cost 1 less (min 0)
