@@ -1,0 +1,1649 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3acd3bc3dfd7f02408eb35e7a9f5a9ed, type: 3}
+  m_Name: RelicTestTracker
+  m_EditorClassIdentifier: Assembly-CSharp::TacticalGame.Equipment.RelicTestTracker
+  filterCategory: 0
+  filterRole: 0
+  relicTests:
+  - displayName: Boots - Captain
+    v1:
+      relicName: Captain Boots
+      category: 1
+      roleTag: 0
+      isVariant2: 0
+      effectType: 1
+      status: 
+      comment: 
+    v2:
+      relicName: Captain Boots V2
+      category: 1
+      roleTag: 0
+      isVariant2: 1
+      effectType: 2
+      status: 
+      comment: 
+  - displayName: Boots - Quartermaster
+    v1:
+      relicName: Quartermaster Boots
+      category: 1
+      roleTag: 1
+      isVariant2: 0
+      effectType: 3
+      status: 
+      comment: 
+    v2:
+      relicName: Quartermaster Boots V2
+      category: 1
+      roleTag: 1
+      isVariant2: 1
+      effectType: 4
+      status: 
+      comment: 
+  - displayName: Boots - Boatswain
+    v1:
+      relicName: Boatswain Boots
+      category: 1
+      roleTag: 2
+      isVariant2: 0
+      effectType: 7
+      status: 
+      comment: 
+    v2:
+      relicName: Boatswain Boots V2
+      category: 1
+      roleTag: 2
+      isVariant2: 1
+      effectType: 8
+      status: 
+      comment: 
+  - displayName: Boots - Shipwright
+    v1:
+      relicName: Shipwright Boots
+      category: 1
+      roleTag: 3
+      isVariant2: 0
+      effectType: 9
+      status: 
+      comment: 
+    v2:
+      relicName: Shipwright Boots V2
+      category: 1
+      roleTag: 3
+      isVariant2: 1
+      effectType: 10
+      status: 
+      comment: 
+  - displayName: Boots - Helmsmaster
+    v1:
+      relicName: Helmsman Boots
+      category: 1
+      roleTag: 4
+      isVariant2: 0
+      effectType: 5
+      status: 
+      comment: 
+    v2:
+      relicName: Helmsman Boots V2
+      category: 1
+      roleTag: 4
+      isVariant2: 1
+      effectType: 6
+      status: 
+      comment: 
+  - displayName: Boots - MasterGunner
+    v1:
+      relicName: Master Gunner Boots
+      category: 1
+      roleTag: 5
+      isVariant2: 0
+      effectType: 11
+      status: 
+      comment: 
+    v2:
+      relicName: Master Gunner Boots V2
+      category: 1
+      roleTag: 5
+      isVariant2: 1
+      effectType: 12
+      status: 
+      comment: 
+  - displayName: Boots - MasterAtArms
+    v1:
+      relicName: Master-at-Arms Boots
+      category: 1
+      roleTag: 6
+      isVariant2: 0
+      effectType: 261
+      status: 
+      comment: 
+    v2:
+      relicName: Master-at-Arms Boots V2
+      category: 1
+      roleTag: 6
+      isVariant2: 1
+      effectType: 262
+      status: 
+      comment: 
+  - displayName: Boots - Navigator
+    v1:
+      relicName: Navigator Boots
+      category: 1
+      roleTag: 7
+      isVariant2: 0
+      effectType: 245
+      status: 
+      comment: 
+    v2:
+      relicName: Navigator Boots V2
+      category: 1
+      roleTag: 7
+      isVariant2: 1
+      effectType: 246
+      status: 
+      comment: 
+  - displayName: Boots - Surgeon
+    v1:
+      relicName: Surgeon Boots
+      category: 1
+      roleTag: 8
+      isVariant2: 0
+      effectType: 181
+      status: 
+      comment: 
+    v2:
+      relicName: Surgeon Boots V2
+      category: 1
+      roleTag: 8
+      isVariant2: 1
+      effectType: 182
+      status: 
+      comment: 
+  - displayName: Boots - Cook
+    v1:
+      relicName: Cook Boots
+      category: 1
+      roleTag: 9
+      isVariant2: 0
+      effectType: 197
+      status: 
+      comment: 
+    v2:
+      relicName: Cook Boots V2
+      category: 1
+      roleTag: 9
+      isVariant2: 1
+      effectType: 198
+      status: 
+      comment: 
+  - displayName: Boots - Swashbuckler
+    v1:
+      relicName: Swashbuckler Boots
+      category: 1
+      roleTag: 10
+      isVariant2: 0
+      effectType: 213
+      status: 
+      comment: 
+    v2:
+      relicName: Swashbuckler Boots V2
+      category: 1
+      roleTag: 10
+      isVariant2: 1
+      effectType: 214
+      status: 
+      comment: 
+  - displayName: Boots - Deckhand
+    v1:
+      relicName: Deckhand Boots
+      category: 1
+      roleTag: 11
+      isVariant2: 0
+      effectType: 229
+      status: 
+      comment: 
+    v2:
+      relicName: Deckhand Boots V2
+      category: 1
+      roleTag: 11
+      isVariant2: 1
+      effectType: 230
+      status: 
+      comment: 
+  - displayName: Gloves - Captain
+    v1:
+      relicName: Captain Gloves
+      category: 2
+      roleTag: 0
+      isVariant2: 0
+      effectType: 25
+      status: 
+      comment: 
+    v2:
+      relicName: Captain Gloves V2
+      category: 2
+      roleTag: 0
+      isVariant2: 1
+      effectType: 26
+      status: 
+      comment: 
+  - displayName: Gloves - Quartermaster
+    v1:
+      relicName: Quartermaster Gloves
+      category: 2
+      roleTag: 1
+      isVariant2: 0
+      effectType: 27
+      status: 
+      comment: 
+    v2:
+      relicName: Quartermaster Gloves V2
+      category: 2
+      roleTag: 1
+      isVariant2: 1
+      effectType: 28
+      status: 
+      comment: 
+  - displayName: Gloves - Boatswain
+    v1:
+      relicName: Boatswain Gloves
+      category: 2
+      roleTag: 2
+      isVariant2: 0
+      effectType: 31
+      status: 
+      comment: 
+    v2:
+      relicName: Boatswain Gloves V2
+      category: 2
+      roleTag: 2
+      isVariant2: 1
+      effectType: 32
+      status: 
+      comment: 
+  - displayName: Gloves - Shipwright
+    v1:
+      relicName: Shipwright Gloves
+      category: 2
+      roleTag: 3
+      isVariant2: 0
+      effectType: 33
+      status: 
+      comment: 
+    v2:
+      relicName: Shipwright Gloves V2
+      category: 2
+      roleTag: 3
+      isVariant2: 1
+      effectType: 34
+      status: 
+      comment: 
+  - displayName: Gloves - Helmsmaster
+    v1:
+      relicName: Helmsman Gloves
+      category: 2
+      roleTag: 4
+      isVariant2: 0
+      effectType: 29
+      status: 
+      comment: 
+    v2:
+      relicName: Helmsman Gloves V2
+      category: 2
+      roleTag: 4
+      isVariant2: 1
+      effectType: 30
+      status: 
+      comment: 
+  - displayName: Gloves - MasterGunner
+    v1:
+      relicName: Master Gunner Gloves
+      category: 2
+      roleTag: 5
+      isVariant2: 0
+      effectType: 35
+      status: 
+      comment: 
+    v2:
+      relicName: Master Gunner Gloves V2
+      category: 2
+      roleTag: 5
+      isVariant2: 1
+      effectType: 36
+      status: 
+      comment: 
+  - displayName: Gloves - MasterAtArms
+    v1:
+      relicName: Master-at-Arms Gloves
+      category: 2
+      roleTag: 6
+      isVariant2: 0
+      effectType: 263
+      status: 
+      comment: 
+    v2:
+      relicName: Master-at-Arms Gloves V2
+      category: 2
+      roleTag: 6
+      isVariant2: 1
+      effectType: 264
+      status: 
+      comment: 
+  - displayName: Gloves - Navigator
+    v1:
+      relicName: Navigator Gloves
+      category: 2
+      roleTag: 7
+      isVariant2: 0
+      effectType: 247
+      status: 
+      comment: 
+    v2:
+      relicName: Navigator Gloves V2
+      category: 2
+      roleTag: 7
+      isVariant2: 1
+      effectType: 248
+      status: 
+      comment: 
+  - displayName: Gloves - Surgeon
+    v1:
+      relicName: Surgeon Gloves
+      category: 2
+      roleTag: 8
+      isVariant2: 0
+      effectType: 183
+      status: 
+      comment: 
+    v2:
+      relicName: Surgeon Gloves V2
+      category: 2
+      roleTag: 8
+      isVariant2: 1
+      effectType: 184
+      status: 
+      comment: 
+  - displayName: Gloves - Cook
+    v1:
+      relicName: Cook Gloves
+      category: 2
+      roleTag: 9
+      isVariant2: 0
+      effectType: 199
+      status: 
+      comment: 
+    v2:
+      relicName: Cook Gloves V2
+      category: 2
+      roleTag: 9
+      isVariant2: 1
+      effectType: 200
+      status: 
+      comment: 
+  - displayName: Gloves - Swashbuckler
+    v1:
+      relicName: Swashbuckler Gloves
+      category: 2
+      roleTag: 10
+      isVariant2: 0
+      effectType: 215
+      status: 
+      comment: 
+    v2:
+      relicName: Swashbuckler Gloves V2
+      category: 2
+      roleTag: 10
+      isVariant2: 1
+      effectType: 216
+      status: 
+      comment: 
+  - displayName: Gloves - Deckhand
+    v1:
+      relicName: Deckhand Gloves
+      category: 2
+      roleTag: 11
+      isVariant2: 0
+      effectType: 231
+      status: 
+      comment: 
+    v2:
+      relicName: Deckhand Gloves V2
+      category: 2
+      roleTag: 11
+      isVariant2: 1
+      effectType: 232
+      status: 
+      comment: 
+  - displayName: Hat - Captain
+    v1:
+      relicName: Captain Hat
+      category: 3
+      roleTag: 0
+      isVariant2: 0
+      effectType: 49
+      status: 
+      comment: 
+    v2:
+      relicName: Captain Hat V2
+      category: 3
+      roleTag: 0
+      isVariant2: 1
+      effectType: 50
+      status: 
+      comment: 
+  - displayName: Hat - Quartermaster
+    v1:
+      relicName: Quartermaster Hat
+      category: 3
+      roleTag: 1
+      isVariant2: 0
+      effectType: 51
+      status: 
+      comment: 
+    v2:
+      relicName: Quartermaster Hat V2
+      category: 3
+      roleTag: 1
+      isVariant2: 1
+      effectType: 52
+      status: 
+      comment: 
+  - displayName: Hat - Boatswain
+    v1:
+      relicName: Boatswain Hat
+      category: 3
+      roleTag: 2
+      isVariant2: 0
+      effectType: 55
+      status: 
+      comment: 
+    v2:
+      relicName: Boatswain Hat V2
+      category: 3
+      roleTag: 2
+      isVariant2: 1
+      effectType: 56
+      status: 
+      comment: 
+  - displayName: Hat - Shipwright
+    v1:
+      relicName: Shipwright Hat
+      category: 3
+      roleTag: 3
+      isVariant2: 0
+      effectType: 57
+      status: 
+      comment: 
+    v2:
+      relicName: Shipwright Hat V2
+      category: 3
+      roleTag: 3
+      isVariant2: 1
+      effectType: 58
+      status: 
+      comment: 
+  - displayName: Hat - Helmsmaster
+    v1:
+      relicName: Helmsman Hat
+      category: 3
+      roleTag: 4
+      isVariant2: 0
+      effectType: 53
+      status: 
+      comment: 
+    v2:
+      relicName: Helmsman Hat V2
+      category: 3
+      roleTag: 4
+      isVariant2: 1
+      effectType: 54
+      status: 
+      comment: 
+  - displayName: Hat - MasterGunner
+    v1:
+      relicName: Master Gunner Hat
+      category: 3
+      roleTag: 5
+      isVariant2: 0
+      effectType: 59
+      status: 
+      comment: 
+    v2:
+      relicName: Master Gunner Hat V2
+      category: 3
+      roleTag: 5
+      isVariant2: 1
+      effectType: 60
+      status: 
+      comment: 
+  - displayName: Hat - MasterAtArms
+    v1:
+      relicName: Master-at-Arms Hat
+      category: 3
+      roleTag: 6
+      isVariant2: 0
+      effectType: 265
+      status: 
+      comment: 
+    v2:
+      relicName: Master-at-Arms Hat V2
+      category: 3
+      roleTag: 6
+      isVariant2: 1
+      effectType: 266
+      status: 
+      comment: 
+  - displayName: Hat - Navigator
+    v1:
+      relicName: Navigator Hat
+      category: 3
+      roleTag: 7
+      isVariant2: 0
+      effectType: 249
+      status: 
+      comment: 
+    v2:
+      relicName: Navigator Hat V2
+      category: 3
+      roleTag: 7
+      isVariant2: 1
+      effectType: 250
+      status: 
+      comment: 
+  - displayName: Hat - Surgeon
+    v1:
+      relicName: Surgeon Hat
+      category: 3
+      roleTag: 8
+      isVariant2: 0
+      effectType: 185
+      status: 
+      comment: 
+    v2:
+      relicName: Surgeon Hat V2
+      category: 3
+      roleTag: 8
+      isVariant2: 1
+      effectType: 186
+      status: 
+      comment: 
+  - displayName: Hat - Cook
+    v1:
+      relicName: Cook Hat
+      category: 3
+      roleTag: 9
+      isVariant2: 0
+      effectType: 201
+      status: 
+      comment: 
+    v2:
+      relicName: Cook Hat V2
+      category: 3
+      roleTag: 9
+      isVariant2: 1
+      effectType: 202
+      status: 
+      comment: 
+  - displayName: Hat - Swashbuckler
+    v1:
+      relicName: Swashbuckler Hat
+      category: 3
+      roleTag: 10
+      isVariant2: 0
+      effectType: 217
+      status: 
+      comment: 
+    v2:
+      relicName: Swashbuckler Hat V2
+      category: 3
+      roleTag: 10
+      isVariant2: 1
+      effectType: 218
+      status: 
+      comment: 
+  - displayName: Hat - Deckhand
+    v1:
+      relicName: Deckhand Hat
+      category: 3
+      roleTag: 11
+      isVariant2: 0
+      effectType: 233
+      status: 
+      comment: 
+    v2:
+      relicName: Deckhand Hat V2
+      category: 3
+      roleTag: 11
+      isVariant2: 1
+      effectType: 234
+      status: 
+      comment: 
+  - displayName: Coat - Captain
+    v1:
+      relicName: Captain Coat
+      category: 4
+      roleTag: 0
+      isVariant2: 0
+      effectType: 73
+      status: 
+      comment: 
+    v2:
+      relicName: Captain Coat V2
+      category: 4
+      roleTag: 0
+      isVariant2: 1
+      effectType: 74
+      status: 
+      comment: 
+  - displayName: Coat - Quartermaster
+    v1:
+      relicName: Quartermaster Coat
+      category: 4
+      roleTag: 1
+      isVariant2: 0
+      effectType: 75
+      status: 
+      comment: 
+    v2:
+      relicName: Quartermaster Coat V2
+      category: 4
+      roleTag: 1
+      isVariant2: 1
+      effectType: 76
+      status: 
+      comment: 
+  - displayName: Coat - Boatswain
+    v1:
+      relicName: Boatswain Coat
+      category: 4
+      roleTag: 2
+      isVariant2: 0
+      effectType: 79
+      status: 
+      comment: 
+    v2:
+      relicName: Boatswain Coat V2
+      category: 4
+      roleTag: 2
+      isVariant2: 1
+      effectType: 80
+      status: 
+      comment: 
+  - displayName: Coat - Shipwright
+    v1:
+      relicName: Shipwright Coat
+      category: 4
+      roleTag: 3
+      isVariant2: 0
+      effectType: 81
+      status: 
+      comment: 
+    v2:
+      relicName: Shipwright Coat V2
+      category: 4
+      roleTag: 3
+      isVariant2: 1
+      effectType: 82
+      status: 
+      comment: 
+  - displayName: Coat - Helmsmaster
+    v1:
+      relicName: Helmsman Coat
+      category: 4
+      roleTag: 4
+      isVariant2: 0
+      effectType: 77
+      status: 
+      comment: 
+    v2:
+      relicName: Helmsman Coat V2
+      category: 4
+      roleTag: 4
+      isVariant2: 1
+      effectType: 78
+      status: 
+      comment: 
+  - displayName: Coat - MasterGunner
+    v1:
+      relicName: Master Gunner Coat
+      category: 4
+      roleTag: 5
+      isVariant2: 0
+      effectType: 83
+      status: 
+      comment: 
+    v2:
+      relicName: Master Gunner Coat V2
+      category: 4
+      roleTag: 5
+      isVariant2: 1
+      effectType: 84
+      status: 
+      comment: 
+  - displayName: Coat - MasterAtArms
+    v1:
+      relicName: Master-at-Arms Coat
+      category: 4
+      roleTag: 6
+      isVariant2: 0
+      effectType: 267
+      status: 
+      comment: 
+    v2:
+      relicName: Master-at-Arms Coat V2
+      category: 4
+      roleTag: 6
+      isVariant2: 1
+      effectType: 268
+      status: 
+      comment: 
+  - displayName: Coat - Navigator
+    v1:
+      relicName: Navigator Coat
+      category: 4
+      roleTag: 7
+      isVariant2: 0
+      effectType: 251
+      status: 
+      comment: 
+    v2:
+      relicName: Navigator Coat V2
+      category: 4
+      roleTag: 7
+      isVariant2: 1
+      effectType: 252
+      status: 
+      comment: 
+  - displayName: Coat - Surgeon
+    v1:
+      relicName: Surgeon Coat
+      category: 4
+      roleTag: 8
+      isVariant2: 0
+      effectType: 187
+      status: 
+      comment: 
+    v2:
+      relicName: Surgeon Coat V2
+      category: 4
+      roleTag: 8
+      isVariant2: 1
+      effectType: 188
+      status: 
+      comment: 
+  - displayName: Coat - Cook
+    v1:
+      relicName: Cook Coat
+      category: 4
+      roleTag: 9
+      isVariant2: 0
+      effectType: 203
+      status: 
+      comment: 
+    v2:
+      relicName: Cook Coat V2
+      category: 4
+      roleTag: 9
+      isVariant2: 1
+      effectType: 204
+      status: 
+      comment: 
+  - displayName: Coat - Swashbuckler
+    v1:
+      relicName: Swashbuckler Coat
+      category: 4
+      roleTag: 10
+      isVariant2: 0
+      effectType: 219
+      status: 
+      comment: 
+    v2:
+      relicName: Swashbuckler Coat V2
+      category: 4
+      roleTag: 10
+      isVariant2: 1
+      effectType: 220
+      status: 
+      comment: 
+  - displayName: Coat - Deckhand
+    v1:
+      relicName: Deckhand Coat
+      category: 4
+      roleTag: 11
+      isVariant2: 0
+      effectType: 235
+      status: 
+      comment: 
+    v2:
+      relicName: Deckhand Coat V2
+      category: 4
+      roleTag: 11
+      isVariant2: 1
+      effectType: 236
+      status: 
+      comment: 
+  - displayName: Trinket - Captain
+    v1:
+      relicName: Captain Trinket
+      category: 5
+      roleTag: 0
+      isVariant2: 0
+      effectType: 97
+      status: 
+      comment: 
+    v2:
+      relicName: Captain Trinket V2
+      category: 5
+      roleTag: 0
+      isVariant2: 1
+      effectType: 98
+      status: 
+      comment: 
+  - displayName: Trinket - Quartermaster
+    v1:
+      relicName: Quartermaster Trinket
+      category: 5
+      roleTag: 1
+      isVariant2: 0
+      effectType: 99
+      status: 
+      comment: 
+    v2:
+      relicName: Quartermaster Trinket V2
+      category: 5
+      roleTag: 1
+      isVariant2: 1
+      effectType: 100
+      status: 
+      comment: 
+  - displayName: Trinket - Boatswain
+    v1:
+      relicName: Boatswain Trinket
+      category: 5
+      roleTag: 2
+      isVariant2: 0
+      effectType: 103
+      status: 
+      comment: 
+    v2:
+      relicName: Boatswain Trinket V2
+      category: 5
+      roleTag: 2
+      isVariant2: 1
+      effectType: 104
+      status: 
+      comment: 
+  - displayName: Trinket - Shipwright
+    v1:
+      relicName: Shipwright Trinket
+      category: 5
+      roleTag: 3
+      isVariant2: 0
+      effectType: 105
+      status: 
+      comment: 
+    v2:
+      relicName: Shipwright Trinket V2
+      category: 5
+      roleTag: 3
+      isVariant2: 1
+      effectType: 106
+      status: 
+      comment: 
+  - displayName: Trinket - Helmsmaster
+    v1:
+      relicName: Helmsman Trinket
+      category: 5
+      roleTag: 4
+      isVariant2: 0
+      effectType: 101
+      status: 
+      comment: 
+    v2:
+      relicName: Helmsman Trinket V2
+      category: 5
+      roleTag: 4
+      isVariant2: 1
+      effectType: 102
+      status: 
+      comment: 
+  - displayName: Trinket - MasterGunner
+    v1:
+      relicName: Master Gunner Trinket
+      category: 5
+      roleTag: 5
+      isVariant2: 0
+      effectType: 107
+      status: 
+      comment: 
+    v2:
+      relicName: Master Gunner Trinket V2
+      category: 5
+      roleTag: 5
+      isVariant2: 1
+      effectType: 108
+      status: 
+      comment: 
+  - displayName: Trinket - MasterAtArms
+    v1:
+      relicName: Master-at-Arms Trinket
+      category: 5
+      roleTag: 6
+      isVariant2: 0
+      effectType: 269
+      status: 
+      comment: 
+    v2:
+      relicName: Master-at-Arms Trinket V2
+      category: 5
+      roleTag: 6
+      isVariant2: 1
+      effectType: 270
+      status: 
+      comment: 
+  - displayName: Trinket - Navigator
+    v1:
+      relicName: Navigator Trinket
+      category: 5
+      roleTag: 7
+      isVariant2: 0
+      effectType: 253
+      status: 
+      comment: 
+    v2:
+      relicName: Navigator Trinket V2
+      category: 5
+      roleTag: 7
+      isVariant2: 1
+      effectType: 254
+      status: 
+      comment: 
+  - displayName: Trinket - Surgeon
+    v1:
+      relicName: Surgeon Trinket
+      category: 5
+      roleTag: 8
+      isVariant2: 0
+      effectType: 189
+      status: 
+      comment: 
+    v2:
+      relicName: Surgeon Trinket V2
+      category: 5
+      roleTag: 8
+      isVariant2: 1
+      effectType: 190
+      status: 
+      comment: 
+  - displayName: Trinket - Cook
+    v1:
+      relicName: Cook Trinket
+      category: 5
+      roleTag: 9
+      isVariant2: 0
+      effectType: 205
+      status: 
+      comment: 
+    v2:
+      relicName: Cook Trinket V2
+      category: 5
+      roleTag: 9
+      isVariant2: 1
+      effectType: 206
+      status: 
+      comment: 
+  - displayName: Trinket - Swashbuckler
+    v1:
+      relicName: Swashbuckler Trinket
+      category: 5
+      roleTag: 10
+      isVariant2: 0
+      effectType: 221
+      status: 
+      comment: 
+    v2:
+      relicName: Swashbuckler Trinket V2
+      category: 5
+      roleTag: 10
+      isVariant2: 1
+      effectType: 222
+      status: 
+      comment: 
+  - displayName: Trinket - Deckhand
+    v1:
+      relicName: Deckhand Trinket
+      category: 5
+      roleTag: 11
+      isVariant2: 0
+      effectType: 237
+      status: 
+      comment: 
+    v2:
+      relicName: Deckhand Trinket V2
+      category: 5
+      roleTag: 11
+      isVariant2: 1
+      effectType: 238
+      status: 
+      comment: 
+  - displayName: Totem - Captain
+    v1:
+      relicName: Captain Totem
+      category: 6
+      roleTag: 0
+      isVariant2: 0
+      effectType: 121
+      status: 
+      comment: 
+    v2:
+      relicName: Captain Totem V2
+      category: 6
+      roleTag: 0
+      isVariant2: 1
+      effectType: 122
+      status: 
+      comment: 
+  - displayName: Totem - Quartermaster
+    v1:
+      relicName: Quartermaster Totem
+      category: 6
+      roleTag: 1
+      isVariant2: 0
+      effectType: 123
+      status: 
+      comment: 
+    v2:
+      relicName: Quartermaster Totem V2
+      category: 6
+      roleTag: 1
+      isVariant2: 1
+      effectType: 124
+      status: 
+      comment: 
+  - displayName: Totem - Boatswain
+    v1:
+      relicName: Boatswain Totem
+      category: 6
+      roleTag: 2
+      isVariant2: 0
+      effectType: 127
+      status: 
+      comment: 
+    v2:
+      relicName: Boatswain Totem V2
+      category: 6
+      roleTag: 2
+      isVariant2: 1
+      effectType: 128
+      status: 
+      comment: 
+  - displayName: Totem - Shipwright
+    v1:
+      relicName: Shipwright Totem
+      category: 6
+      roleTag: 3
+      isVariant2: 0
+      effectType: 129
+      status: 
+      comment: 
+    v2:
+      relicName: Shipwright Totem V2
+      category: 6
+      roleTag: 3
+      isVariant2: 1
+      effectType: 130
+      status: 
+      comment: 
+  - displayName: Totem - Helmsmaster
+    v1:
+      relicName: Helmsman Totem
+      category: 6
+      roleTag: 4
+      isVariant2: 0
+      effectType: 125
+      status: 
+      comment: 
+    v2:
+      relicName: Helmsman Totem V2
+      category: 6
+      roleTag: 4
+      isVariant2: 1
+      effectType: 126
+      status: 
+      comment: 
+  - displayName: Totem - MasterGunner
+    v1:
+      relicName: Master Gunner Totem
+      category: 6
+      roleTag: 5
+      isVariant2: 0
+      effectType: 131
+      status: 
+      comment: 
+    v2:
+      relicName: Master Gunner Totem V2
+      category: 6
+      roleTag: 5
+      isVariant2: 1
+      effectType: 132
+      status: 
+      comment: 
+  - displayName: Totem - MasterAtArms
+    v1:
+      relicName: Master-at-Arms Totem
+      category: 6
+      roleTag: 6
+      isVariant2: 0
+      effectType: 271
+      status: 
+      comment: 
+    v2:
+      relicName: Master-at-Arms Totem V2
+      category: 6
+      roleTag: 6
+      isVariant2: 1
+      effectType: 272
+      status: 
+      comment: 
+  - displayName: Totem - Navigator
+    v1:
+      relicName: Navigator Totem
+      category: 6
+      roleTag: 7
+      isVariant2: 0
+      effectType: 255
+      status: 
+      comment: 
+    v2:
+      relicName: Navigator Totem V2
+      category: 6
+      roleTag: 7
+      isVariant2: 1
+      effectType: 256
+      status: 
+      comment: 
+  - displayName: Totem - Surgeon
+    v1:
+      relicName: Surgeon Totem
+      category: 6
+      roleTag: 8
+      isVariant2: 0
+      effectType: 191
+      status: 
+      comment: 
+    v2:
+      relicName: Surgeon Totem V2
+      category: 6
+      roleTag: 8
+      isVariant2: 1
+      effectType: 192
+      status: 
+      comment: 
+  - displayName: Totem - Cook
+    v1:
+      relicName: Cook Totem
+      category: 6
+      roleTag: 9
+      isVariant2: 0
+      effectType: 207
+      status: 
+      comment: 
+    v2:
+      relicName: Cook Totem V2
+      category: 6
+      roleTag: 9
+      isVariant2: 1
+      effectType: 208
+      status: 
+      comment: 
+  - displayName: Totem - Swashbuckler
+    v1:
+      relicName: Swashbuckler Totem
+      category: 6
+      roleTag: 10
+      isVariant2: 0
+      effectType: 223
+      status: 
+      comment: 
+    v2:
+      relicName: Swashbuckler Totem V2
+      category: 6
+      roleTag: 10
+      isVariant2: 1
+      effectType: 224
+      status: 
+      comment: 
+  - displayName: Totem - Deckhand
+    v1:
+      relicName: Deckhand Totem
+      category: 6
+      roleTag: 11
+      isVariant2: 0
+      effectType: 239
+      status: 
+      comment: 
+    v2:
+      relicName: Deckhand Totem V2
+      category: 6
+      roleTag: 11
+      isVariant2: 1
+      effectType: 240
+      status: 
+      comment: 
+  - displayName: Ultimate - Captain
+    v1:
+      relicName: Captain Ultimate
+      category: 7
+      roleTag: 0
+      isVariant2: 0
+      effectType: 145
+      status: 
+      comment: 
+    v2:
+      relicName: Captain Ultimate V2
+      category: 7
+      roleTag: 0
+      isVariant2: 1
+      effectType: 146
+      status: 
+      comment: 
+  - displayName: Ultimate - Quartermaster
+    v1:
+      relicName: Quartermaster Ultimate
+      category: 7
+      roleTag: 1
+      isVariant2: 0
+      effectType: 147
+      status: 
+      comment: 
+    v2:
+      relicName: Quartermaster Ultimate V2
+      category: 7
+      roleTag: 1
+      isVariant2: 1
+      effectType: 148
+      status: 
+      comment: 
+  - displayName: Ultimate - Boatswain
+    v1:
+      relicName: Boatswain Ultimate
+      category: 7
+      roleTag: 2
+      isVariant2: 0
+      effectType: 151
+      status: 
+      comment: 
+    v2:
+      relicName: Boatswain Ultimate V2
+      category: 7
+      roleTag: 2
+      isVariant2: 1
+      effectType: 152
+      status: 
+      comment: 
+  - displayName: Ultimate - Shipwright
+    v1:
+      relicName: Shipwright Ultimate
+      category: 7
+      roleTag: 3
+      isVariant2: 0
+      effectType: 153
+      status: 
+      comment: 
+    v2:
+      relicName: Shipwright Ultimate V2
+      category: 7
+      roleTag: 3
+      isVariant2: 1
+      effectType: 154
+      status: 
+      comment: 
+  - displayName: Ultimate - Helmsmaster
+    v1:
+      relicName: Helmsman Ultimate
+      category: 7
+      roleTag: 4
+      isVariant2: 0
+      effectType: 149
+      status: 
+      comment: 
+    v2:
+      relicName: Helmsman Ultimate V2
+      category: 7
+      roleTag: 4
+      isVariant2: 1
+      effectType: 150
+      status: 
+      comment: 
+  - displayName: Ultimate - MasterGunner
+    v1:
+      relicName: Master Gunner Ultimate
+      category: 7
+      roleTag: 5
+      isVariant2: 0
+      effectType: 155
+      status: 
+      comment: 
+    v2:
+      relicName: Master Gunner Ultimate V2
+      category: 7
+      roleTag: 5
+      isVariant2: 1
+      effectType: 156
+      status: 
+      comment: 
+  - displayName: Ultimate - MasterAtArms
+    v1:
+      relicName: Master-at-Arms Ultimate
+      category: 7
+      roleTag: 6
+      isVariant2: 0
+      effectType: 273
+      status: 
+      comment: 
+    v2:
+      relicName: Master-at-Arms Ultimate V2
+      category: 7
+      roleTag: 6
+      isVariant2: 1
+      effectType: 274
+      status: 
+      comment: 
+  - displayName: Ultimate - Navigator
+    v1:
+      relicName: Navigator Ultimate
+      category: 7
+      roleTag: 7
+      isVariant2: 0
+      effectType: 257
+      status: 
+      comment: 
+    v2:
+      relicName: Navigator Ultimate V2
+      category: 7
+      roleTag: 7
+      isVariant2: 1
+      effectType: 258
+      status: 
+      comment: 
+  - displayName: Ultimate - Surgeon
+    v1:
+      relicName: Surgeon Ultimate
+      category: 7
+      roleTag: 8
+      isVariant2: 0
+      effectType: 193
+      status: 
+      comment: 
+    v2:
+      relicName: Surgeon Ultimate V2
+      category: 7
+      roleTag: 8
+      isVariant2: 1
+      effectType: 194
+      status: 
+      comment: 
+  - displayName: Ultimate - Cook
+    v1:
+      relicName: Cook Ultimate
+      category: 7
+      roleTag: 9
+      isVariant2: 0
+      effectType: 209
+      status: 
+      comment: 
+    v2:
+      relicName: Cook Ultimate V2
+      category: 7
+      roleTag: 9
+      isVariant2: 1
+      effectType: 210
+      status: 
+      comment: 
+  - displayName: Ultimate - Swashbuckler
+    v1:
+      relicName: Swashbuckler Ultimate
+      category: 7
+      roleTag: 10
+      isVariant2: 0
+      effectType: 225
+      status: 
+      comment: 
+    v2:
+      relicName: Swashbuckler Ultimate V2
+      category: 7
+      roleTag: 10
+      isVariant2: 1
+      effectType: 226
+      status: 
+      comment: 
+  - displayName: Ultimate - Deckhand
+    v1:
+      relicName: Deckhand Ultimate
+      category: 7
+      roleTag: 11
+      isVariant2: 0
+      effectType: 241
+      status: 
+      comment: 
+    v2:
+      relicName: Deckhand Ultimate V2
+      category: 7
+      roleTag: 11
+      isVariant2: 1
+      effectType: 242
+      status: 
+      comment: 
+  - displayName: PassiveUnique - Captain
+    v1:
+      relicName: Captain PassiveUnique
+      category: 8
+      roleTag: 0
+      isVariant2: 0
+      effectType: 169
+      status: 
+      comment: 
+    v2:
+      relicName: Captain PassiveUnique V2
+      category: 8
+      roleTag: 0
+      isVariant2: 1
+      effectType: 170
+      status: 
+      comment: 
+  - displayName: PassiveUnique - Quartermaster
+    v1:
+      relicName: Quartermaster PassiveUnique
+      category: 8
+      roleTag: 1
+      isVariant2: 0
+      effectType: 171
+      status: 
+      comment: 
+    v2:
+      relicName: Quartermaster PassiveUnique V2
+      category: 8
+      roleTag: 1
+      isVariant2: 1
+      effectType: 172
+      status: 
+      comment: 
+  - displayName: PassiveUnique - Boatswain
+    v1:
+      relicName: Boatswain PassiveUnique
+      category: 8
+      roleTag: 2
+      isVariant2: 0
+      effectType: 175
+      status: 
+      comment: 
+    v2:
+      relicName: Boatswain PassiveUnique V2
+      category: 8
+      roleTag: 2
+      isVariant2: 1
+      effectType: 176
+      status: 
+      comment: 
+  - displayName: PassiveUnique - Shipwright
+    v1:
+      relicName: Shipwright PassiveUnique
+      category: 8
+      roleTag: 3
+      isVariant2: 0
+      effectType: 177
+      status: 
+      comment: 
+    v2:
+      relicName: Shipwright PassiveUnique V2
+      category: 8
+      roleTag: 3
+      isVariant2: 1
+      effectType: 178
+      status: 
+      comment: 
+  - displayName: PassiveUnique - Helmsmaster
+    v1:
+      relicName: Helmsman PassiveUnique
+      category: 8
+      roleTag: 4
+      isVariant2: 0
+      effectType: 173
+      status: 
+      comment: 
+    v2:
+      relicName: Helmsman PassiveUnique V2
+      category: 8
+      roleTag: 4
+      isVariant2: 1
+      effectType: 174
+      status: 
+      comment: 
+  - displayName: PassiveUnique - MasterGunner
+    v1:
+      relicName: Master Gunner PassiveUnique
+      category: 8
+      roleTag: 5
+      isVariant2: 0
+      effectType: 179
+      status: 
+      comment: 
+    v2:
+      relicName: Master Gunner PassiveUnique V2
+      category: 8
+      roleTag: 5
+      isVariant2: 1
+      effectType: 180
+      status: 
+      comment: 
+  - displayName: PassiveUnique - MasterAtArms
+    v1:
+      relicName: Master-at-Arms PassiveUnique
+      category: 8
+      roleTag: 6
+      isVariant2: 0
+      effectType: 275
+      status: 
+      comment: 
+    v2:
+      relicName: Master-at-Arms PassiveUnique V2
+      category: 8
+      roleTag: 6
+      isVariant2: 1
+      effectType: 276
+      status: 
+      comment: 
+  - displayName: PassiveUnique - Navigator
+    v1:
+      relicName: Navigator PassiveUnique
+      category: 8
+      roleTag: 7
+      isVariant2: 0
+      effectType: 259
+      status: 
+      comment: 
+    v2:
+      relicName: Navigator PassiveUnique V2
+      category: 8
+      roleTag: 7
+      isVariant2: 1
+      effectType: 260
+      status: 
+      comment: 
+  - displayName: PassiveUnique - Surgeon
+    v1:
+      relicName: Surgeon PassiveUnique
+      category: 8
+      roleTag: 8
+      isVariant2: 0
+      effectType: 195
+      status: 
+      comment: 
+    v2:
+      relicName: Surgeon PassiveUnique V2
+      category: 8
+      roleTag: 8
+      isVariant2: 1
+      effectType: 196
+      status: 
+      comment: 
+  - displayName: PassiveUnique - Cook
+    v1:
+      relicName: Cook PassiveUnique
+      category: 8
+      roleTag: 9
+      isVariant2: 0
+      effectType: 211
+      status: 
+      comment: 
+    v2:
+      relicName: Cook PassiveUnique V2
+      category: 8
+      roleTag: 9
+      isVariant2: 1
+      effectType: 212
+      status: 
+      comment: 
+  - displayName: PassiveUnique - Swashbuckler
+    v1:
+      relicName: Swashbuckler PassiveUnique
+      category: 8
+      roleTag: 10
+      isVariant2: 0
+      effectType: 227
+      status: 
+      comment: 
+    v2:
+      relicName: Swashbuckler PassiveUnique V2
+      category: 8
+      roleTag: 10
+      isVariant2: 1
+      effectType: 228
+      status: 
+      comment: 
+  - displayName: PassiveUnique - Deckhand
+    v1:
+      relicName: Deckhand PassiveUnique
+      category: 8
+      roleTag: 11
+      isVariant2: 0
+      effectType: 243
+      status: 
+      comment: 
+    v2:
+      relicName: Deckhand PassiveUnique V2
+      category: 8
+      roleTag: 11
+      isVariant2: 1
+      effectType: 244
+      status: 
+      comment: 

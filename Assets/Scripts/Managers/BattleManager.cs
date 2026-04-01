@@ -171,11 +171,7 @@ namespace TacticalGame.Managers
                 if (selectedUnit != null) DeselectUnit();
                 SelectUnit(cell.OccupyingUnit);
             }
-            // Click on valid move tile - move there
-            else if (selectedUnit != null && validMoveTiles.Contains(cell))
-            {
-                MoveSelectedUnitTo(cell);
-            }
+            // Legacy tile-click movement removed - movement is now handled by Boots relic cards
         }
 
         #endregion
@@ -202,13 +198,8 @@ namespace TacticalGame.Managers
             // Updated instruction text for card-based combat
             if (instructionText != null)
             {
-                instructionText.text = "Click Blue Tile to Move | Press 'X' to Show Attack Cards";
+                instructionText.text = "Use cards to move, attack, and use abilities";
             }
-
-            // Calculate and highlight valid move tiles
-            Vector2Int gridPos = gridManager.WorldToGridPosition(unit.transform.position);
-            GridCell startCell = gridManager.GetCell(gridPos.x, gridPos.y);
-            CalculateValidMoves(startCell, movement.MoveRange);
 
             // Highlight attack target
             HighlightAttackTarget(status);

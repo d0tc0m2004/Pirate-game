@@ -70,25 +70,9 @@ namespace TacticalGame.Equipment
         {
             // Weapon cards always need target
             if (IsWeaponCard) return true;
-            
-            // Check by category
-            switch (category)
-            {
-                case RelicCategory.Gloves:  // Attacks need targets
-                case RelicCategory.Totem:   // Some totems need placement
-                case RelicCategory.Ultimate: // Some ultimates need targets
-                    return true;
-                    
-                case RelicCategory.Boots:   // Movement - needs tile
-                    return true;
-                    
-                case RelicCategory.Hat:     // Usually self-buffs
-                case RelicCategory.Coat:    // Usually self-buffs
-                    return false;
-                    
-                default:
-                    return false;
-            }
+
+            // Use the resolved target type — None means no target needed
+            return GetTargetType() != CardTargetType.None;
         }
         
         /// <summary>
@@ -104,37 +88,102 @@ namespace TacticalGame.Equipment
                     return CardTargetType.AdjacentEnemy;
                 }
 
-                return sourceWeaponRelic.baseWeaponData.attackType == WeaponType.Melee 
-                    ? CardTargetType.AdjacentEnemy 
+                return sourceWeaponRelic.baseWeaponData.attackType == WeaponType.Melee
+                    ? CardTargetType.AdjacentEnemy
                     : CardTargetType.RangedEnemy;
             }
-            
+
+            // Check specific effect types that override category defaults
+            CardTargetType? specific = GetEffectSpecificTargetType();
+            if (specific.HasValue)
+                return specific.Value;
+
             switch (category)
             {
                 case RelicCategory.Boots:
-                    // Check for swap effects
-                    if (effectType == RelicEffectType.Boots_SwapWithUnit ||
-                        effectType == RelicEffectType.Boots_MoveAlly)
-                        return CardTargetType.Ally;
-                    if (effectType == RelicEffectType.Boots_V2_SwapWithEnemy)
-                        return CardTargetType.Enemy;
                     return CardTargetType.Tile;
-                    
+
                 case RelicCategory.Gloves:
                     return CardTargetType.Enemy;
-                    
+
                 case RelicCategory.Totem:
-                    // Curses target enemies, summons target tiles
-                    if (effectType.ToString().Contains("Curse"))
+                    if (effectType.ToString().Contains("Curse") ||
+                        effectType.ToString().Contains("Disable"))
                         return CardTargetType.Enemy;
                     return CardTargetType.Tile;
-                    
+
                 case RelicCategory.Ultimate:
-                    // Most ultimates target enemies or are AoE
                     return CardTargetType.Enemy;
-                    
+
                 default:
                     return CardTargetType.None;
+            }
+        }
+
+        /// <summary>
+        /// Override target type for specific effects that don't follow category defaults.
+        /// </summary>
+        private CardTargetType? GetEffectSpecificTargetType()
+        {
+            switch (effectType)
+            {
+                // === Boots that target allies ===
+                case RelicEffectType.Boots_SwapWithUnit:
+                case RelicEffectType.Boots_MoveAlly:
+                case RelicEffectType.Boots_V2_MoveAllyGainShield:
+                case RelicEffectType.Boots_V2_SwapLowestHealthAlly:
+                    return CardTargetType.Ally;
+
+                // === Boots that target enemies ===
+                case RelicEffectType.Boots_V2_SwapWithEnemy:
+                    return CardTargetType.Enemy;
+
+                // === Gloves that target allies ===
+                case RelicEffectType.Gloves_V2_AttackHealAlly:
+                    return CardTargetType.Enemy; // Still attacks enemy, heal is secondary
+
+                // === Coat effects that target allies ===
+                case RelicEffectType.Coat_DoubleAllyStats:
+                    return CardTargetType.Ally;
+
+                // === Hat effects that target allies ===
+                case RelicEffectType.Hat_V2_MoveForwardHeal:
+                    return CardTargetType.Ally;
+
+                // === Coat effects that target tiles ===
+                case RelicEffectType.Coat_V2_CurseEmptyTile:
+                case RelicEffectType.Coat_V2_BuffTileDamageExchange:
+                    return CardTargetType.Tile;
+
+                // === Ultimates that target allies ===
+                case RelicEffectType.Ultimate_ReviveAlly:
+                case RelicEffectType.Ultimate_V2_MassRevive:
+                case RelicEffectType.Ultimate_PreventDeath:
+                case RelicEffectType.Ultimate_V2_FullHealthRestore:
+                case RelicEffectType.Ultimate_MassiveHullBuff:
+                case RelicEffectType.Ultimate_V2_Teleport:
+                    return CardTargetType.Ally;
+
+                // === Ultimates that are self/AoE (no target needed) ===
+                case RelicEffectType.Ultimate_ReflectMoraleDamage:
+                case RelicEffectType.Ultimate_V2_TeamwideBuff:
+                case RelicEffectType.Ultimate_V2_FullMoraleRestore:
+                case RelicEffectType.Ultimate_V2_BuzzExplosion:
+                case RelicEffectType.Ultimate_V2_GrogRain:
+                case RelicEffectType.Ultimate_V2_Fortress:
+                case RelicEffectType.Ultimate_V2_MassHeal:
+                case RelicEffectType.Ultimate_V2_Feast:
+                case RelicEffectType.Ultimate_V2_ClearHazardsPlayerSide:
+                case RelicEffectType.Ultimate_SummonHardObstacles:
+                case RelicEffectType.Ultimate_IgnoreHighestHP:
+                    return CardTargetType.None;
+
+                // === Ultimates that target tiles ===
+                case RelicEffectType.Ultimate_RumBottleAoE:
+                    return CardTargetType.Tile;
+
+                default:
+                    return null; // Use category default
             }
         }
         

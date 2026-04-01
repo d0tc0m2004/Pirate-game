@@ -54,6 +54,10 @@ namespace TacticalGame.Equipment
         [SerializeField] private Color stowedColor = new Color(0.7f, 0.9f, 1f, 1f);
         [SerializeField] private Color selectedColor = new Color(1f, 1f, 0.7f, 1f);
         
+        [Header("Card Hover Unit Highlight")]
+        [SerializeField] private Color cardOwnerHighlightColor = new Color(0.2f, 0.8f, 1f);
+        [SerializeField] private float ownerPulseSpeed = 3f;
+
         [Header("Targeting")]
         [SerializeField] private GameObject targetingOverlay;
         [SerializeField] private TextMeshProUGUI targetingPrompt;
@@ -67,6 +71,12 @@ namespace TacticalGame.Equipment
         private CardUI selectedCardUI;
         private bool isTargeting = false;
         private BattleCard cardAwaitingTarget;
+
+        // Card hover unit highlighting
+        private UnitStatus hoveredCardOwner;
+        private MeshRenderer hoveredOwnerRenderer;
+        private Color hoveredOwnerOriginalColor;
+        private bool isOwnerHighlighted = false;
         
         #endregion
         
@@ -439,6 +449,9 @@ namespace TacticalGame.Equipment
             {
                 CancelTargeting();
             }
+
+            // Pulse the hovered card's owner unit
+            UpdateCardOwnerPulse();
         }
         
         #endregion
@@ -624,6 +637,9 @@ namespace TacticalGame.Equipment
             {
                 cardUI.ShowStowButton(true);
             }
+
+            // Highlight the card's owner unit
+            HighlightCardOwner(cardUI.Card.ownerUnit);
         }
         
         /// <summary>
@@ -644,6 +660,9 @@ namespace TacticalGame.Equipment
 
             // Hide stow button
             cardUI.ShowStowButton(false);
+
+            // Clear owner unit highlight
+            ClearCardOwnerHighlight();
         }
         
         /// <summary>
@@ -739,6 +758,49 @@ namespace TacticalGame.Equipment
         
         #endregion
         
+        #region Card Owner Highlighting
+
+        private void HighlightCardOwner(UnitStatus owner)
+        {
+            if (owner == null) return;
+
+            // Clear previous highlight if different owner
+            if (isOwnerHighlighted && hoveredCardOwner != owner)
+            {
+                ClearCardOwnerHighlight();
+            }
+
+            hoveredCardOwner = owner;
+            hoveredOwnerRenderer = owner.GetComponent<MeshRenderer>();
+            if (hoveredOwnerRenderer != null)
+            {
+                hoveredOwnerOriginalColor = hoveredOwnerRenderer.material.color;
+                isOwnerHighlighted = true;
+            }
+        }
+
+        private void UpdateCardOwnerPulse()
+        {
+            if (!isOwnerHighlighted || hoveredOwnerRenderer == null) return;
+
+            float pulse = (Mathf.Sin(Time.time * ownerPulseSpeed) + 1f) / 2f;
+            hoveredOwnerRenderer.material.color = Color.Lerp(hoveredOwnerOriginalColor, cardOwnerHighlightColor, pulse);
+        }
+
+        private void ClearCardOwnerHighlight()
+        {
+            if (isOwnerHighlighted && hoveredOwnerRenderer != null)
+            {
+                hoveredOwnerRenderer.material.color = hoveredOwnerOriginalColor;
+            }
+
+            hoveredCardOwner = null;
+            hoveredOwnerRenderer = null;
+            isOwnerHighlighted = false;
+        }
+
+        #endregion
+
         #region Targeting
         
         private void StartTargeting(BattleCard card)

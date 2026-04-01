@@ -847,6 +847,849 @@ namespace TacticalGame.Equipment
                     Debug.Log($"<color=gray>Passive unique V2 {effectType} - handled by PassiveRelicManager</color>");
                     break;
                     
+                // ==================== SURGEON SPECIFIC ====================
+                case RelicEffectType.Boots_MoveRestoreHealth:
+                    ExecuteMove(caster, targetCell, (int)effect.value1);
+                    caster.Heal(Mathf.RoundToInt(caster.MaxHP * effect.value2));
+                    Debug.Log($"{caster.UnitName} moved and restored {effect.value2 * 100}% health");
+                    break;
+                case RelicEffectType.Boots_V2_SwapLowestHealthAlly:
+                    {
+                        var lowestAlly = GetLowestHPAlly(caster);
+                        if (lowestAlly != null)
+                            ExecuteSwapWithUnit(caster, lowestAlly);
+                    }
+                    break;
+                case RelicEffectType.Gloves_AttackHealLowestAlly:
+                    if (target != null)
+                    {
+                        ExecuteAttack(caster, target);
+                        var lowestAlly2 = GetLowestHPAlly(caster);
+                        if (lowestAlly2 != null)
+                        {
+                            lowestAlly2.Heal((int)effect.value2);
+                            Debug.Log($"Healed {lowestAlly2.UnitName} for {(int)effect.value2} HP");
+                        }
+                    }
+                    break;
+                case RelicEffectType.Gloves_V2_AttackHealedEnemy:
+                    // Passive - handled by PassiveRelicManager
+                    Debug.Log($"<color=gray>Passive effect {effectType} - handled by PassiveRelicManager</color>");
+                    break;
+                case RelicEffectType.Hat_DrawTrinketReduceCost:
+                    DrawCards(caster, 1);
+                    ApplyReduceAllCosts(caster, 1, 1);
+                    Debug.Log($"{caster.UnitName} drew trinket card with reduced cost");
+                    break;
+                case RelicEffectType.Hat_V2_HealOnCaptainDamage:
+                    {
+                        // Apply buff: allies that damage captain get healed
+                        var effects1 = GetStatusEffects(caster);
+                        effects1?.ApplyEffect(StatusEffect.CreateHealOnCardPlay(effect.duration, effect.value1, null));
+                        Debug.Log($"Allies healing on captain damage for {effect.duration} turns");
+                    }
+                    break;
+                case RelicEffectType.Coat_DoubleAllyStats:
+                    if (target != null && target.Team == caster.Team)
+                    {
+                        var effects2 = GetStatusEffects(target);
+                        effects2?.ApplyEffect(StatusEffect.CreateDamageBoost(effect.duration, effect.value1, null));
+                        Debug.Log($"{target.UnitName} stats boosted by {effect.value1 * 100}% for {effect.duration} turn(s)");
+                    }
+                    break;
+                case RelicEffectType.Coat_V2_KnockbackOnAllyDeath:
+                    // Passive - handled by PassiveRelicManager
+                    Debug.Log($"<color=gray>Passive effect {effectType} - handled by PassiveRelicManager</color>");
+                    break;
+                case RelicEffectType.Trinket_BlockEnemyRowMovement:
+                    // Passive - handled by PassiveRelicManager
+                    Debug.Log($"<color=gray>Passive effect {effectType} - handled by PassiveRelicManager</color>");
+                    break;
+                case RelicEffectType.Trinket_V2_GlobalRadius:
+                    // Passive - handled by PassiveRelicManager
+                    Debug.Log($"<color=gray>Passive effect {effectType} - handled by PassiveRelicManager</color>");
+                    break;
+                case RelicEffectType.Totem_StunHealedEnemy:
+                    // Passive - handled by PassiveRelicManager
+                    Debug.Log($"<color=gray>Passive effect {effectType} - handled by PassiveRelicManager</color>");
+                    break;
+                case RelicEffectType.Totem_V2_SummonHealingPotions:
+                    {
+                        // Heal 3 random allies
+                        var allies = GetAllAllies(caster);
+                        int healed = 0;
+                        while (healed < 3 && allies.Count > 0)
+                        {
+                            var ally = allies[Random.Range(0, allies.Count)];
+                            ally.Heal((int)effect.value1);
+                            healed++;
+                        }
+                        Debug.Log($"Summoned healing potions, healed {healed} allies for {(int)effect.value1} HP each");
+                    }
+                    break;
+                case RelicEffectType.Ultimate_PreventDeath:
+                    if (target != null)
+                    {
+                        ApplyDeathPrevention(target, effect.duration);
+                        Debug.Log($"{target.UnitName} cannot die or surrender for {effect.duration} turns");
+                    }
+                    break;
+                case RelicEffectType.Ultimate_V2_FullHealthRestore:
+                    if (target != null)
+                    {
+                        target.Heal(target.MaxHP);
+                        Debug.Log($"{target.UnitName} fully restored to {target.MaxHP} HP");
+                    }
+                    break;
+                case RelicEffectType.PassiveUnique_HealingAura:
+                    // Passive - handled by PassiveRelicManager
+                    Debug.Log($"<color=gray>Passive effect {effectType} - handled by PassiveRelicManager</color>");
+                    break;
+                case RelicEffectType.PassiveUnique_V2_TeamHealOnKill:
+                    // Passive - handled by PassiveRelicManager
+                    Debug.Log($"<color=gray>Passive effect {effectType} - handled by PassiveRelicManager</color>");
+                    break;
+
+                // ==================== COOK SPECIFIC ====================
+                case RelicEffectType.Boots_MoveDrawCard:
+                    ExecuteMove(caster, targetCell, (int)effect.value1);
+                    DrawCards(caster, 1);
+                    Debug.Log($"{caster.UnitName} moved and drew a card");
+                    break;
+                case RelicEffectType.Boots_V2_MoveBoostProficiency:
+                    ExecuteMove(caster, targetCell, (int)effect.value1);
+                    {
+                        var effects3 = GetStatusEffects(caster);
+                        effects3?.ApplyEffect(StatusEffect.CreateDamageBoost(1, effect.value2, null));
+                    }
+                    Debug.Log($"{caster.UnitName} moved with +{effect.value2 * 100}% proficiency this turn");
+                    break;
+                case RelicEffectType.Gloves_AttackDetonateBuff:
+                    if (target != null)
+                    {
+                        ExecuteAttack(caster, target);
+                        ApplyPoison(target, (int)effect.value2, effect.duration);
+                        Debug.Log($"{target.UnitName} marked for detonation, {(int)effect.value2} dmg/turn for {effect.duration} turns");
+                    }
+                    break;
+                case RelicEffectType.Gloves_V2_StasisClosest:
+                    {
+                        var closest = GetClosestEnemy(caster);
+                        if (closest != null)
+                        {
+                            ApplyStun(closest, effect.duration);
+                            Debug.Log($"{closest.UnitName} put in stasis for {effect.duration} turn(s)");
+                        }
+                    }
+                    break;
+                case RelicEffectType.Hat_ReduceLowestAllyCardCost:
+                    {
+                        var lowestAlly3 = GetLowestHPAlly(caster);
+                        if (lowestAlly3 != null)
+                        {
+                            ApplyReduceAllCosts(lowestAlly3, (int)effect.value1, effect.duration);
+                            Debug.Log($"Reduced {lowestAlly3.UnitName}'s card costs by {(int)effect.value1}");
+                        }
+                    }
+                    break;
+                case RelicEffectType.Hat_V2_MoveForwardHeal:
+                    if (target != null && target.Team == caster.Team)
+                    {
+                        PushUnit(caster, target, -1); // negative = forward
+                        target.Heal(Mathf.RoundToInt(target.MaxHP * effect.value1));
+                        Debug.Log($"Moved {target.UnitName} forward and healed {effect.value1 * 100}%");
+                    }
+                    break;
+                case RelicEffectType.Coat_StunOnAllyAttacked:
+                    {
+                        // Buff closest ally with counter-stun
+                        var closestAlly = GetAlliesInRange(caster, 1).FirstOrDefault();
+                        if (closestAlly != null)
+                        {
+                            ApplyCounterOnAllyHit(closestAlly, effect.duration);
+                            Debug.Log($"{closestAlly.UnitName} will stun attacker if hit");
+                        }
+                    }
+                    break;
+                case RelicEffectType.Coat_V2_ClearDebuffsNearby:
+                    {
+                        var nearbyAllies = GetAlliesInRange(caster, effect.tileRange);
+                        foreach (var ally in nearbyAllies)
+                        {
+                            var effects4 = GetStatusEffects(ally);
+                            effects4?.ClearDebuffs();
+                        }
+                        Debug.Log($"Cleared debuffs from {nearbyAllies.Count} nearby allies");
+                    }
+                    break;
+                case RelicEffectType.Trinket_HazardSizeIncrease:
+                    // Passive - handled by PassiveRelicManager
+                    Debug.Log($"<color=gray>Passive effect {effectType} - handled by PassiveRelicManager</color>");
+                    break;
+                case RelicEffectType.Trinket_V2_DrawExtraBelow50:
+                    // Passive - handled by PassiveRelicManager
+                    Debug.Log($"<color=gray>Passive effect {effectType} - handled by PassiveRelicManager</color>");
+                    break;
+                case RelicEffectType.Totem_HealLowestOnDamage:
+                    // Passive - handled by PassiveRelicManager
+                    Debug.Log($"<color=gray>Passive effect {effectType} - handled by PassiveRelicManager</color>");
+                    break;
+                case RelicEffectType.Totem_V2_SummonStatDebuffObstacle:
+                    {
+                        // Debuff nearby enemies' stats
+                        var nearbyEnemies = GetEnemiesInRange(caster, effect.tileRange);
+                        foreach (var enemy in nearbyEnemies)
+                        {
+                            ApplyWeaknessCurse(enemy, effect.value1, effect.duration);
+                        }
+                        Debug.Log($"Debuffed {nearbyEnemies.Count} nearby enemies by -{effect.value1 * 100}% stats");
+                    }
+                    break;
+                case RelicEffectType.Ultimate_SwapHealthClosest:
+                    {
+                        var closestEnemy = GetClosestEnemy(caster);
+                        if (closestEnemy != null)
+                        {
+                            int casterHP = caster.CurrentHP;
+                            int enemyHP = closestEnemy.CurrentHP;
+                            // Deal damage/heal to swap
+                            if (enemyHP < casterHP)
+                            {
+                                caster.TakeDamage(casterHP - enemyHP, caster.gameObject, false);
+                                closestEnemy.Heal(casterHP - enemyHP);
+                            }
+                            else
+                            {
+                                caster.Heal(enemyHP - casterHP);
+                                closestEnemy.TakeDamage(enemyHP - casterHP, caster.gameObject, false);
+                            }
+                            Debug.Log($"Swapped HP: {caster.UnitName}({casterHP}->{enemyHP}) <-> {closestEnemy.UnitName}({enemyHP}->{casterHP})");
+                        }
+                    }
+                    break;
+                case RelicEffectType.Ultimate_V2_FireColumn:
+                    {
+                        var closestEnemy2 = target ?? GetClosestEnemy(caster);
+                        if (closestEnemy2 != null)
+                        {
+                            var gridManager = ServiceLocator.Get<GridManager>();
+                            var hazardManager = ServiceLocator.Get<HazardManager>();
+                            if (gridManager != null)
+                            {
+                                var pos = gridManager.WorldToGridPosition(closestEnemy2.transform.position);
+                                // Fire the whole column
+                                for (int row = 0; row < 8; row++) // iterate all rows
+                                {
+                                    var cell = gridManager.GetCell(pos.x, row);
+                                    if (cell == null) continue;
+
+                                    // Deal fire damage to occupants
+                                    if (cell.IsOccupied && cell.OccupyingUnit != null)
+                                    {
+                                        var unit = cell.OccupyingUnit.GetComponent<UnitStatus>();
+                                        if (unit != null && unit.Team != caster.Team)
+                                            unit.TakeDamage((int)effect.value1, caster.gameObject, false);
+                                    }
+
+                                    // Create fire hazard
+                                    if (hazardManager != null)
+                                        hazardManager.CreateFireTile(cell, (int)effect.value2, effect.duration);
+                                }
+                                Debug.Log($"Set fire to {closestEnemy2.UnitName}'s column! {effect.value1} dmg + fire for {effect.duration} turns");
+                            }
+                        }
+                    }
+                    break;
+                case RelicEffectType.PassiveUnique_DisplaceOnWeaponUse:
+                    // Passive - handled by PassiveRelicManager
+                    Debug.Log($"<color=gray>Passive effect {effectType} - handled by PassiveRelicManager</color>");
+                    break;
+                case RelicEffectType.PassiveUnique_V2_RelicsNotConsumed:
+                    // Passive - handled by PassiveRelicManager
+                    Debug.Log($"<color=gray>Passive effect {effectType} - handled by PassiveRelicManager</color>");
+                    break;
+
+                // ==================== SWASHBUCKLER SPECIFIC ====================
+                case RelicEffectType.Boots_MoveBySpeed:
+                    {
+                        // If highest speed, move 4; else move 2
+                        bool isHighestSpeed = true;
+                        foreach (var unit in GetAllUnits())
+                        {
+                            if (unit != caster && unit.Speed > caster.Speed)
+                            {
+                                isHighestSpeed = false;
+                                break;
+                            }
+                        }
+                        int moveRange = isHighestSpeed ? (int)effect.value2 : (int)effect.value1;
+                        ExecuteMove(caster, targetCell, moveRange);
+                        Debug.Log($"{caster.UnitName} moved {moveRange} tiles (highest speed: {isHighestSpeed})");
+                    }
+                    break;
+                case RelicEffectType.Boots_V2_MoveRowOnly:
+                    // Move any tile in same row, 1 tile on column
+                    ExecuteMove(caster, targetCell, (int)effect.value1);
+                    break;
+                case RelicEffectType.Gloves_AttackTwice:
+                    if (target != null)
+                    {
+                        ExecuteAttack(caster, target);
+                        ExecuteAttack(caster, target);
+                        Debug.Log($"{caster.UnitName} attacked {target.UnitName} twice!");
+                    }
+                    break;
+                case RelicEffectType.Gloves_V2_AttackStunOnMove:
+                    if (target != null)
+                    {
+                        ExecuteAttack(caster, target);
+                        // Apply debuff: if target moves in 2 turns, stun 1 turn
+                        ApplyStun(target, effect.duration);
+                        Debug.Log($"{target.UnitName} will be stunned if they move");
+                    }
+                    break;
+                case RelicEffectType.Hat_DrawWeaponReduceCost:
+                    DrawWeaponRelicCard(caster);
+                    ApplyReduceAllCosts(caster, 1, 1);
+                    Debug.Log($"{caster.UnitName} drew weapon card with reduced cost");
+                    break;
+                case RelicEffectType.Hat_V2_StealEnemyCard:
+                    DrawCards(caster, 1);
+                    Debug.Log($"{caster.UnitName} stole an enemy card");
+                    break;
+                case RelicEffectType.Coat_NearbyAllyDamageReduction:
+                    {
+                        // Passive - nearby allies -15% damage if attacker has lower speed
+                        var nearbyAllies2 = GetAlliesInRange(caster, effect.tileRange);
+                        foreach (var ally in nearbyAllies2)
+                        {
+                            ApplyDamageReduction(ally, effect.value1, effect.duration);
+                        }
+                        Debug.Log($"Nearby allies gain {effect.value1 * 100}% damage reduction");
+                    }
+                    break;
+                case RelicEffectType.Coat_V2_CurseEmptyTile:
+                    if (targetCell != null)
+                    {
+                        var hazardManager2 = ServiceLocator.Get<HazardManager>();
+                        if (hazardManager2 != null)
+                            hazardManager2.CreateTrap(targetCell, effect.duration);
+                        Debug.Log($"Cursed tile - enemy trapped and takes {effect.value1 * 100}% more damage");
+                    }
+                    break;
+                case RelicEffectType.Trinket_BonusDamageIfAlone:
+                    // Passive - handled by PassiveRelicManager
+                    Debug.Log($"<color=gray>Passive effect {effectType} - handled by PassiveRelicManager</color>");
+                    break;
+                case RelicEffectType.Trinket_V2_EnemySpeedReduction:
+                    // Passive - handled by PassiveRelicManager
+                    Debug.Log($"<color=gray>Passive effect {effectType} - handled by PassiveRelicManager</color>");
+                    break;
+                case RelicEffectType.Totem_SummonInvisibleTraps:
+                    {
+                        var gridManager2 = ServiceLocator.Get<GridManager>();
+                        var hazardManager3 = ServiceLocator.Get<HazardManager>();
+                        if (gridManager2 != null && hazardManager3 != null)
+                        {
+                            int placed = 0;
+                            for (int attempt = 0; attempt < 20 && placed < (int)effect.value1; attempt++)
+                            {
+                                int x = Random.Range(0, 8);
+                                int y = Random.Range(0, 8);
+                                var cell = gridManager2.GetCell(x, y);
+                                if (cell != null && !cell.IsOccupied)
+                                {
+                                    hazardManager3.CreateTrap(cell, effect.duration);
+                                    placed++;
+                                }
+                            }
+                            Debug.Log($"Placed {placed} invisible traps");
+                        }
+                    }
+                    break;
+                case RelicEffectType.Totem_V2_DisableEnemyPassives:
+                    {
+                        var enemies = GetEnemies(caster);
+                        foreach (var enemy in enemies)
+                        {
+                            ApplyStun(enemy, 0); // Light disable - prevents passive triggers
+                        }
+                        Debug.Log($"Enemy passives disabled next turn");
+                    }
+                    break;
+                case RelicEffectType.Ultimate_ForceLowestAndCaptainFight:
+                    {
+                        var enemies2 = GetEnemies(caster);
+                        var enemyCaptain = enemies2.FirstOrDefault(e => e.IsCaptain);
+                        var lowestHP = enemies2.Where(e => !e.IsCaptain).OrderBy(e => e.CurrentHP).FirstOrDefault();
+                        if (enemyCaptain != null && lowestHP != null)
+                        {
+                            ExecuteAttack(lowestHP, enemyCaptain);
+                            ExecuteAttack(enemyCaptain, lowestHP);
+                            Debug.Log($"Forced {lowestHP.UnitName} and {enemyCaptain.UnitName} to fight!");
+                        }
+                    }
+                    break;
+                case RelicEffectType.Ultimate_V2_SurrenderOn4Weapons:
+                    // Passive - handled by PassiveRelicManager
+                    Debug.Log($"<color=gray>Passive effect {effectType} - handled by PassiveRelicManager</color>");
+                    break;
+                case RelicEffectType.PassiveUnique_EnemyDiscardOnBoot:
+                    // Passive - handled by PassiveRelicManager
+                    Debug.Log($"<color=gray>Passive effect {effectType} - handled by PassiveRelicManager</color>");
+                    break;
+                case RelicEffectType.PassiveUnique_V2_EnemyBootsLimit:
+                    // Passive - handled by PassiveRelicManager
+                    Debug.Log($"<color=gray>Passive effect {effectType} - handled by PassiveRelicManager</color>");
+                    break;
+
+                // ==================== DECKHAND SPECIFIC ====================
+                case RelicEffectType.Boots_MoveColumnOnly:
+                    ExecuteMove(caster, targetCell, (int)effect.value1);
+                    break;
+                case RelicEffectType.Boots_V2_MoveRestoreHull:
+                    ExecuteMove(caster, targetCell, (int)effect.value1);
+                    caster.RestoreHull((int)effect.value2);
+                    Debug.Log($"{caster.UnitName} moved and restored {(int)effect.value2} hull");
+                    break;
+                case RelicEffectType.Gloves_AttackDrawOnHullDestroyed:
+                    if (target != null)
+                    {
+                        int hullBefore = target.CurrentHullPool;
+                        ExecuteAttack(caster, target);
+                        if (target.CurrentHullPool <= 0 && hullBefore > 0)
+                        {
+                            DrawCards(caster, 1);
+                            Debug.Log($"Hull destroyed! {caster.UnitName} drew a card");
+                        }
+                    }
+                    break;
+                case RelicEffectType.Gloves_V2_AttackEnergyOnHullDestroyed:
+                    if (target != null)
+                    {
+                        int hullBefore2 = target.CurrentHullPool;
+                        ExecuteAttack(caster, target);
+                        if (target.CurrentHullPool <= 0 && hullBefore2 > 0)
+                        {
+                            // Refund 1 energy by spending -1
+                            var energyMgr = ServiceLocator.Get<EnergyManager>();
+                            energyMgr?.TrySpendEnergy(-1);
+                            Debug.Log($"Hull destroyed! {caster.UnitName} gained 1 energy");
+                        }
+                    }
+                    break;
+                case RelicEffectType.Hat_NearbyHullIncrease:
+                    {
+                        var nearbyAllies3 = GetAlliesInRange(caster, effect.tileRange);
+                        foreach (var ally in nearbyAllies3)
+                        {
+                            ally.RestoreHull(Mathf.RoundToInt(ally.MaxHullPool * effect.value1));
+                        }
+                        Debug.Log($"Nearby allies gained {effect.value1 * 100}% hull shield");
+                    }
+                    break;
+                case RelicEffectType.Hat_V2_DestroyObstaclesGainHull:
+                    {
+                        // Gain hull bonus (obstacles destruction is placeholder)
+                        caster.RestoreHull(Mathf.RoundToInt(caster.MaxHullPool * effect.value1));
+                        Debug.Log($"{caster.UnitName} destroyed obstacles and gained hull");
+                    }
+                    break;
+                case RelicEffectType.Coat_HullBonusDamage:
+                    {
+                        // Buff self and nearby allies with hull-based damage bonus
+                        float hullBonus = caster.CurrentHullPool * effect.value1;
+                        var nearbyAllies4 = GetAlliesInRange(caster, effect.tileRange);
+                        nearbyAllies4.Add(caster);
+                        foreach (var ally in nearbyAllies4)
+                        {
+                            var effects5 = GetStatusEffects(ally);
+                            effects5?.ApplyEffect(StatusEffect.CreateDamageBoost(effect.duration, hullBonus / 100f, null));
+                        }
+                        Debug.Log($"Hull bonus damage: +{hullBonus} to nearby allies");
+                    }
+                    break;
+                case RelicEffectType.Coat_V2_BuffTileDamageExchange:
+                    if (targetCell != null)
+                    {
+                        // Units on tile take and deal more damage
+                        if (targetCell.IsOccupied && targetCell.OccupyingUnit != null)
+                        {
+                            var unit = targetCell.OccupyingUnit.GetComponent<UnitStatus>();
+                            if (unit != null)
+                            {
+                                ApplyVulnerable(unit, effect.value1, effect.duration);
+                                var effects6 = GetStatusEffects(unit);
+                                effects6?.ApplyEffect(StatusEffect.CreateDamageBoost(effect.duration, effect.value1, null));
+                            }
+                        }
+                        Debug.Log($"Tile buffed: units take {effect.value1 * 100}% more damage and deal {effect.value1 * 100}% more");
+                    }
+                    break;
+                case RelicEffectType.Trinket_HullFullRegen:
+                    // Passive - handled by PassiveRelicManager
+                    Debug.Log($"<color=gray>Passive effect {effectType} - handled by PassiveRelicManager</color>");
+                    break;
+                case RelicEffectType.Trinket_V2_HullDiscardOnSurvive:
+                    // Passive - handled by PassiveRelicManager
+                    Debug.Log($"<color=gray>Passive effect {effectType} - handled by PassiveRelicManager</color>");
+                    break;
+                case RelicEffectType.Totem_CreateSoftObstacles:
+                    {
+                        var gridManager3 = ServiceLocator.Get<GridManager>();
+                        if (gridManager3 != null)
+                        {
+                            int placed2 = 0;
+                            for (int attempt = 0; attempt < 20 && placed2 < (int)effect.value1; attempt++)
+                            {
+                                int x = Random.Range(0, 8);
+                                int y = Random.Range(0, 8);
+                                var cell = gridManager3.GetCell(x, y);
+                                if (cell != null && !cell.IsOccupied)
+                                {
+                                    // Soft obstacle = placeholder
+                                    placed2++;
+                                }
+                            }
+                            Debug.Log($"Created {placed2} soft obstacles (placeholder)");
+                        }
+                    }
+                    break;
+                case RelicEffectType.Totem_V2_PullNearbyToRow:
+                    {
+                        var nearbyEnemies2 = GetEnemiesInRange(caster, effect.tileRange);
+                        foreach (var enemy in nearbyEnemies2)
+                        {
+                            PullUnit(caster, enemy, 1);
+                        }
+                        Debug.Log($"Pulled {nearbyEnemies2.Count} nearby enemies to same row");
+                    }
+                    break;
+                case RelicEffectType.Ultimate_MassiveHullBuff:
+                    if (target != null)
+                    {
+                        int hullAmount = Mathf.RoundToInt(target.MaxHullPool * effect.value1);
+                        target.RestoreHull(hullAmount);
+                        Debug.Log($"{target.UnitName} gained {effect.value1 * 100}% hull for {effect.duration} turns");
+                    }
+                    break;
+                case RelicEffectType.Ultimate_V2_ClearHazardsPlayerSide:
+                    {
+                        var hazardManager4 = ServiceLocator.Get<HazardManager>();
+                        var gridManager4 = ServiceLocator.Get<GridManager>();
+                        if (hazardManager4 != null && gridManager4 != null)
+                        {
+                            for (int x = 0; x < 8; x++)
+                            {
+                                for (int y = 0; y < 8; y++)
+                                {
+                                    if (gridManager4.IsPlayerSide(x))
+                                    {
+                                        var cell = gridManager4.GetCell(x, y);
+                                        if (cell != null)
+                                            hazardManager4.ClearHazard(cell);
+                                    }
+                                }
+                            }
+                        }
+                        Debug.Log($"Cleared all hazards on player side");
+                    }
+                    break;
+                case RelicEffectType.PassiveUnique_HullDestroyedRestoreHealth:
+                    // Passive - handled by PassiveRelicManager
+                    Debug.Log($"<color=gray>Passive effect {effectType} - handled by PassiveRelicManager</color>");
+                    break;
+                case RelicEffectType.PassiveUnique_V2_HullDestroyedDamageBonus:
+                    // Passive - handled by PassiveRelicManager
+                    Debug.Log($"<color=gray>Passive effect {effectType} - handled by PassiveRelicManager</color>");
+                    break;
+
+                // ==================== NAVIGATOR SPECIFIC ====================
+                case RelicEffectType.Boots_MoveFarDistance:
+                    ExecuteMove(caster, targetCell, (int)effect.value1);
+                    Debug.Log($"{caster.UnitName} moved up to {(int)effect.value1} tiles");
+                    break;
+                case RelicEffectType.Boots_V2_MoveFree:
+                    ExecuteMove(caster, targetCell, (int)effect.value1);
+                    // 0 energy cost is handled by the card's energyCost field
+                    Debug.Log($"{caster.UnitName} moved free");
+                    break;
+                case RelicEffectType.Gloves_DisableWeaponEffect:
+                    if (target != null)
+                    {
+                        // Disable enemy weapon role effect
+                        var effects7 = GetStatusEffects(target);
+                        effects7?.ApplyEffect(StatusEffect.CreateWeakness(effect.duration, 0.5f, null));
+                        Debug.Log($"Disabled {target.UnitName}'s weapon effect for {effect.duration} turn(s)");
+                    }
+                    break;
+                case RelicEffectType.Gloves_V2_AttackBonusPerBootsCard:
+                    if (target != null)
+                    {
+                        // Count boots cards in deck
+                        int bootsCount = 0;
+                        if (BattleDeckManager.Instance != null)
+                        {
+                            bootsCount = BattleDeckManager.Instance.Hand
+                                .Count(c => c.category == RelicCategory.Boots);
+                        }
+                        float bonus = bootsCount * effect.value1;
+                        ExecuteAttackWithPercentBonus(caster, target, bonus);
+                        Debug.Log($"{caster.UnitName} attacked with +{bonus * 100}% bonus ({bootsCount} boots cards)");
+                    }
+                    break;
+                case RelicEffectType.Hat_DisableEnemyUltimates:
+                    {
+                        var enemies3 = GetEnemies(caster);
+                        foreach (var enemy in enemies3)
+                        {
+                            ApplyIncreaseCost(enemy, 99, effect.duration); // Make ultimates unplayable
+                        }
+                        Debug.Log($"Enemy ultimates disabled for {effect.duration} turn(s)");
+                    }
+                    break;
+                case RelicEffectType.Hat_V2_DrawBootsCard:
+                    DrawBootsCard(caster);
+                    Debug.Log($"{caster.UnitName} drew a boots card");
+                    break;
+                case RelicEffectType.Coat_HealthDamageImmunity:
+                    ApplyDamageReduction(caster, 1f, effect.duration);
+                    Debug.Log($"{caster.UnitName} immune to health damage for {effect.duration} turns");
+                    break;
+                case RelicEffectType.Coat_V2_DodgeFirstAttack:
+                    {
+                        // First ally attacked dodges
+                        var allAllies = GetAllAllies(caster);
+                        foreach (var ally in allAllies)
+                        {
+                            ApplyDodgeChance(ally, 1f, 1); // 100% dodge for 1 attack
+                            break; // Only first ally
+                        }
+                        Debug.Log($"First ally attacked will dodge");
+                    }
+                    break;
+                case RelicEffectType.Trinket_NearbyTacticsBoost:
+                    // Passive - handled by PassiveRelicManager
+                    Debug.Log($"<color=gray>Passive effect {effectType} - handled by PassiveRelicManager</color>");
+                    break;
+                case RelicEffectType.Trinket_V2_IgnoreSoftObstacles:
+                    // Passive - handled by PassiveRelicManager
+                    Debug.Log($"<color=gray>Passive effect {effectType} - handled by PassiveRelicManager</color>");
+                    break;
+                case RelicEffectType.Totem_DisableEnemyMovement:
+                    {
+                        var enemies4 = GetEnemies(caster);
+                        foreach (var enemy in enemies4)
+                        {
+                            ApplySlow(enemy, 99, effect.duration); // Effectively disable movement
+                        }
+                        Debug.Log($"All enemy movement disabled for {effect.duration} turn(s)");
+                    }
+                    break;
+                case RelicEffectType.Totem_V2_DisableNonWeaponRelics:
+                    {
+                        var enemies5 = GetEnemies(caster);
+                        foreach (var enemy in enemies5)
+                        {
+                            ApplyIncreaseCost(enemy, 99, effect.duration);
+                        }
+                        Debug.Log($"Enemy non-weapon relics disabled for {effect.duration} turn(s)");
+                    }
+                    break;
+                case RelicEffectType.Ultimate_MarkReflectToCaptain:
+                    if (target != null)
+                    {
+                        // Mark target - damage reflects to their captain
+                        ExecuteAttack(caster, target);
+                        var enemyCaptain2 = GetEnemies(caster).FirstOrDefault(e => e.IsCaptain);
+                        if (enemyCaptain2 != null)
+                        {
+                            ApplyVulnerable(target, effect.value1, effect.duration);
+                            Debug.Log($"Marked {target.UnitName} - damage reflects to captain");
+                        }
+                    }
+                    break;
+                case RelicEffectType.Ultimate_V2_SwapClosestFurthest:
+                    {
+                        var enemies6 = GetEnemies(caster);
+                        if (enemies6.Count >= 2)
+                        {
+                            var sorted = enemies6.OrderBy(e =>
+                                Vector3.Distance(caster.transform.position, e.transform.position)).ToList();
+                            var closest2 = sorted.First();
+                            var furthest = sorted.Last();
+                            ExecuteSwapWithUnit(closest2, furthest);
+                            Debug.Log($"Swapped {closest2.UnitName} and {furthest.UnitName} positions");
+                        }
+                    }
+                    break;
+                case RelicEffectType.PassiveUnique_FreeMovement:
+                    // Passive - handled by PassiveRelicManager
+                    Debug.Log($"<color=gray>Passive effect {effectType} - handled by PassiveRelicManager</color>");
+                    break;
+                case RelicEffectType.PassiveUnique_V2_AllyMovementBoost:
+                    // Passive - handled by PassiveRelicManager
+                    Debug.Log($"<color=gray>Passive effect {effectType} - handled by PassiveRelicManager</color>");
+                    break;
+
+                // ==================== MASTER-AT-ARMS SPECIFIC ====================
+                case RelicEffectType.Boots_MoveBonusWeaponDamage:
+                    ExecuteMove(caster, targetCell, (int)effect.value1);
+                    {
+                        var effects8 = GetStatusEffects(caster);
+                        effects8?.ApplyEffect(StatusEffect.CreateDamageBoost(1, effect.value2, null));
+                    }
+                    Debug.Log($"{caster.UnitName} moved, next weapon +{effect.value2 * 100}% damage");
+                    break;
+                case RelicEffectType.Boots_V2_MoveDestroyObstacle:
+                    ExecuteMove(caster, targetCell, (int)effect.value1);
+                    Debug.Log($"{caster.UnitName} moved and destroyed obstacle (placeholder)");
+                    break;
+                case RelicEffectType.Gloves_AttackBonusPerNearbyAlly:
+                    if (target != null)
+                    {
+                        int nearbyCount = GetAlliesInRange(caster, effect.tileRange).Count;
+                        float allyBonus = nearbyCount * effect.value1;
+                        ExecuteAttackWithPercentBonus(caster, target, allyBonus);
+                        Debug.Log($"{caster.UnitName} attacked with +{allyBonus * 100}% ({nearbyCount} nearby allies)");
+                    }
+                    break;
+                case RelicEffectType.Gloves_V2_AttackBonusPerRelicInHand:
+                    if (target != null)
+                    {
+                        int relicCount = 0;
+                        if (BattleDeckManager.Instance != null)
+                        {
+                            relicCount = BattleDeckManager.Instance.Hand
+                                .Count(c => c.ownerUnit == caster);
+                        }
+                        float relicBonus = relicCount * effect.value1;
+                        ExecuteAttackWithPercentBonus(caster, target, relicBonus);
+                        Debug.Log($"{caster.UnitName} attacked with +{relicBonus * 100}% ({relicCount} MaA cards in hand)");
+                    }
+                    break;
+                case RelicEffectType.Hat_ReduceUltimateCost:
+                    ApplyReduceAllCosts(caster, (int)effect.value1, effect.duration);
+                    Debug.Log($"{caster.UnitName}'s next ultimate cost reduced by {(int)effect.value1}");
+                    break;
+                case RelicEffectType.Hat_V2_IncreaseEnemyWeaponCost:
+                    {
+                        var closestEnemy3 = target ?? GetClosestEnemy(caster);
+                        if (closestEnemy3 != null)
+                        {
+                            ApplyIncreaseCost(closestEnemy3, (int)effect.value1, effect.duration);
+                            Debug.Log($"{closestEnemy3.UnitName}'s weapon cost +{(int)effect.value1}");
+                        }
+                    }
+                    break;
+                case RelicEffectType.Coat_BonusDamageNearbyAllies:
+                    {
+                        var nearbyAllies5 = GetAlliesInRange(caster, effect.tileRange);
+                        foreach (var ally in nearbyAllies5)
+                        {
+                            var effects9 = GetStatusEffects(ally);
+                            effects9?.ApplyEffect(StatusEffect.CreateDamageBoost(effect.duration, effect.value1, null));
+                        }
+                        Debug.Log($"Nearby allies gain +{effect.value1 * 100}% damage for {effect.duration} turns");
+                    }
+                    break;
+                case RelicEffectType.Coat_V2_ReduceEnemyPower:
+                    {
+                        var enemies7 = GetEnemies(caster);
+                        foreach (var enemy in enemies7)
+                        {
+                            ApplyWeaknessCurse(enemy, effect.value1, effect.duration);
+                        }
+                        Debug.Log($"All enemies -{effect.value1 * 100}% Power for {effect.duration} turns");
+                    }
+                    break;
+                case RelicEffectType.Trinket_CounterAttackOnHit:
+                    // Passive - handled by PassiveRelicManager
+                    Debug.Log($"<color=gray>Passive effect {effectType} - handled by PassiveRelicManager</color>");
+                    break;
+                case RelicEffectType.Trinket_V2_NearbyPowerBoost:
+                    // Passive - handled by PassiveRelicManager
+                    Debug.Log($"<color=gray>Passive effect {effectType} - handled by PassiveRelicManager</color>");
+                    break;
+                case RelicEffectType.Totem_DisableEnemyWeapons:
+                    {
+                        var enemies8 = GetEnemies(caster);
+                        foreach (var enemy in enemies8)
+                        {
+                            ApplyWeaknessCurse(enemy, 1f, effect.duration); // -100% weapon damage
+                        }
+                        Debug.Log($"Enemy weapons disabled for {effect.duration} turn(s)");
+                    }
+                    break;
+                case RelicEffectType.Totem_V2_EarthquakeHazard:
+                    {
+                        var gridManager5 = ServiceLocator.Get<GridManager>();
+                        var hazardManager5 = ServiceLocator.Get<HazardManager>();
+                        if (gridManager5 != null && hazardManager5 != null)
+                        {
+                            int placed3 = 0;
+                            for (int attempt = 0; attempt < 20 && placed3 < (int)effect.value1; attempt++)
+                            {
+                                int x = Random.Range(0, 8);
+                                int y = Random.Range(0, 8);
+                                var cell = gridManager5.GetCell(x, y);
+                                if (cell != null)
+                                {
+                                    // Earthquake = damage hazard on tile
+                                    if (cell.IsOccupied && cell.OccupyingUnit != null)
+                                    {
+                                        var unit = cell.OccupyingUnit.GetComponent<UnitStatus>();
+                                        if (unit != null)
+                                            unit.TakeDamage((int)effect.value2, caster.gameObject, false);
+                                    }
+                                    placed3++;
+                                }
+                            }
+                            Debug.Log($"Earthquake on {placed3} tiles for {(int)effect.value2} damage each");
+                        }
+                    }
+                    break;
+                case RelicEffectType.Ultimate_AttackAllEnemies:
+                    {
+                        var allEnemies = GetEnemies(caster);
+                        foreach (var enemy in allEnemies)
+                        {
+                            ExecuteAttack(caster, enemy);
+                        }
+                        Debug.Log($"{caster.UnitName} attacked all {allEnemies.Count} enemies!");
+                    }
+                    break;
+                case RelicEffectType.Ultimate_V2_AttackRowDamage:
+                    if (target != null)
+                    {
+                        ExecuteAttack(caster, target);
+                        // Damage all enemies in same row
+                        var gridManager6 = ServiceLocator.Get<GridManager>();
+                        if (gridManager6 != null)
+                        {
+                            var targetPos = gridManager6.WorldToGridPosition(target.transform.position);
+                            var rowEnemies = GetEnemies(caster).Where(e =>
+                            {
+                                var ePos = gridManager6.WorldToGridPosition(e.transform.position);
+                                return ePos.y == targetPos.y && e != target;
+                            }).ToList();
+                            foreach (var enemy in rowEnemies)
+                            {
+                                enemy.TakeDamage((int)effect.value2, caster.gameObject, false);
+                            }
+                            Debug.Log($"Row damage: {(int)effect.value2} to {rowEnemies.Count} additional enemies");
+                        }
+                    }
+                    break;
+                case RelicEffectType.PassiveUnique_WeaponRelicOnKill:
+                    // Passive - handled by PassiveRelicManager
+                    Debug.Log($"<color=gray>Passive effect {effectType} - handled by PassiveRelicManager</color>");
+                    break;
+                case RelicEffectType.PassiveUnique_V2_HealOnKill:
+                    // Passive - handled by PassiveRelicManager
+                    Debug.Log($"<color=gray>Passive effect {effectType} - handled by PassiveRelicManager</color>");
+                    break;
+
                 default:
                     Debug.LogWarning($"<color=orange>Unhandled effect type: {effectType}</color>");
                     break;

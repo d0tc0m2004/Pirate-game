@@ -55,6 +55,7 @@ namespace TacticalGame.Managers
 
         [Header("UI")]
         [SerializeField] private Button startGameButton;
+        [SerializeField] private Button generateAllButton;
         [SerializeField] private GameObject creationCanvas;
         [SerializeField] private GameObject battleCanvas;
 
@@ -102,6 +103,11 @@ namespace TacticalGame.Managers
             if (startGameButton != null)
             {
                 startGameButton.onClick.AddListener(OnStartGameClicked);
+            }
+
+            if (generateAllButton != null)
+            {
+                generateAllButton.onClick.AddListener(GenerateAllUnits);
             }
 
             if (creationCanvas != null) creationCanvas.SetActive(true);
@@ -191,6 +197,44 @@ namespace TacticalGame.Managers
         }
 
         #endregion
+
+        private void GenerateAllUnits()
+        {
+            // Randomize and generate all player units
+            RandomizeAndGenerate(playerPanels, Team.Player);
+
+            // Randomize and generate all enemy units
+            RandomizeAndGenerate(enemyPanels, Team.Enemy);
+
+            Debug.Log($"<color=green>Generated all units: {playerPanels.Count} player, {enemyPanels.Count} enemy</color>");
+        }
+
+        private void RandomizeAndGenerate(List<UnitGenerationPanel> panels, Team team)
+        {
+            // Create a shuffled list of role indices to avoid duplicate roles
+            var availableIndices = Enumerable.Range(0, AllRoles.Length).ToList();
+            for (int i = availableIndices.Count - 1; i > 0; i--)
+            {
+                int j = Random.Range(0, i + 1);
+                (availableIndices[i], availableIndices[j]) = (availableIndices[j], availableIndices[i]);
+            }
+
+            for (int i = 0; i < panels.Count; i++)
+            {
+                // Pick a unique role if possible, otherwise random
+                int roleIndex = i < availableIndices.Count
+                    ? availableIndices[i]
+                    : Random.Range(0, AllRoles.Length);
+
+                // Set the dropdown to the chosen role
+                if (panels[i].roleDropdown != null)
+                {
+                    panels[i].roleDropdown.value = roleIndex;
+                }
+
+                GenerateUnit(panels[i], team);
+            }
+        }
 
         #region UI Updates
 
