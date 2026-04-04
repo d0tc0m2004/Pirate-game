@@ -2309,46 +2309,128 @@ namespace TacticalGame.Equipment
         
         private static void SummonCannon(UnitStatus caster, GridCell cell, int hp)
         {
-            Debug.Log($"Summoned cannon with {hp} HP (placeholder)");
+            var hazardManager = ServiceLocator.Get<HazardManager>();
+            if (hazardManager == null) { Debug.LogWarning("No HazardManager found!"); return; }
+
+            // Place cannon as a soft obstacle (destructible) at target cell or near caster
+            GridCell spawnCell = cell;
+            if (spawnCell == null || spawnCell.IsOccupied || spawnCell.HasHazard)
+            {
+                var cells = hazardManager.FindEmptyCellsNear(caster.transform.position, 1);
+                spawnCell = cells.Count > 0 ? cells[0] : null;
+            }
+            if (spawnCell != null)
+            {
+                hazardManager.CreateSoftObstacle(spawnCell, hp, -1); // Permanent until destroyed
+                Debug.Log($"<color=green>{caster.UnitName} summoned a cannon with {hp} HP!</color>");
+            }
         }
-        
+
         private static void SummonAnchor(UnitStatus caster, GridCell cell, float healthBoost, int range)
         {
-            Debug.Log($"Summoned anchor with +{healthBoost*100}% health buff in {range} range (placeholder)");
+            var hazardManager = ServiceLocator.Get<HazardManager>();
+            if (hazardManager == null) { Debug.LogWarning("No HazardManager found!"); return; }
+
+            GridCell spawnCell = cell;
+            if (spawnCell == null || spawnCell.IsOccupied || spawnCell.HasHazard)
+            {
+                var cells = hazardManager.FindEmptyCellsNear(caster.transform.position, 1);
+                spawnCell = cells.Count > 0 ? cells[0] : null;
+            }
+            if (spawnCell != null)
+            {
+                // Create healing zone around the anchor
+                int healPerTurn = Mathf.RoundToInt(healthBoost * 100);
+                hazardManager.CreateHealingZone(spawnCell, healPerTurn, 3);
+                Debug.Log($"<color=green>{caster.UnitName} summoned an anchor with +{healthBoost*100}% health buff in {range} range!</color>");
+            }
         }
-        
+
         private static void SummonTargetDummy(UnitStatus caster, GridCell cell, int hp)
         {
-            Debug.Log($"Summoned target dummy with {hp} HP (placeholder)");
+            var hazardManager = ServiceLocator.Get<HazardManager>();
+            if (hazardManager == null) { Debug.LogWarning("No HazardManager found!"); return; }
+
+            GridCell spawnCell = cell;
+            if (spawnCell == null || spawnCell.IsOccupied || spawnCell.HasHazard)
+            {
+                var cells = hazardManager.FindEmptyCellsNear(caster.transform.position, 1);
+                spawnCell = cells.Count > 0 ? cells[0] : null;
+            }
+            if (spawnCell != null)
+            {
+                hazardManager.CreateSoftObstacle(spawnCell, hp, -1); // Permanent until destroyed
+                Debug.Log($"<color=green>{caster.UnitName} summoned a target dummy with {hp} HP!</color>");
+            }
         }
-        
+
         private static void SummonObstacleAndDisplace(GridCell cell, UnitStatus target)
         {
+            var hazardManager = ServiceLocator.Get<HazardManager>();
+            var gridManager = ServiceLocator.Get<GridManager>();
+            if (hazardManager == null || gridManager == null) return;
+
             if (target != null)
             {
-                var gridManager = ServiceLocator.Get<GridManager>();
-                if (gridManager == null) return;
-                
-                // Find adjacent cell for displacement
+                // Get target's current cell
                 Vector2Int pos = gridManager.WorldToGridPosition(target.transform.position);
+                var targetCell = gridManager.GetCell(pos.x, pos.y);
+
+                // Find adjacent cell for displacement
                 var adjacent = gridManager.GetCell(pos.x + 1, pos.y) ?? gridManager.GetCell(pos.x - 1, pos.y);
-                
+
                 if (adjacent != null && adjacent.CanPlaceUnit())
                 {
+                    // Displace the unit
+                    if (targetCell != null) targetCell.RemoveUnit();
+                    adjacent.PlaceUnit(target.gameObject);
                     target.transform.position = adjacent.GetWorldPosition();
+
+                    // Spawn obstacle where the unit was
+                    if (targetCell != null)
+                    {
+                        hazardManager.CreateHardObstacle(targetCell, 3);
+                    }
+                    Debug.Log($"<color=green>Summoned obstacle at ({pos.x},{pos.y}) and displaced {target.UnitName}!</color>");
                 }
             }
-            Debug.Log($"Summoned obstacle and displaced target (placeholder)");
+            else if (cell != null)
+            {
+                hazardManager.CreateHardObstacle(cell, 3);
+                Debug.Log($"<color=green>Summoned obstacle at ({cell.XPosition},{cell.YPosition})!</color>");
+            }
         }
-        
+
         private static void SummonExplodingBarrels(UnitStatus caster, int count, int delay)
         {
-            Debug.Log($"Summoned {count} exploding barrels with {delay} turn delay (placeholder)");
+            var hazardManager = ServiceLocator.Get<HazardManager>();
+            if (hazardManager == null) { Debug.LogWarning("No HazardManager found!"); return; }
+
+            var emptyCells = hazardManager.FindEmptyCellsNear(caster.transform.position, count, 4);
+            int placed = 0;
+            foreach (var cell in emptyCells)
+            {
+                if (placed >= count) break;
+                var barrel = hazardManager.CreateExplodingBarrel(cell, 150, delay);
+                if (barrel != null) placed++;
+            }
+            Debug.Log($"<color=green>{caster.UnitName} summoned {placed} exploding barrels (fuse: {delay} turns)!</color>");
         }
-        
+
         private static void SummonHardObstacles(UnitStatus caster, int count, int duration)
         {
-            Debug.Log($"Summoned {count} hard obstacles for {duration} turns (placeholder)");
+            var hazardManager = ServiceLocator.Get<HazardManager>();
+            if (hazardManager == null) { Debug.LogWarning("No HazardManager found!"); return; }
+
+            var emptyCells = hazardManager.FindEmptyCellsNear(caster.transform.position, count, 4);
+            int placed = 0;
+            foreach (var cell in emptyCells)
+            {
+                if (placed >= count) break;
+                var obstacle = hazardManager.CreateHardObstacle(cell, duration);
+                if (obstacle != null) placed++;
+            }
+            Debug.Log($"<color=green>{caster.UnitName} summoned {placed} hard obstacles for {duration} turns!</color>");
         }
         
         #endregion

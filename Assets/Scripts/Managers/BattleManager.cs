@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.EventSystems;
 using System.Collections.Generic;
 using TMPro;
 using TacticalGame.Core;
@@ -118,21 +119,31 @@ namespace TacticalGame.Managers
 
         private void HandleLeftClick()
         {
+            // Don't process 3D clicks when clicking on UI elements (cards, buttons, etc.)
+            if (EventSystem.current != null && EventSystem.current.IsPointerOverGameObject())
+                return;
+
             Ray ray = UnityEngine.Camera.main.ScreenPointToRay(Input.mousePosition);
-            
+
             if (!Physics.Raycast(ray, out RaycastHit hit)) return;
 
             // Handle Card Targeting (Deck System)
             if (BattleDeckUI.Instance != null && BattleDeckUI.Instance.IsTargeting)
             {
-                UnitStatus targetUnit = hit.collider.GetComponent<UnitStatus>();
+                // Try to find UnitStatus on the hit object or its parent (for child colliders)
+                UnitStatus targetUnit = hit.collider.GetComponent<UnitStatus>()
+                    ?? hit.collider.GetComponentInParent<UnitStatus>();
                 GridCell targetCell = hit.collider.GetComponent<GridCell>();
 
-                // If we hit a unit, we can also check the cell under it
-                if (targetUnit != null)
+                // If we hit a unit's cell, get the cell reference too
+                if (targetUnit != null && targetCell == null)
                 {
-                    // Optionally get the cell under the unit if needed
-                    // But usually passing the unit is enough
+                    var gridManager = ServiceLocator.Get<GridManager>();
+                    if (gridManager != null)
+                    {
+                        var pos = gridManager.WorldToGridPosition(targetUnit.transform.position);
+                        targetCell = gridManager.GetCell(pos.x, pos.y);
+                    }
                 }
 
                 BattleDeckUI.Instance.OnTargetSelected(targetUnit, targetCell);

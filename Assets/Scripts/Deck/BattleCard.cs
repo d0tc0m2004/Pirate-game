@@ -104,7 +104,8 @@ namespace TacticalGame.Equipment
                     return CardTargetType.Tile;
 
                 case RelicCategory.Gloves:
-                    return CardTargetType.Enemy;
+                    // Default: auto-target closest enemy (executor handles it)
+                    return CardTargetType.None;
 
                 case RelicCategory.Totem:
                     if (effectType.ToString().Contains("Curse") ||
@@ -113,7 +114,8 @@ namespace TacticalGame.Equipment
                     return CardTargetType.Tile;
 
                 case RelicCategory.Ultimate:
-                    return CardTargetType.Enemy;
+                    // Default: auto-target closest enemy (executor handles it)
+                    return CardTargetType.None;
 
                 default:
                     return CardTargetType.None;
@@ -164,19 +166,16 @@ namespace TacticalGame.Equipment
                 case RelicEffectType.Ultimate_V2_Teleport:
                     return CardTargetType.Ally;
 
-                // === Ultimates that are self/AoE (no target needed) ===
-                case RelicEffectType.Ultimate_ReflectMoraleDamage:
-                case RelicEffectType.Ultimate_V2_TeamwideBuff:
-                case RelicEffectType.Ultimate_V2_FullMoraleRestore:
-                case RelicEffectType.Ultimate_V2_BuzzExplosion:
-                case RelicEffectType.Ultimate_V2_GrogRain:
-                case RelicEffectType.Ultimate_V2_Fortress:
-                case RelicEffectType.Ultimate_V2_MassHeal:
-                case RelicEffectType.Ultimate_V2_Feast:
-                case RelicEffectType.Ultimate_V2_ClearHazardsPlayerSide:
-                case RelicEffectType.Ultimate_SummonHardObstacles:
-                case RelicEffectType.Ultimate_IgnoreHighestHP:
-                    return CardTargetType.None;
+                // === Ultimates that need a specific enemy target (player chooses) ===
+                case RelicEffectType.Ultimate_MarkCaptainOnly:
+                case RelicEffectType.Ultimate_FullBuzzAttack:
+                case RelicEffectType.Ultimate_KnockbackToLastColumn:
+                case RelicEffectType.Ultimate_AttackKnockbackNearby:
+                case RelicEffectType.Ultimate_StunAoE:
+                case RelicEffectType.Ultimate_MassiveSingleTarget:
+                case RelicEffectType.Ultimate_V2_AttackRowDamage:
+                case RelicEffectType.Ultimate_MarkReflectToCaptain:
+                    return CardTargetType.Enemy;
 
                 // === Ultimates that target tiles ===
                 case RelicEffectType.Ultimate_RumBottleAoE:

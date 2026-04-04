@@ -270,6 +270,40 @@ namespace TacticalGame.Equipment
             stowBtnGO.SetActive(false);
             SetPrivateField(cardUI, "stowButton", stowBtnGO);
 
+            // === DISCARD BUTTON (bottom right, below stow, hidden by default) ===
+            var discardBtnGO = CreateChild(cardGO, "DiscardButton");
+            var discardBtnRT = discardBtnGO.AddComponent<RectTransform>();
+            discardBtnRT.anchorMin = new Vector2(1, 0);
+            discardBtnRT.anchorMax = new Vector2(1, 0);
+            discardBtnRT.pivot = new Vector2(1, 0);
+            discardBtnRT.anchoredPosition = new Vector2(-38, 25);
+            discardBtnRT.sizeDelta = new Vector2(32, 22);
+
+            var discardBtnBG = discardBtnGO.AddComponent<Image>();
+            discardBtnBG.color = new Color(0.7f, 0.25f, 0.2f, 0.95f);
+
+            var discardBtn = discardBtnGO.AddComponent<Button>();
+            discardBtn.targetGraphic = discardBtnBG;
+
+            var dColors = discardBtn.colors;
+            dColors.normalColor = new Color(0.7f, 0.25f, 0.2f, 0.95f);
+            dColors.highlightedColor = new Color(0.85f, 0.35f, 0.3f, 1f);
+            dColors.pressedColor = new Color(0.55f, 0.2f, 0.15f, 1f);
+            discardBtn.colors = dColors;
+
+            var discardBtnTextGO = CreateChild(discardBtnGO, "Text");
+            SetFullStretch(discardBtnTextGO);
+            var discardBtnText = discardBtnTextGO.AddComponent<TextMeshProUGUI>();
+            discardBtnText.text = "DISC";
+            discardBtnText.fontSize = 9;
+            discardBtnText.fontStyle = FontStyles.Bold;
+            discardBtnText.color = Color.white;
+            discardBtnText.alignment = TextAlignmentOptions.Center;
+
+            discardBtn.onClick.AddListener(() => cardUI.OnDiscardButtonClicked());
+
+            discardBtnGO.SetActive(false);
+            SetPrivateField(cardUI, "discardButton", discardBtnGO);
         }
         
         #region Helpers

@@ -4,6 +4,10 @@ using System.Collections.Generic;
 using System.Linq;
 using TacticalGame.Units;
 using TacticalGame.Grid;
+using TacticalGame.Core;
+using TacticalGame.Combat;
+using TacticalGame.Managers;
+using TacticalGame.Enums;
 using TMPro;
 
 namespace TacticalGame.Equipment
@@ -71,6 +75,11 @@ namespace TacticalGame.Equipment
         private CardUI selectedCardUI;
         private bool isTargeting = false;
         private BattleCard cardAwaitingTarget;
+
+        // Multi-step movement
+        private int remainingMoveSteps = 0;
+        private List<GridCell> highlightedMoveCells = new List<GridCell>();
+        private Dictionary<GridCell, Color> originalCellColors = new Dictionary<GridCell, Color>();
 
         // Card hover unit highlighting
         private UnitStatus hoveredCardOwner;
@@ -632,10 +641,11 @@ namespace TacticalGame.Equipment
             // Bring to front
             cardUI.transform.SetAsLastSibling();
 
-            // Show stow button if card belongs to selected unit
+            // Show stow and discard buttons if card belongs to selected unit
             if (cardUI.Card.BelongsTo(BattleDeckManager.Instance.SelectedUnit))
             {
                 cardUI.ShowStowButton(true);
+                cardUI.ShowDiscardButton(true);
             }
 
             // Highlight the card's owner unit
@@ -658,8 +668,9 @@ namespace TacticalGame.Equipment
                 PositionCardInFan(cardUI, index, cardUIInstances.Count);
             }
 
-            // Hide stow button
+            // Hide stow and discard buttons
             cardUI.ShowStowButton(false);
+            cardUI.ShowDiscardButton(false);
 
             // Clear owner unit highlight
             ClearCardOwnerHighlight();
@@ -807,39 +818,55 @@ namespace TacticalGame.Equipment
         {
             isTargeting = true;
             cardAwaitingTarget = card;
-            
+            remainingMoveSteps = 0;
+
             if (targetingOverlay != null)
                 targetingOverlay.SetActive(true);
-            
-            if (targetingPrompt != null)
+
+            var targetType = card.GetTargetType();
+
+            // For tile targeting (movement), set up multi-step movement
+            if (targetType == CardTargetType.Tile)
             {
-                string prompt = GetTargetingPrompt(card);
-                targetingPrompt.text = prompt;
+                int moveRange = GetCardMoveRange(card);
+                remainingMoveSteps = moveRange;
+                HighlightAdjacentTiles(card.ownerUnit);
+                UpdateTargetingPrompt($"Move {card.ownerUnit.UnitName} ({remainingMoveSteps} steps left) — click adjacent tile");
             }
-            
-            // Enable tile/unit selection based on target type
-            EnableTargetSelection(card.GetTargetType());
+            else
+            {
+                UpdateTargetingPrompt(GetTargetingPrompt(card));
+                HighlightValidTargets(card);
+            }
         }
-        
+
         private void CancelTargeting()
         {
             isTargeting = false;
             cardAwaitingTarget = null;
-            
+            remainingMoveSteps = 0;
+
+            ClearTileHighlights();
+
             if (targetingOverlay != null)
                 targetingOverlay.SetActive(false);
-            
+
             DeselectCard();
-            DisableTargetSelection();
         }
-        
+
+        private void UpdateTargetingPrompt(string text)
+        {
+            if (targetingPrompt != null)
+                targetingPrompt.text = text;
+        }
+
         private string GetTargetingPrompt(BattleCard card)
         {
             var targetType = card.GetTargetType();
             switch (targetType)
             {
                 case CardTargetType.Tile:
-                    return "Select a tile to move to";
+                    return "Select an adjacent tile to move to";
                 case CardTargetType.Ally:
                     return "Select an ally";
                 case CardTargetType.Enemy:
@@ -852,64 +879,236 @@ namespace TacticalGame.Equipment
                     return "Select a target";
             }
         }
-        
-        private void EnableTargetSelection(CardTargetType targetType)
+
+        /// <summary>
+        /// Get the movement range from a card's effect data.
+        /// </summary>
+        private int GetCardMoveRange(BattleCard card)
         {
-            // This would hook into your existing selection system
-            // For now, we'll use a simplified approach
-            Debug.Log($"Targeting enabled: {targetType}");
+            if (card.sourceRelic?.effectData != null)
+            {
+                int range = (int)card.sourceRelic.effectData.value1;
+                if (range > 0) return range;
+            }
+            // Fallback to unit's default move range
+            var movement = card.ownerUnit?.GetComponent<UnitMovement>();
+            return movement != null ? movement.GetEffectiveMoveRange() : 2;
         }
-        
-        private void DisableTargetSelection()
+
+        /// <summary>
+        /// Highlight only adjacent (manhattan distance 1) empty tiles around a unit.
+        /// </summary>
+        private void HighlightAdjacentTiles(UnitStatus unit)
         {
-            Debug.Log("Targeting disabled");
+            ClearTileHighlights();
+
+            var gridManager = ServiceLocator.Get<GridManager>();
+            if (gridManager == null || unit == null) return;
+
+            Vector2Int pos = gridManager.WorldToGridPosition(unit.transform.position);
+
+            Vector2Int[] directions = {
+                new Vector2Int(1, 0), new Vector2Int(-1, 0),
+                new Vector2Int(0, 1), new Vector2Int(0, -1)
+            };
+
+            foreach (var dir in directions)
+            {
+                var cell = gridManager.GetCell(pos.x + dir.x, pos.y + dir.y);
+                if (cell != null && cell.CanPlaceUnit() && !cell.IsMiddleColumn)
+                {
+                    highlightedMoveCells.Add(cell);
+
+                    // Tint the cell to show it's a valid move target
+                    var renderer = cell.GetComponent<Renderer>();
+                    if (renderer != null)
+                    {
+                        if (!originalCellColors.ContainsKey(cell))
+                            originalCellColors[cell] = renderer.material.color;
+                        renderer.material.color = new Color(0.3f, 0.8f, 1f, 1f); // Cyan highlight
+                    }
+                }
+            }
         }
-        
+
+        /// <summary>
+        /// Highlight valid unit targets for non-tile cards.
+        /// </summary>
+        private void HighlightValidTargets(BattleCard card)
+        {
+            // Unit highlighting is handled by the existing BattleManager system
+            // This is a hook for future visual improvements
+        }
+
+        /// <summary>
+        /// Clear all tile highlights and restore original colors.
+        /// </summary>
+        private void ClearTileHighlights()
+        {
+            foreach (var kvp in originalCellColors)
+            {
+                if (kvp.Key != null)
+                {
+                    var renderer = kvp.Key.GetComponent<Renderer>();
+                    if (renderer != null)
+                        renderer.material.color = kvp.Value;
+                }
+            }
+            highlightedMoveCells.Clear();
+            originalCellColors.Clear();
+        }
+
         /// <summary>
         /// Called when a target is selected (unit or tile).
         /// </summary>
         public void OnTargetSelected(UnitStatus target = null, GridCell cell = null)
         {
             if (!isTargeting || cardAwaitingTarget == null) return;
-            
-            var manager = BattleDeckManager.Instance;
-            
-            // Validate target
+
+            // Ignore clicks that didn't hit anything useful
+            if (target == null && cell == null) return;
+
             var targetType = cardAwaitingTarget.GetTargetType();
+
+            // Multi-step tile movement
+            if (targetType == CardTargetType.Tile && remainingMoveSteps > 0)
+            {
+                HandleMovementStep(cell);
+                return;
+            }
+
+            // Standard targeting (enemy, ally, etc.)
             bool valid = ValidateTarget(targetType, target, cell);
-            
+
             if (valid)
             {
-                manager.PlayCard(cardAwaitingTarget, target, cell);
+                BattleDeckManager.Instance.PlayCard(cardAwaitingTarget, target, cell);
+                CancelTargeting();
             }
             else
             {
-                Debug.Log("Invalid target!");
+                Debug.Log("Invalid target — try again (right-click or Escape to cancel)");
             }
-            
-            CancelTargeting();
         }
-        
+
+        /// <summary>
+        /// Handle one step of multi-step tile movement.
+        /// </summary>
+        private void HandleMovementStep(GridCell cell)
+        {
+            if (cell == null || !highlightedMoveCells.Contains(cell))
+            {
+                Debug.Log("Click a highlighted adjacent tile to move");
+                return;
+            }
+
+            var unit = cardAwaitingTarget.ownerUnit;
+            if (unit == null) return;
+
+            // Move the unit's grid cell registration
+            var gridManager = ServiceLocator.Get<GridManager>();
+            if (gridManager != null)
+            {
+                Vector2Int oldPos = gridManager.WorldToGridPosition(unit.transform.position);
+                GridCell oldCell = gridManager.GetCell(oldPos.x, oldPos.y);
+                if (oldCell != null) oldCell.RemoveUnit();
+                cell.PlaceUnit(unit.gameObject);
+            }
+
+            // Move the unit visually
+            unit.transform.position = cell.GetWorldPosition();
+            GameEvents.TriggerUnitMoved(unit.gameObject, null, cell);
+
+            remainingMoveSteps--;
+
+            if (remainingMoveSteps <= 0)
+            {
+                // All steps used — spend energy and finish
+                var manager = BattleDeckManager.Instance;
+                // Spend energy and discard the card manually (don't call PlayCard since we already moved)
+                var energyManager = ServiceLocator.Get<EnergyManager>();
+                if (energyManager != null)
+                    energyManager.TrySpendEnergy(cardAwaitingTarget.energyCost);
+
+                // Execute any additional effects (morale restore, buff, etc.) via the relic effect
+                if (cardAwaitingTarget.sourceRelic != null)
+                {
+                    // Execute non-movement parts of the effect (buffs, heals, etc.)
+                    ExecutePostMoveEffects(cardAwaitingTarget, unit);
+                }
+
+                // Discard the card from hand
+                manager.FinishCardAfterMove(cardAwaitingTarget);
+
+                CancelTargeting();
+            }
+            else
+            {
+                // More steps remaining — re-highlight from new position
+                HighlightAdjacentTiles(unit);
+                UpdateTargetingPrompt($"Move {unit.UnitName} ({remainingMoveSteps} steps left) — click adjacent tile");
+            }
+        }
+
+        /// <summary>
+        /// Execute post-movement effects (buffs, morale, etc.) from boots cards.
+        /// </summary>
+        private void ExecutePostMoveEffects(BattleCard card, UnitStatus unit)
+        {
+            if (card.sourceRelic?.effectData == null) return;
+
+            var effect = card.sourceRelic.effectData;
+
+            // Apply secondary effects based on effect type
+            // These are the buff/heal parts of boots effects that happen after movement
+            switch (effect.effectType)
+            {
+                case RelicEffectType.Boots_MoveRestoreMorale:
+                    unit.RestoreMorale(Mathf.RoundToInt(unit.MaxMorale * effect.value2));
+                    Debug.Log($"{unit.UnitName} restored morale after moving");
+                    break;
+                case RelicEffectType.Boots_MoveClearBuzz:
+                    unit.ReduceBuzz(unit.CurrentBuzz);
+                    Debug.Log($"{unit.UnitName} cleared buzz after moving");
+                    break;
+                case RelicEffectType.Boots_MoveGainGrit:
+                    StatusEffectManager sem = unit.GetComponent<StatusEffectManager>();
+                    if (sem != null) sem.ApplyEffect(StatusEffect.CreateGritBoost(effect.duration, effect.value2, null));
+                    break;
+                case RelicEffectType.Boots_MoveGainAim:
+                    StatusEffectManager sem2 = unit.GetComponent<StatusEffectManager>();
+                    if (sem2 != null) sem2.ApplyEffect(StatusEffect.CreateAimBoost(effect.duration, effect.value2, null));
+                    break;
+                case RelicEffectType.Boots_V2_MoveGainGrog:
+                    var em = ServiceLocator.Get<EnergyManager>();
+                    if (em != null) em.AddGrog((int)effect.value2);
+                    break;
+                case RelicEffectType.Boots_V2_MoveGainArmor:
+                    unit.RestoreHull((int)effect.value2);
+                    break;
+            }
+        }
+
         private bool ValidateTarget(CardTargetType type, UnitStatus target, GridCell cell)
         {
             var owner = cardAwaitingTarget.ownerUnit;
-            
+
             switch (type)
             {
                 case CardTargetType.Tile:
-                    return cell != null;
-                    
+                    return cell != null && highlightedMoveCells.Contains(cell);
+
                 case CardTargetType.Ally:
                     return target != null && target.Team == owner.Team;
-                    
+
                 case CardTargetType.Enemy:
                 case CardTargetType.AdjacentEnemy:
                 case CardTargetType.RangedEnemy:
                     return target != null && target.Team != owner.Team && !target.HasSurrendered;
-                    
+
                 case CardTargetType.AnyUnit:
                     return target != null;
-                    
+
                 default:
                     return true;
             }
@@ -921,22 +1120,16 @@ namespace TacticalGame.Equipment
         
         private void ShowCardContextMenu(CardUI cardUI)
         {
-            // Simple context menu for stow/discard
-            // In a full implementation, you'd use a proper UI menu
-            
             var card = cardUI.Card;
-            
-            // For now, toggle stow on right-click
-            if (card.isStowed)
+
+            if (!card.BelongsTo(BattleDeckManager.Instance.SelectedUnit))
             {
-                // Can't un-stow, but could add that feature
-                Debug.Log("Card is stowed");
+                Debug.Log($"Select {card.GetOwnerName()} first!");
+                return;
             }
-            else
-            {
-                // Show menu with options
-                Debug.Log("Right-click menu: [S]tow or [D]iscard");
-            }
+
+            // Right-click discards the card and draws a new one
+            BattleDeckManager.Instance.DiscardAndDraw(card);
         }
         
         /// <summary>

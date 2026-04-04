@@ -3,6 +3,7 @@ using UnityEngine.UI;
 using UnityEngine.EventSystems;
 using TMPro;
 using TacticalGame.Enums;
+using TacticalGame.Core;
 
 namespace TacticalGame.Equipment
 {
@@ -30,6 +31,7 @@ namespace TacticalGame.Equipment
         [SerializeField] private GameObject stowedIndicator;
         [SerializeField] private GameObject weaponIndicator;
         [SerializeField] private GameObject stowButton;
+        [SerializeField] private GameObject discardButton;
         
 
         
@@ -79,6 +81,11 @@ namespace TacticalGame.Equipment
             if (stowButton != null)
             {
                 stowButton.SetActive(false);
+            }
+
+            if (discardButton != null)
+            {
+                discardButton.SetActive(false);
             }
         }
         
@@ -207,6 +214,17 @@ namespace TacticalGame.Equipment
                 stowButton.SetActive(shouldShow);
             }
         }
+
+        /// <summary>
+        /// Show/hide the discard button.
+        /// </summary>
+        public void ShowDiscardButton(bool show)
+        {
+            if (discardButton != null)
+            {
+                discardButton.SetActive(show && card != null);
+            }
+        }
         
         private Color GetCategoryColor(RelicCategory category)
         {
@@ -231,8 +249,7 @@ namespace TacticalGame.Equipment
         
         public void OnPointerEnter(PointerEventData eventData)
         {
-            if (!isInteractable) return;
-            
+            // Allow hover even on non-interactable cards so players see they can click to select owner
             deckUI?.OnCardHoverEnter(this);
         }
         
@@ -243,14 +260,24 @@ namespace TacticalGame.Equipment
         
         public void OnPointerClick(PointerEventData eventData)
         {
-            if (!isInteractable) return;
-            
             if (eventData.button == PointerEventData.InputButton.Left)
             {
+                if (!isInteractable)
+                {
+                    // Auto-select the card's owner unit so cards become interactable
+                    if (card?.ownerUnit != null)
+                    {
+                        BattleDeckManager.Instance.SetSelectedUnit(card.ownerUnit);
+                        // Trigger unit selection event so BattleManager updates too
+                        GameEvents.TriggerUnitSelected(card.ownerUnit.gameObject);
+                    }
+                    return;
+                }
                 deckUI?.OnCardClicked(this);
             }
             else if (eventData.button == PointerEventData.InputButton.Right)
             {
+                if (!isInteractable) return;
                 deckUI?.OnCardRightClicked(this);
             }
         }

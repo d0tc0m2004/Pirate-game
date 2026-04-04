@@ -558,6 +558,24 @@ namespace TacticalGame.Equipment
             return PlayCard(selectedCard, target, targetCell);
         }
         
+        /// <summary>
+        /// Finish a card after multi-step movement (energy already spent, just discard).
+        /// </summary>
+        public void FinishCardAfterMove(BattleCard card)
+        {
+            if (!hand.Contains(card)) return;
+
+            hand.Remove(card);
+            card.isStowed = false;
+            discardPile.Add(card);
+            selectedCard = null;
+
+            OnCardPlayed?.Invoke(card);
+            OnHandChanged?.Invoke(hand);
+
+            Debug.Log($"<color=yellow>Played (move): {card.GetDisplayName()} (Hand: {hand.Count}, Discard: {discardPile.Count})</color>");
+        }
+
         private void ExecuteCard(BattleCard card, UnitStatus target, GridCell targetCell)
         {
             if (card.IsWeaponCard)

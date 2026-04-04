@@ -210,6 +210,80 @@ namespace TacticalGame.Hazards
         }
         
         /// <summary>
+        /// Create a hard obstacle (indestructible) at a specific cell.
+        /// </summary>
+        public RuntimeHazard CreateHardObstacle(GridCell cell, int duration)
+        {
+            if (cell == null || cell.HasHazard || cell.IsOccupied) return null;
+
+            var hazard = CreateRuntimeHazard(cell, RuntimeHazardType.HardObstacle, 0, duration);
+            if (hazard != null)
+            {
+                hazard.SetColor(new Color(0.4f, 0.35f, 0.3f, 0.95f)); // Stone gray
+                cell.isBlockedState = true;
+                Debug.Log($"Created hard obstacle at ({cell.XPosition}, {cell.YPosition}) for {duration} turns");
+            }
+            return hazard;
+        }
+
+        /// <summary>
+        /// Create a soft obstacle (destructible) at a specific cell.
+        /// </summary>
+        public RuntimeHazard CreateSoftObstacle(GridCell cell, int hp, int duration)
+        {
+            if (cell == null || cell.HasHazard || cell.IsOccupied) return null;
+
+            var hazard = CreateRuntimeHazard(cell, RuntimeHazardType.SoftObstacle, hp, duration);
+            if (hazard != null)
+            {
+                hazard.SetColor(new Color(0.6f, 0.45f, 0.25f, 0.9f)); // Wood brown
+                cell.isBlockedState = true;
+                Debug.Log($"Created soft obstacle ({hp} HP) at ({cell.XPosition}, {cell.YPosition})");
+            }
+            return hazard;
+        }
+
+        /// <summary>
+        /// Create an exploding barrel at a specific cell.
+        /// </summary>
+        public RuntimeHazard CreateExplodingBarrel(GridCell cell, int damage, int fuseTimer)
+        {
+            if (cell == null || cell.HasHazard || cell.IsOccupied) return null;
+
+            var hazard = CreateRuntimeHazard(cell, RuntimeHazardType.ExplodingBarrel, damage, fuseTimer);
+            if (hazard != null)
+            {
+                hazard.SetColor(new Color(0.8f, 0.2f, 0.1f, 0.85f)); // Red for explosive
+                Debug.Log($"Created exploding barrel at ({cell.XPosition}, {cell.YPosition}): {damage} dmg in {fuseTimer} turns");
+            }
+            return hazard;
+        }
+
+        /// <summary>
+        /// Find empty cells near a position for spawning.
+        /// </summary>
+        public List<GridCell> FindEmptyCellsNear(Vector3 worldPos, int count, int searchRange = 3)
+        {
+            EnsureGridManager();
+            var center = gridManager.WorldToGridPosition(worldPos);
+            var emptyCells = new List<GridCell>();
+
+            for (int dx = -searchRange; dx <= searchRange && emptyCells.Count < count; dx++)
+            {
+                for (int dy = -searchRange; dy <= searchRange && emptyCells.Count < count; dy++)
+                {
+                    var cell = gridManager.GetCell(center.x + dx, center.y + dy);
+                    if (cell != null && !cell.IsOccupied && !cell.HasHazard && !cell.IsMiddleColumn)
+                    {
+                        emptyCells.Add(cell);
+                    }
+                }
+            }
+
+            return emptyCells;
+        }
+
+        /// <summary>
         /// Remove all runtime hazards from a cell.
         /// </summary>
         public void ClearHazard(GridCell cell)
@@ -318,6 +392,17 @@ namespace TacticalGame.Hazards
                 if (hazard.Cell != null)
                 {
                     hazard.Cell.hasHazardState = false;
+                    // Clear blocking for obstacles
+                    if (hazard.Type == RuntimeHazardType.HardObstacle ||
+                        hazard.Type == RuntimeHazardType.SoftObstacle)
+                    {
+                        hazard.Cell.isBlockedState = false;
+                    }
+                    // Exploding barrel AoE on expiry
+                    if (hazard.Type == RuntimeHazardType.ExplodingBarrel)
+                    {
+                        ExplodeBarrel(hazard);
+                    }
                 }
                 hazard.Destroy();
                 activeRuntimeHazards.Remove(hazard);
@@ -351,9 +436,44 @@ namespace TacticalGame.Hazards
                     effects?.ApplyEffect(StatusEffect.CreateSpeedBoost(1, hazard.Value, null));
                     Debug.Log($"{unit.UnitName} gained +{hazard.Value} movement from speed zone!");
                     break;
+
+                case RuntimeHazardType.ExplodingBarrel:
+                    // Barrel explodes when its timer runs out (handled below) or when a unit stands on it
+                    unit.TakeDamage(hazard.Value, hazard.Visual, false);
+                    Debug.Log($"Exploding barrel hit {unit.UnitName} for {hazard.Value} damage!");
+                    hazard.Duration = 0; // Consumed
+                    break;
+
+                case RuntimeHazardType.HardObstacle:
+                case RuntimeHazardType.SoftObstacle:
+                    // Obstacles block movement, don't apply effect
+                    break;
             }
         }
         
+        private void ExplodeBarrel(RuntimeHazard barrel)
+        {
+            EnsureGridManager();
+            int damage = barrel.Value;
+            // Damage all units adjacent to the barrel
+            for (int dx = -1; dx <= 1; dx++)
+            {
+                for (int dy = -1; dy <= 1; dy++)
+                {
+                    var cell = gridManager.GetCell(barrel.Cell.XPosition + dx, barrel.Cell.YPosition + dy);
+                    if (cell != null && cell.IsOccupied && cell.OccupyingUnit != null)
+                    {
+                        var unit = cell.OccupyingUnit.GetComponent<UnitStatus>();
+                        if (unit != null && !unit.HasSurrendered)
+                        {
+                            unit.TakeDamage(damage, barrel.Visual, false);
+                            Debug.Log($"Barrel explosion hit {unit.UnitName} for {damage} damage!");
+                        }
+                    }
+                }
+            }
+        }
+
         /// <summary>
         /// Called when a unit enters a cell - check for traps.
         /// </summary>
@@ -565,7 +685,10 @@ namespace TacticalGame.Hazards
         Healing,
         SpeedBoost,
         Shield,
-        Slow
+        Slow,
+        HardObstacle,
+        SoftObstacle,
+        ExplodingBarrel
     }
     
     /// <summary>
