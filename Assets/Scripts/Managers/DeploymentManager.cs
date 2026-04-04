@@ -56,6 +56,7 @@ namespace TacticalGame.Managers
         private GlobalUIManager globalUI;
         private EnergyManager energyManager;
         private HazardManager hazardManager;
+        private DeadMansLockerManager lockerManager;
 
         private bool isDeploymentPhase = false;
         private Queue<UnitData> unitsToPlace = new Queue<UnitData>();
@@ -107,6 +108,7 @@ namespace TacticalGame.Managers
             globalUI = ServiceLocator.Get<GlobalUIManager>();
             energyManager = ServiceLocator.Get<EnergyManager>();
             hazardManager = ServiceLocator.Get<HazardManager>();
+            lockerManager = ServiceLocator.Get<DeadMansLockerManager>();
         }
 
         #endregion
@@ -140,6 +142,8 @@ namespace TacticalGame.Managers
         {
             if (unitsToPlace.Count > 0) return;
 
+            // Sequence: Player deployed -> Chests spawn -> Enemies spawn -> Hazards -> Battle
+            if (lockerManager != null) lockerManager.SpawnLockers();
             SpawnEnemyUnits();
 
             isDeploymentPhase = false;
@@ -155,7 +159,7 @@ namespace TacticalGame.Managers
             if (endTurnButton != null) endTurnButton.SetActive(true);
 
             GameEvents.TriggerDeploymentEnd();
-            
+
             gameObject.SetActive(false);
         }
 

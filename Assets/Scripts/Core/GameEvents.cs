@@ -49,6 +49,12 @@ namespace TacticalGame.Core
         public static event Action OnDeploymentStart;
         public static event Action OnDeploymentEnd;
 
+        // === DEAD MAN'S LOCKER EVENTS ===
+        public static event Action<GameObject, int> OnLockerHit; // locker, remaining pips
+        public static event Action<GameObject> OnLockerDestroyed;
+        public static event Action<GameObject, float> OnLockerTributeChanged; // locker, new tribute amount
+        public static event Action OnAllLockersDestroyed;
+
         // === HAZARD EVENTS ===
         public static event Action<GameObject, HazardInstance> OnUnitEnteredHazard;
         public static event Action<HazardInstance> OnHazardDestroyed;
@@ -94,8 +100,14 @@ namespace TacticalGame.Core
         public static void TriggerDeploymentStart() => OnDeploymentStart?.Invoke();
         public static void TriggerDeploymentEnd() => OnDeploymentEnd?.Invoke();
 
+        // Dead Man's Locker Events
+        public static void TriggerLockerHit(GameObject locker, int remainingPips) => OnLockerHit?.Invoke(locker, remainingPips);
+        public static void TriggerLockerDestroyed(GameObject locker) => OnLockerDestroyed?.Invoke(locker);
+        public static void TriggerLockerTributeChanged(GameObject locker, float newAmount) => OnLockerTributeChanged?.Invoke(locker, newAmount);
+        public static void TriggerAllLockersDestroyed() => OnAllLockersDestroyed?.Invoke();
+
         // Hazard Events
-        public static void TriggerUnitEnteredHazard(GameObject unit, HazardInstance hazard) 
+        public static void TriggerUnitEnteredHazard(GameObject unit, HazardInstance hazard)
             => OnUnitEnteredHazard?.Invoke(unit, hazard);
         public static void TriggerHazardDestroyed(HazardInstance hazard) => OnHazardDestroyed?.Invoke(hazard);
 
@@ -130,6 +142,10 @@ namespace TacticalGame.Core
             OnGameEnd = null;
             OnDeploymentStart = null;
             OnDeploymentEnd = null;
+            OnLockerHit = null;
+            OnLockerDestroyed = null;
+            OnLockerTributeChanged = null;
+            OnAllLockersDestroyed = null;
             OnUnitEnteredHazard = null;
             OnHazardDestroyed = null;
         }

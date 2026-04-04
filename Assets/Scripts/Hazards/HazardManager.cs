@@ -24,6 +24,12 @@ namespace TacticalGame.Hazards
         [SerializeField] private GameObject trapPrefab;
         [Tooltip("Optional prefab for fire tiles.")]
         [SerializeField] private GameObject firePrefab;
+        [Tooltip("Prefab for hard obstacles (boulders).")]
+        [SerializeField] private GameObject hardObstaclePrefab;
+        [Tooltip("Prefab for soft obstacles (boxes).")]
+        [SerializeField] private GameObject softObstaclePrefab;
+        [Tooltip("Prefab for exploding barrels.")]
+        [SerializeField] private GameObject explodingBarrelPrefab;
 
         [Header("Spawn Settings")]
         [Tooltip("Minimum tiles covered by hazards per side.")]
@@ -316,15 +322,22 @@ namespace TacticalGame.Hazards
             {
                 visual = Instantiate(prefab, cell.GetWorldPosition(), Quaternion.identity);
             }
+            else if (type == RuntimeHazardType.HardObstacle || type == RuntimeHazardType.SoftObstacle || type == RuntimeHazardType.ExplodingBarrel)
+            {
+                // 3D cube for obstacles/barrels so they're visible
+                visual = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                visual.transform.position = cell.GetWorldPosition();
+                visual.transform.localScale = new Vector3(0.7f, 0.7f, 0.7f);
+            }
             else
             {
-                // Create simple quad visual
+                // Flat quad for ground hazards (poison, fire, traps, etc.)
                 visual = GameObject.CreatePrimitive(PrimitiveType.Quad);
                 visual.transform.position = cell.GetWorldPosition() + Vector3.up * 0.02f;
                 visual.transform.rotation = Quaternion.Euler(90, 0, 0);
                 visual.transform.localScale = new Vector3(0.9f, 0.9f, 1f);
-                
-                // Remove collider
+
+                // Remove collider so it doesn't block clicks
                 var collider = visual.GetComponent<Collider>();
                 if (collider != null) Destroy(collider);
             }
@@ -349,6 +362,9 @@ namespace TacticalGame.Hazards
                 RuntimeHazardType.Poison => poisonPrefab,
                 RuntimeHazardType.Trap => trapPrefab,
                 RuntimeHazardType.Fire => firePrefab,
+                RuntimeHazardType.HardObstacle => hardObstaclePrefab,
+                RuntimeHazardType.SoftObstacle => softObstaclePrefab,
+                RuntimeHazardType.ExplodingBarrel => explodingBarrelPrefab,
                 _ => null
             };
         }

@@ -192,6 +192,26 @@ namespace TacticalGame.Config
         public float enemyTurnDelay = 1.5f;
         public float moveAnimationSpeed = 5f;
 
+        [Header("=== DEAD MAN'S LOCKER ===")]
+        [Tooltip("Base hit pips per locker")]
+        public int lockerBasePips = 3;
+        [Tooltip("Max bonus pips from fortification")]
+        public int lockerMaxFortifyPips = 2;
+        [Tooltip("Min lockers for smallest grid (7-wide)")]
+        public int lockerMinCount = 1;
+        [Tooltip("Max lockers for largest grid (15-wide)")]
+        public int lockerMaxCount = 4;
+        [Tooltip("Min Manhattan distance between lockers")]
+        public int lockerMinDistance = 2;
+        [Tooltip("Min tiles away from any player unit at spawn")]
+        public int lockerMinDistanceFromUnits = 1;
+        [Tooltip("Tribute lost permanently when locker destroyed (0-1)")]
+        public float lockerDestroyTributeLoss = 0.50f;
+        [Tooltip("Tribute leaked per hit (0-1)")]
+        public float lockerHitTributeLeak = 0.10f;
+        [Tooltip("Base tribute quota per battle")]
+        public float lockerTributeQuota = 100f;
+
         [Header("=== ARROWS ===")]
         public int defaultMaxArrows = 10;
 
