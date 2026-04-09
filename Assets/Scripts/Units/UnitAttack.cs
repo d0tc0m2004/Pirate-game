@@ -391,9 +391,9 @@ public class UnitAttack : MonoBehaviour
     {
         if (!CanAct()) return;
         
-        if (myStatus.WeaponType == WeaponType.Ranged)
+        if (myStatus.WeaponType != WeaponType.Ranged)
         {
-            Debug.Log($"<color=red>{name} cannot Shoot! (Equipped: Melee)</color>");
+            Debug.Log($"<color=red>{name} cannot Shoot! (Equipped: {myStatus.WeaponType})</color>");
             return;
         }
 

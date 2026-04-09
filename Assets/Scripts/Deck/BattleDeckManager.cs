@@ -615,11 +615,10 @@ namespace TacticalGame.Equipment
             var attack = card.ownerUnit.GetComponent<UnitAttack>();
             if (attack != null)
             {
-                bool isMelee = card.sourceWeaponRelic.baseWeaponData.attackType == WeaponType.Melee;
-                if (isMelee)
-                    attack.TryMeleeAttack();
-                else
-                    attack.TryRangedAttack();
+                // Use ExecuteCardAttack which determines melee/ranged from the CARD's weapon relic,
+                // not the unit's default weapon type. This allows units to use weapon relics
+                // that differ from their default weapon family.
+                attack.ExecuteCardAttack(card.sourceWeaponRelic);
             }
         }
         
