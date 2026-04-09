@@ -165,11 +165,21 @@ public class UnitData
     
     /// <summary>
     /// Equip a weapon relic to a slot.
+    /// Rejects relics that don't match this unit's locked weapon family.
     /// </summary>
     public void EquipWeaponRelic(int slot, WeaponRelic relic)
     {
         if (weaponRelics == null) weaponRelics = new WeaponRelic[7];
         if (slot < 0 || slot >= weaponRelics.Length) return;
+        
+        // Validate weapon family — reject mismatches
+        if (relic != null && relic.weaponFamily != weaponFamily)
+        {
+            UnityEngine.Debug.LogWarning(
+                $"[EquipWeaponRelic] BLOCKED: {unitName} ({role}) has {weaponFamily} but tried to equip {relic.relicName} ({relic.weaponFamily}). Weapon family mismatch!");
+            return;
+        }
+        
         weaponRelics[slot] = relic;
         
         // Also set default for backwards compatibility
