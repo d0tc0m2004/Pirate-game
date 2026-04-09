@@ -1052,18 +1052,12 @@ namespace TacticalGame.Equipment
                         {
                             int casterHP = caster.CurrentHP;
                             int enemyHP = closestEnemy.CurrentHP;
-                            // Deal damage/heal to swap
-                            if (enemyHP < casterHP)
-                            {
-                                caster.TakeDamage(casterHP - enemyHP, caster.gameObject, false);
-                                closestEnemy.Heal(casterHP - enemyHP);
-                            }
-                            else
-                            {
-                                caster.Heal(enemyHP - casterHP);
-                                closestEnemy.TakeDamage(enemyHP - casterHP, caster.gameObject, false);
-                            }
-                            Debug.Log($"Swapped HP: {caster.UnitName}({casterHP}->{enemyHP}) <-> {closestEnemy.UnitName}({enemyHP}->{casterHP})");
+                            
+                            // Use SetHP to directly swap, bypassing damage modifications (hull, armor, cover)
+                            caster.SetHP(enemyHP);
+                            closestEnemy.SetHP(casterHP);
+                            
+                            Debug.Log($"Swapped HP: {caster.UnitName}({casterHP}->{caster.CurrentHP}) <-> {closestEnemy.UnitName}({enemyHP}->{closestEnemy.CurrentHP})");
                         }
                     }
                     break;
@@ -2420,17 +2414,92 @@ namespace TacticalGame.Equipment
         private static void SummonHardObstacles(UnitStatus caster, int count, int duration)
         {
             var hazardManager = ServiceLocator.Get<HazardManager>();
-            if (hazardManager == null) { Debug.LogWarning("No HazardManager found!"); return; }
-
-            var emptyCells = hazardManager.FindEmptyCellsNear(caster.transform.position, count, 4);
-            int placed = 0;
-            foreach (var cell in emptyCells)
+            var gridManager = ServiceLocator.Get<GridManager>();
+            if (hazardManager == null || gridManager == null)
             {
-                if (placed >= count) break;
-                var obstacle = hazardManager.CreateHardObstacle(cell, duration);
-                if (obstacle != null) placed++;
+                Debug.LogWarning("SummonHardObstacles: Missing HazardManager or GridManager!");
+                return;
             }
-            Debug.Log($"<color=green>{caster.UnitName} summoned {placed} hard obstacles for {duration} turns!</color>");
+
+            Vector2Int casterPos = gridManager.WorldToGridPosition(caster.transform.position);
+            int middleCol = gridManager.GetMiddleColumnIndex();
+            int gridHeight = gridManager.GridHeight;
+
+            Debug.Log($"<color=cyan>SummonHardObstacles: Caster at ({casterPos.x}, {casterPos.y}), " +
+                      $"scanning columns {casterPos.x + 1} to {middleCol} for {count} adjacent empty cells</color>");
+
+            // Scan each column from caster's column + 1 toward the neutral zone (middleCol)
+            // Never go past middleCol (that would be enemy zone)
+            for (int col = casterPos.x + 1; col <= middleCol; col++)
+            {
+                // Find all empty cells in this column
+                var emptyCellsInColumn = new System.Collections.Generic.List<GridCell>();
+                for (int row = 0; row < gridHeight; row++)
+                {
+                    var cell = gridManager.GetCell(col, row);
+                    if (cell != null && !cell.IsOccupied && !cell.IsBlocked && !cell.HasHazard && !cell.IsMiddleColumn)
+                    {
+                        emptyCellsInColumn.Add(cell);
+                    }
+                }
+
+                if (emptyCellsInColumn.Count < count)
+                    continue; // Not enough empty cells in this column
+
+                // Find the best group of 'count' adjacent cells, centered on caster's Y
+                GridCell bestStartCell = null;
+                int bestDistance = int.MaxValue;
+
+                for (int startIdx = 0; startIdx <= emptyCellsInColumn.Count - count; startIdx++)
+                {
+                    // Check if 'count' cells starting from startIdx are adjacent (consecutive Y values)
+                    bool adjacent = true;
+                    for (int i = 1; i < count; i++)
+                    {
+                        if (emptyCellsInColumn[startIdx + i].YPosition != emptyCellsInColumn[startIdx + i - 1].YPosition + 1)
+                        {
+                            adjacent = false;
+                            break;
+                        }
+                    }
+
+                    if (adjacent)
+                    {
+                        // Calculate center of this group and distance from caster's Y
+                        int groupCenterY = emptyCellsInColumn[startIdx].YPosition + (count - 1) / 2;
+                        int dist = Mathf.Abs(groupCenterY - casterPos.y);
+                        if (dist < bestDistance)
+                        {
+                            bestDistance = dist;
+                            bestStartCell = emptyCellsInColumn[startIdx];
+                        }
+                    }
+                }
+
+                if (bestStartCell != null)
+                {
+                    // Place obstacles at the best adjacent group
+                    int placed = 0;
+                    int startY = bestStartCell.YPosition;
+                    for (int i = 0; i < count; i++)
+                    {
+                        var cell = gridManager.GetCell(col, startY + i);
+                        if (cell != null)
+                        {
+                            var obstacle = hazardManager.CreateHardObstacle(cell, duration);
+                            if (obstacle != null) placed++;
+                        }
+                    }
+
+                    Debug.Log($"<color=green>{caster.UnitName} summoned {placed} hard obstacles at column {col}, " +
+                              $"rows {startY}-{startY + count - 1} for {duration} turns!</color>");
+                    return;
+                }
+            }
+
+            // Fallback: no column found with enough adjacent empty cells
+            Debug.LogWarning($"{caster.UnitName} couldn't find {count} adjacent empty cells in front! " +
+                             $"(Checked columns {casterPos.x + 1} to {middleCol})");
         }
         
         #endregion

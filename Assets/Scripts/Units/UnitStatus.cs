@@ -198,7 +198,9 @@ namespace TacticalGame.Units
             maxMorale = data.morale;
             currentMorale = maxMorale;
             maxBuzz = data.buzz; // Buzz is now capacity
-            currentBuzz = 0;
+            
+            // Enemies start with 50% buzz to allow testing buzz-related cards
+            currentBuzz = (team == Team.Enemy) ? (maxBuzz / 2) : 0;
             
             power = data.power;
             aim = data.aim;
@@ -347,6 +349,24 @@ namespace TacticalGame.Units
         }
 
         /// <summary>
+        /// Force set HP (used for precise HP swaps to bypass damage mitigation/hull/armor).
+        /// </summary>
+        public void SetHP(int newHP)
+        {
+            int oldHP = currentHP;
+            currentHP = Mathf.Clamp(newHP, 0, maxHP);
+            
+            if (currentHP > oldHP)
+            {
+                GameEvents.TriggerUnitHealed(gameObject, currentHP - oldHP);
+            }
+            else if (currentHP <= 0 && oldHP > 0)
+            {
+                Die();
+            }
+        }
+
+        /// <summary>
         /// Restore morale.
         /// </summary>
         public void RestoreMorale(int amount)
@@ -379,11 +399,25 @@ namespace TacticalGame.Units
         }
 
         /// <summary>
+        /// Increase buzz level (used by effects that don't involve drinking rum).
+        /// </summary>
+        public void AddBuzz(int amount)
+        {
+            if (amount <= 0) return;
+            int oldBuzz = currentBuzz;
+            currentBuzz = Mathf.Min(maxBuzz, currentBuzz + amount);
+            Debug.Log($"<color=#FFA500>[BUZZ]</color> {unitName} gained {amount} buzz ({oldBuzz} -> {currentBuzz}/{maxBuzz})");
+        }
+
+        /// <summary>
         /// Reduce buzz level.
         /// </summary>
         public void ReduceBuzz(int amount)
         {
+            if (amount <= 0) return;
+            int oldBuzz = currentBuzz;
             currentBuzz = Mathf.Max(0, currentBuzz - amount);
+            Debug.Log($"<color=#FFA500>[BUZZ]</color> {unitName} cleared {amount} buzz ({oldBuzz} -> {currentBuzz}/{maxBuzz})");
         }
 
         #endregion

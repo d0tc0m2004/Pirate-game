@@ -1086,6 +1086,25 @@ namespace TacticalGame.Equipment
                 case RelicEffectType.Boots_V2_MoveGainArmor:
                     unit.RestoreHull((int)effect.value2);
                     break;
+                // === COOK BOOTS ===
+                case RelicEffectType.Boots_MoveDrawCard:
+                    var deckManager = BattleDeckManager.Instance;
+                    if (deckManager != null && deckManager.DrawOneCard())
+                    {
+                        var drawnCard = deckManager.Hand.LastOrDefault();
+                        if (drawnCard != null && drawnCard.roleTag == UnitRole.Cook)
+                        {
+                            drawnCard.energyCost = Mathf.Max(0, drawnCard.energyCost - 1);
+                            Debug.Log($"Cook relic cost reduced by 1 for {drawnCard.GetDisplayName()}");
+                        }
+                    }
+                    Debug.Log($"{unit.UnitName} drew a card after moving");
+                    break;
+                case RelicEffectType.Boots_V2_MoveBoostProficiency:
+                    StatusEffectManager sem3 = unit.GetComponent<StatusEffectManager>();
+                    if (sem3 != null) sem3.ApplyEffect(StatusEffect.CreateDamageBoost(effect.duration, effect.value2, null));
+                    Debug.Log($"{unit.UnitName} gained {effect.value2 * 100}% proficiency after moving");
+                    break;
             }
         }
 
