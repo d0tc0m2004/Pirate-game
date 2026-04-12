@@ -23,6 +23,7 @@ namespace TacticalGame.Equipment
         private UnitAttack unitAttack;
         private StatusEffectManager statusEffects;
         private UnitEquipmentUpdated equipment;
+        private FlexibleUnitEquipment flexEquipment;
         
         private List<RelicEffectType> activePassives = new List<RelicEffectType>();
         
@@ -59,6 +60,7 @@ namespace TacticalGame.Equipment
             unitAttack = GetComponent<UnitAttack>();
             statusEffects = GetComponent<StatusEffectManager>();
             equipment = GetComponent<UnitEquipmentUpdated>();
+            flexEquipment = GetComponent<FlexibleUnitEquipment>();
         }
 
         private void Start()
@@ -104,10 +106,23 @@ namespace TacticalGame.Equipment
         {
             activePassives.Clear();
 
-            if (equipment == null) return;
+            // Prefer new slot-based equipment system
+            List<EquippedRelic> passiveRelics = null;
+            if (flexEquipment != null)
+            {
+                passiveRelics = flexEquipment.GetPassiveRelics();
+            }
+            else if (equipment != null)
+            {
+                passiveRelics = equipment.GetPassiveRelics();
+            }
 
-            // Get all passive relics
-            var passiveRelics = equipment.GetPassiveRelics();
+            if (passiveRelics == null)
+            {
+                Debug.LogWarning($"{gameObject.name}: No equipment component found for passive registration");
+                return;
+            }
+
             foreach (var relic in passiveRelics)
             {
                 activePassives.Add(relic.GetEffectType());
@@ -137,11 +152,11 @@ namespace TacticalGame.Equipment
             
             knockbackAttackerUsedThisTurn = false;
             
-            // PassiveUnique_ExtraEnergy - Captain V1
+            // PassiveUnique_ExtraEnergy - Captain V1 (+1 energy per turn)
             if (HasPassive(RelicEffectType.PassiveUnique_ExtraEnergy))
             {
                 var energyManager = ServiceLocator.Get<EnergyManager>();
-                energyManager?.TrySpendEnergy(-1); // Gain 1 energy
+                energyManager?.AddEnergy(1);
                 Debug.Log($"<color=cyan>{gameObject.name}: +1 energy from passive</color>");
             }
             
@@ -404,9 +419,8 @@ namespace TacticalGame.Equipment
                 bonus += cardsInHand * 0.2f; // +20% per card
             }
 
-            // Trinket_BonusVsCaptain / BonusVsCaptainTarget - Quartermaster V1/Captain V2
-            if ((HasPassive(RelicEffectType.Trinket_BonusVsCaptain) || 
-                 HasPassive(RelicEffectType.Trinket_BonusVsCaptain)) && 
+            // Trinket_BonusVsCaptain - Captain V2 (+20% damage vs enemy captain)
+            if (HasPassive(RelicEffectType.Trinket_BonusVsCaptain) &&
                 target != null && target.IsCaptain)
             {
                 bonus += 0.2f; // +20% vs captain

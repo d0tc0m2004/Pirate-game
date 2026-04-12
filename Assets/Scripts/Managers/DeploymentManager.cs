@@ -297,6 +297,12 @@ namespace TacticalGame.Managers
 
             // Setup equipment using the FLEXIBLE slot-based system
             SetupUnitEquipment(newUnit, data);
+
+            // Add PassiveRelicManager if not present so passive relics register
+            if (newUnit.GetComponent<PassiveRelicManager>() == null)
+            {
+                newUnit.AddComponent<PassiveRelicManager>();
+            }
             
             // Setup card deck
             SetupCardDeck(newUnit);

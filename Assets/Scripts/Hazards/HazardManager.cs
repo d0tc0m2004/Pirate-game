@@ -560,7 +560,7 @@ namespace TacticalGame.Hazards
                 {
                     GridCell cell = gridManager.GetCell(coord.x, coord.y);
 
-                    if (cell == null || cell.IsMiddleColumn || cell.HasHazard)
+                    if (cell == null || cell.IsMiddleColumn || cell.HasHazard || cell.IsBlocked)
                     {
                         shapeIsValid = false;
                         break;

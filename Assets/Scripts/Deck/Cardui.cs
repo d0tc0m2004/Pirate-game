@@ -43,7 +43,13 @@ namespace TacticalGame.Equipment
         [SerializeField] private Color totemColor = new Color(0.7f, 0.5f, 0.8f);
         [SerializeField] private Color ultimateColor = new Color(1f, 0.8f, 0.2f);
         [SerializeField] private Color weaponColor = new Color(0.8f, 0.8f, 0.8f);
-        
+
+        [Header("Playability Colors")]
+        [SerializeField] private Color energyOkColor = Color.white;
+        [SerializeField] private Color energyShortColor = new Color(1f, 0.3f, 0.3f);
+        [SerializeField] private Color borderPlayableColor = Color.white;
+        [SerializeField] private Color borderUnplayableColor = new Color(1f, 0.2f, 0.2f);
+
         #endregion
         
         #region State
@@ -180,14 +186,39 @@ namespace TacticalGame.Equipment
         
         /// <summary>
         /// Set whether the card is interactable.
+        /// Non-interactable cards stay almost fully opaque so the player can still
+        /// READ them — the dimming is a hint, not a "this card is invisible" signal.
         /// </summary>
         public void SetInteractable(bool interactable)
         {
             isInteractable = interactable;
-            
+
             if (canvasGroup != null)
             {
-                canvasGroup.alpha = interactable ? 1f : 0.6f;
+                canvasGroup.alpha = interactable ? 1f : 0.9f;
+            }
+        }
+
+        /// <summary>
+        /// Apply playability visuals:
+        ///   - Energy cost text turns red when the player can't afford the cost.
+        ///   - Card border turns red when the card is unplayable for ANY reason
+        ///     (energy, missing target, no allies, etc).
+        ///
+        /// Must be called every visual refresh — it always writes both the energy
+        /// text color and the border color so the visuals reset cleanly when a
+        /// blocker clears (e.g. you gain energy, an ally walks into range, etc).
+        /// </summary>
+        public void SetPlayability(CardPlayabilityChecker.Result result)
+        {
+            if (energyCostText != null)
+            {
+                energyCostText.color = result.hasEnergy ? energyOkColor : energyShortColor;
+            }
+
+            if (cardBorder != null)
+            {
+                cardBorder.color = result.isPlayable ? borderPlayableColor : borderUnplayableColor;
             }
         }
         

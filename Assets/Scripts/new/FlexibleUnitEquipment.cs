@@ -311,6 +311,23 @@ namespace TacticalGame.Equipment
         }
 
         /// <summary>
+        /// Get all passive category relics (Trinket, PassiveUnique) currently equipped.
+        /// Used by PassiveRelicManager to register passive effects.
+        /// </summary>
+        public List<EquippedRelic> GetPassiveRelics()
+        {
+            var list = new List<EquippedRelic>();
+            foreach (var slot in slots)
+            {
+                if (slot == null || slot.IsEmpty) continue;
+                if (slot.hasWeapon) continue;
+                if (slot.categoryRelic != null && slot.categoryRelic.IsPassive())
+                    list.Add(slot.categoryRelic);
+            }
+            return list;
+        }
+
+        /// <summary>
         /// Get total card count for deck building.
         /// </summary>
         public int GetTotalCardCount()

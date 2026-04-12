@@ -776,16 +776,19 @@ namespace TacticalGame.Equipment
         
         /// <summary>
         /// Check if a card is playable by currently selected unit.
+        /// Delegates to CardPlayabilityChecker which handles energy + per-effect rules.
         /// </summary>
         public bool IsCardPlayable(BattleCard card)
         {
-            if (card == null) return false;
-            if (selectedUnit == null) return false;
-            if (!card.BelongsTo(selectedUnit)) return false;
-            if (card.ownerUnit.HasSurrendered) return false;
-            
-            var energyManager = ServiceLocator.Get<EnergyManager>();
-            return energyManager.HasEnergy(card.energyCost);
+            return CardPlayabilityChecker.Check(card, selectedUnit).isPlayable;
+        }
+
+        /// <summary>
+        /// Get the full playability result (reason string + energy flag) for UI display.
+        /// </summary>
+        public CardPlayabilityChecker.Result GetCardPlayability(BattleCard card)
+        {
+            return CardPlayabilityChecker.Check(card, selectedUnit);
         }
         
         /// <summary>

@@ -107,6 +107,17 @@ namespace TacticalGame.Managers
             return currentEnergy >= amount;
         }
 
+        /// <summary>
+        /// Add energy directly (used by passives like Captain V1's +1 energy per turn).
+        /// </summary>
+        public void AddEnergy(int amount)
+        {
+            if (amount <= 0) return;
+            currentEnergy += amount;
+            UpdateUI();
+            GameEvents.TriggerEnergyChanged(currentEnergy);
+        }
+
         #endregion
 
         #region Grog Management

@@ -285,7 +285,7 @@ namespace TacticalGame.Equipment
 
                 // ==================== COAT ====================
                 case RelicEffectType.Coat_BuffNearbyAimPower:
-                    BuffNearbyAlliesAimPower(caster, effect.value2, effect.tileRange);
+                    BuffNearbyAlliesAimPower(caster, effect.value2, effect.duration, effect.tileRange);
                     break;
                     
                 case RelicEffectType.Coat_DrawOnEnemyAttack:
@@ -1706,53 +1706,85 @@ namespace TacticalGame.Equipment
             }
         }
         
-        private static void ExecuteSwapWithUnit(UnitStatus caster, UnitStatus target)
+        private static void ExecuteSwapWithUnit(UnitStatus caster, UnitStatus _)
         {
-            if (caster == null || target == null) return;
-            
-            Vector3 casterPos = caster.transform.position;
-            Vector3 targetPos = target.transform.position;
-            
-            caster.transform.position = targetPos;
-            target.transform.position = casterPos;
-            
-            Debug.Log($"Swapped {caster.UnitName} with {target.UnitName}");
+            // Captain V1 Boots: player picks an ally to swap positions with.
+            // Uses RelicTargetSelector to prompt the player rather than auto-targeting.
+            if (caster == null) return;
+
+            RelicTargetSelector.Instance.SelectAlly(
+                "Select an ally to swap locations with",
+                (ally) =>
+                {
+                    if (ally == null || ally == caster) return;
+                    SwapUnitsOnGrid(caster, ally);
+                },
+                () => Debug.Log("Swap cancelled")
+            );
         }
-        
-        private static void ExecuteMoveAlly(UnitStatus caster, UnitStatus ally, int tiles)
+
+        private static void SwapUnitsOnGrid(UnitStatus a, UnitStatus b)
         {
-            if (ally == null || ally.Team != caster.Team) return;
-            
-            var movement = ally.GetComponent<UnitMovement>();
-            if (movement != null)
-            {
-                // Use RelicTargetSelector to let player choose destination
-                RelicTargetSelector.Instance.SelectTile(
-                    $"Select destination for {ally.UnitName} (up to {tiles} tiles)",
-                    (destinationCell) => {
-                        // Validate range
-                        var gridManager = ServiceLocator.Get<GridManager>();
-                        if (gridManager != null)
-                        {
-                            Vector2Int allyPos = gridManager.WorldToGridPosition(ally.transform.position);
-                            int distance = Mathf.Abs(destinationCell.XPosition - allyPos.x) + 
-                                          Mathf.Abs(destinationCell.YPosition - allyPos.y);
-                            
-                            if (distance <= tiles)
-                            {
-                                movement.MoveToCell(destinationCell);
-                                Debug.Log($"{ally.UnitName} moved to ({destinationCell.XPosition}, {destinationCell.YPosition})");
-                            }
-                            else
-                            {
-                                Debug.Log("Destination too far!");
-                            }
-                        }
-                    },
-                    () => Debug.Log("Movement cancelled"),
-                    true // only empty tiles
-                );
-            }
+            var gridManager = ServiceLocator.Get<GridManager>();
+            if (gridManager == null) return;
+
+            Vector2Int aPos = gridManager.WorldToGridPosition(a.transform.position);
+            Vector2Int bPos = gridManager.WorldToGridPosition(b.transform.position);
+            GridCell aCell = gridManager.GetCell(aPos.x, aPos.y);
+            GridCell bCell = gridManager.GetCell(bPos.x, bPos.y);
+
+            if (aCell == null || bCell == null) return;
+
+            // Clear both cells, then re-place at the swapped positions so occupancy tracks.
+            aCell.RemoveUnit();
+            bCell.RemoveUnit();
+
+            aCell.PlaceUnit(b.gameObject);
+            b.transform.position = aCell.GetWorldPosition();
+
+            bCell.PlaceUnit(a.gameObject);
+            a.transform.position = bCell.GetWorldPosition();
+
+            GameEvents.TriggerUnitMoved(a.gameObject, aCell, bCell);
+            GameEvents.TriggerUnitMoved(b.gameObject, bCell, aCell);
+
+            Debug.Log($"Swapped {a.UnitName} with {b.UnitName}");
+        }
+
+        private static void ExecuteMoveAlly(UnitStatus caster, UnitStatus _, int tiles)
+        {
+            // Captain V2 Boots: player picks an ally, then a destination tile within range.
+            if (caster == null) return;
+
+            RelicTargetSelector.Instance.SelectAllyThenTile(
+                $"Select an ally, then a destination (up to {tiles} tiles away)",
+                (ally, destinationCell) =>
+                {
+                    if (ally == null || destinationCell == null) return;
+                    if (ally.Team != caster.Team) return;
+
+                    var movement = ally.GetComponent<UnitMovement>();
+                    if (movement == null) return;
+
+                    var gridManager = ServiceLocator.Get<GridManager>();
+                    if (gridManager == null) return;
+
+                    Vector2Int allyPos = gridManager.WorldToGridPosition(ally.transform.position);
+                    int distance = Mathf.Abs(destinationCell.XPosition - allyPos.x) +
+                                   Mathf.Abs(destinationCell.YPosition - allyPos.y);
+
+                    if (distance <= tiles)
+                    {
+                        movement.MoveToCell(destinationCell);
+                        Debug.Log($"{ally.UnitName} moved to ({destinationCell.XPosition}, {destinationCell.YPosition})");
+                    }
+                    else
+                    {
+                        Debug.Log($"Destination {distance} tiles away, max {tiles}");
+                    }
+                },
+                () => Debug.Log("Move ally cancelled")
+            );
         }
         
         private static void ExecuteMoveToNeutralZone(UnitStatus caster, GridCell targetCell)
@@ -2096,15 +2128,15 @@ namespace TacticalGame.Equipment
             Debug.Log($"Restored {percent*100}% morale to nearby allies");
         }
         
-        private static void BuffNearbyAlliesAimPower(UnitStatus caster, float percent, int range)
+        private static void BuffNearbyAlliesAimPower(UnitStatus caster, float percent, int duration, int range)
         {
             foreach (var ally in GetAlliesInRange(caster, range))
             {
-                ApplyAimBoost(ally, percent, 1);
+                ApplyAimBoost(ally, percent, duration);
                 var effects = GetStatusEffects(ally);
-                effects?.ApplyEffect(StatusEffect.CreatePowerBoost(1, percent, null));
+                effects?.ApplyEffect(StatusEffect.CreatePowerBoost(duration, percent, null));
             }
-            Debug.Log($"Buffed nearby allies +{percent*100}% Aim/Power");
+            Debug.Log($"Buffed nearby allies +{percent*100}% Aim/Power for {duration} turns");
         }
         
         private static void ApplyMoraleDamageReductionNearby(UnitStatus caster, float percent, int duration, int range)
@@ -2506,15 +2538,51 @@ namespace TacticalGame.Equipment
         
         #region Ultimate Helpers
         
+        // Captain Ultimate V1 — Ship Cannon balance values.
+        // (Spec only stores damage + shots; these are the fire-hazard knobs.)
+        private const int SHIP_CANNON_FIRE_DPS = 25;
+        private const int SHIP_CANNON_FIRE_DURATION = 2;
+
         private static void ExecuteShipCannonUltimate(UnitStatus caster, int damage, int shots)
         {
-            var enemies = GetEnemies(caster);
-            for (int i = 0; i < shots && enemies.Count > 0; i++)
+            if (caster == null || shots <= 0) return;
+
+            var hazardManager = ServiceLocator.Get<HazardManager>();
+            var gridManager = ServiceLocator.Get<GridManager>();
+
+            int hits = 0;
+            for (int i = 0; i < shots; i++)
             {
-                var target = enemies[Random.Range(0, enemies.Count)];
+                // Refresh the enemy list each shot so we never waste a shot on a
+                // corpse — and so the cannon fight ends naturally when there's
+                // nothing left to shoot.
+                var living = GetEnemies(caster).Where(e => e != null && e.CurrentHP > 0).ToList();
+                if (living.Count == 0) break;
+
+                var target = living[Random.Range(0, living.Count)];
+
+                // Capture the target's tile BEFORE damage in case the shot kills
+                // them and they get cleared off the grid.
+                GridCell hitCell = null;
+                if (gridManager != null)
+                {
+                    Vector2Int pos = gridManager.WorldToGridPosition(target.transform.position);
+                    hitCell = gridManager.GetCell(pos.x, pos.y);
+                }
+
                 target.TakeDamage(damage, caster.gameObject, false);
+                hits++;
+
+                // Spawn a fire hazard on the hit tile. CreateFireTile silently
+                // skips cells that already have a hazard, so repeat hits on the
+                // same enemy don't stack fire — that's intentional.
+                if (hazardManager != null && hitCell != null)
+                {
+                    hazardManager.CreateFireTile(hitCell, SHIP_CANNON_FIRE_DPS, SHIP_CANNON_FIRE_DURATION);
+                }
             }
-            Debug.Log($"Ship cannon fired {shots} shots for {damage} damage each");
+
+            Debug.Log($"<color=orange>Ship cannon fired {hits}/{shots} shots for {damage} damage each, leaving fire hazards</color>");
         }
         
         private static void ExecuteMarkCaptainOnly(UnitStatus caster, UnitStatus target)

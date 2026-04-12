@@ -17899,12 +17899,12 @@ MonoBehaviour:
   - {fileID: 11400000, guid: bee95c8cf86be3946b75e5054659191b, type: 2}
   - {fileID: 11400000, guid: 9b73d0e5c4ef89943814aee4e6fde54c, type: 2}
   - {fileID: 11400000, guid: 419d71cbda8a36644ba298eb6452ecea, type: 2}
-  poisonPrefab: {fileID: 0}
-  trapPrefab: {fileID: 0}
-  firePrefab: {fileID: 0}
-  hardObstaclePrefab: {fileID: 0}
-  softObstaclePrefab: {fileID: 0}
-  explodingBarrelPrefab: {fileID: 0}
+  poisonPrefab: {fileID: 3004994222369689113, guid: 012d62259ce3f0241a09c06a502b7a3f, type: 3}
+  trapPrefab: {fileID: 2516963933870073206, guid: 3344d05b867bf8447916f5e53115d343, type: 3}
+  firePrefab: {fileID: 1602131766584199578, guid: 5665402ab60c4f942a00409b93bb2fec, type: 3}
+  hardObstaclePrefab: {fileID: 1934756347407776863, guid: cf3a82c5bb1f2ea49b629d13217d3ca9, type: 3}
+  softObstaclePrefab: {fileID: 1776223160548118709, guid: 1ec6fc75ebca91845844d7028512226f, type: 3}
+  explodingBarrelPrefab: {fileID: 1776223160548118709, guid: 1ec6fc75ebca91845844d7028512226f, type: 3}
   minOccupiedTilesPerSide: 5
   maxOccupiedTilesPerSide: 8
 --- !u!114 &1030682500
