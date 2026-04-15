@@ -49,6 +49,7 @@ namespace TacticalGame.Equipment
         [SerializeField] private Color energyShortColor = new Color(1f, 0.3f, 0.3f);
         [SerializeField] private Color borderPlayableColor = Color.white;
         [SerializeField] private Color borderUnplayableColor = new Color(1f, 0.2f, 0.2f);
+        [SerializeField] private Color activeOwnerBorderColor = new Color(0.2f, 0.8f, 1f, 1f); // Cyan/Blue
 
         #endregion
         
@@ -204,12 +205,13 @@ namespace TacticalGame.Equipment
         ///   - Energy cost text turns red when the player can't afford the cost.
         ///   - Card border turns red when the card is unplayable for ANY reason
         ///     (energy, missing target, no allies, etc).
+        ///   - Card border turns blue if it belongs to the active owner.
         ///
         /// Must be called every visual refresh — it always writes both the energy
         /// text color and the border color so the visuals reset cleanly when a
         /// blocker clears (e.g. you gain energy, an ally walks into range, etc).
         /// </summary>
-        public void SetPlayability(CardPlayabilityChecker.Result result)
+        public void SetPlayability(CardPlayabilityChecker.Result result, bool isActiveOwner)
         {
             if (energyCostText != null)
             {
@@ -218,7 +220,13 @@ namespace TacticalGame.Equipment
 
             if (cardBorder != null)
             {
-                cardBorder.color = result.isPlayable ? borderPlayableColor : borderUnplayableColor;
+                Color borderColor = borderPlayableColor;
+                if (!result.isPlayable)
+                    borderColor = borderUnplayableColor;
+                else if (isActiveOwner)
+                    borderColor = activeOwnerBorderColor;
+                    
+                cardBorder.color = borderColor;
             }
         }
         

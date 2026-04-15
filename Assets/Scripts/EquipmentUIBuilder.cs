@@ -594,6 +594,13 @@ namespace TacticalGame.Managers
             unequipButton.onClick.AddListener(OnUnequipAll);
             unequipButton.GetComponent<Image>().color = new Color(0.5f, 0.2f, 0.2f);
             
+            Button equipCaptainButton = CreateButton(equipmentPanel.transform, "EquipCaptainButton", "Equip Captain", new Vector2(150, 45));
+            RectTransform capRt = equipCaptainButton.GetComponent<RectTransform>();
+            capRt.anchorMin = new Vector2(0.5f, 0); capRt.anchorMax = new Vector2(0.5f, 0);
+            capRt.pivot = new Vector2(0.5f, 0); capRt.anchoredPosition = new Vector2(-200, 70);
+            equipCaptainButton.onClick.AddListener(OnEquipCaptain);
+            equipCaptainButton.GetComponent<Image>().color = new Color(0.6f, 0.4f, 0.1f);
+            
             Button autoEquipPlayersButton = CreateButton(equipmentPanel.transform, "AutoEquipPlayersButton", "Auto Equip Players", new Vector2(180, 45));
             RectTransform autoEquipPlayerRt = autoEquipPlayersButton.GetComponent<RectTransform>();
             autoEquipPlayerRt.anchorMin = new Vector2(0.5f, 0); autoEquipPlayerRt.anchorMax = new Vector2(0.5f, 0);
@@ -1212,6 +1219,23 @@ namespace TacticalGame.Managers
                 unit.EquipWeaponRelic(0, unit.defaultWeaponRelic);
             
             RefreshSlots(unit); UpdateJewelBudget(unit); UpdateInfoPanel();
+        }
+
+        private void OnEquipCaptain()
+        {
+            UnitData unit = GetUnitByIndex(selectedUnitIndex);
+            if (unit == null) return;
+
+            unit.EquipCategoryRelic(0, new EquippedRelic(RelicCategory.Boots, UnitRole.Captain));
+            unit.EquipCategoryRelic(1, new EquippedRelic(RelicCategory.Gloves, UnitRole.Captain));
+            unit.EquipCategoryRelic(2, new EquippedRelic(RelicCategory.Hat, UnitRole.Captain));
+            unit.EquipCategoryRelic(3, new EquippedRelic(RelicCategory.Coat, UnitRole.Captain));
+            unit.EquipCategoryRelic(4, new EquippedRelic(RelicCategory.Ultimate, UnitRole.Captain));
+            unit.EquipCategoryRelic(5, new EquippedRelic(RelicCategory.Trinket, UnitRole.Captain)); 
+
+            RefreshSlots(unit); 
+            UpdateJewelBudget(unit); 
+            UpdateInfoPanel();
         }
         
         private void OnAutoEquipEnemies()

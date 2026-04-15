@@ -62,6 +62,7 @@ namespace TacticalGame.Managers
         [SerializeField] private Button startBattleButton;
         [SerializeField] private Button backButton;
         [SerializeField] private Button unequipAllButton;
+        [SerializeField] private Button autoEquipCaptainButton;
 
         [Header("Managers")]
         [SerializeField] private DeploymentManager deploymentManager;
@@ -88,6 +89,7 @@ namespace TacticalGame.Managers
             if (startBattleButton) startBattleButton.onClick.AddListener(OnStartBattle);
             if (backButton) backButton.onClick.AddListener(OnBack);
             if (unequipAllButton) unequipAllButton.onClick.AddListener(UnequipAll);
+            if (autoEquipCaptainButton) autoEquipCaptainButton.onClick.AddListener(AutoEquipCaptainCards);
 
             SetupSlotCallbacks();
 
@@ -444,6 +446,24 @@ namespace TacticalGame.Managers
             ClearUI();
             if (equipmentCanvas) equipmentCanvas.SetActive(false);
             if (creationCanvas) creationCanvas.SetActive(true);
+        }
+
+        public void AutoEquipCaptainCards()
+        {
+            if (selectedUnit == null || selectedUnit.equipment == null) return;
+            
+            var eq = selectedUnit.equipment;
+            
+            eq.EquipCategoryRelic(0, new EquippedRelic(RelicCategory.Boots, UnitRole.Captain));
+            eq.EquipCategoryRelic(1, new EquippedRelic(RelicCategory.Gloves, UnitRole.Captain));
+            eq.EquipCategoryRelic(2, new EquippedRelic(RelicCategory.Hat, UnitRole.Captain));
+            eq.EquipCategoryRelic(3, new EquippedRelic(RelicCategory.Coat, UnitRole.Captain));
+            eq.EquipCategoryRelic(4, new EquippedRelic(RelicCategory.Ultimate, UnitRole.Captain));
+            eq.EquipCategoryRelic(5, new EquippedRelic(RelicCategory.Trinket, UnitRole.Captain)); 
+            
+            UpdateRelicSlots();
+            RefreshRelicPool();
+            Debug.Log($"Auto-equipped Captain relics to {selectedUnit.unitName}");
         }
     }
 

@@ -57,7 +57,7 @@ namespace TacticalGame.Equipment
         // Dim — but stay readable. The card stack's CanvasGroup alpha ALSO drops
         // to 0.9 for non-interactable cards, so don't push this too low or text
         // becomes unreadable on top of the tint.
-        [SerializeField] private Color unplayableColor = new Color(0.78f, 0.78f, 0.78f, 1f);
+        [SerializeField] private Color unplayableColor = new Color(0.45f, 0.45f, 0.45f, 1f);
         [SerializeField] private Color stowedColor = new Color(0.7f, 0.9f, 1f, 1f);
         [SerializeField] private Color selectedColor = new Color(1f, 1f, 0.7f, 1f);
         
@@ -642,9 +642,9 @@ namespace TacticalGame.Equipment
 
                 cardUI.SetColor(targetColor);
                 // SetPlayability must run AFTER SetColor — it overrides the border
-                // with red when unplayable and tints the energy cost text red when
-                // the player can't afford the cost.
-                cardUI.SetPlayability(playability);
+                // with red when unplayable, tints the energy cost text red when
+                // the player can't afford the cost, and applies the blue highlight border.
+                cardUI.SetPlayability(playability, belongsToSelected);
                 cardUI.SetInteractable(belongsToSelected);
                 cardUI.SetStowedIndicator(isStowed);
             }
@@ -1242,15 +1242,23 @@ namespace TacticalGame.Equipment
                 if (energyManager != null)
                     energyManager.TrySpendEnergy(cardAwaitingTarget.energyCost);
 
+                // IMPORTANT: Cache the card. If ExecutePostMoveEffects draws a new card,
+                // it instantly triggers OnHandChanged, which forces BattleDeckUI to refresh,
+                // calling CancelTargeting() and setting cardAwaitingTarget to NULL.
+                var cachedCard = cardAwaitingTarget;
+
                 // Execute any additional effects (morale restore, buff, etc.) via the relic effect
-                if (cardAwaitingTarget.sourceRelic != null)
+                if (cachedCard != null && cachedCard.sourceRelic != null)
                 {
                     // Execute non-movement parts of the effect (buffs, heals, etc.)
-                    ExecutePostMoveEffects(cardAwaitingTarget, unit);
+                    ExecutePostMoveEffects(cachedCard, unit);
                 }
 
-                // Discard the card from hand
-                manager.FinishCardAfterMove(cardAwaitingTarget);
+                // Discard the card from hand using the cached reference
+                if (cachedCard != null)
+                {
+                    manager.FinishCardAfterMove(cachedCard);
+                }
 
                 CancelTargeting();
             }
