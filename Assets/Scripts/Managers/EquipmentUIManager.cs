@@ -454,6 +454,16 @@ namespace TacticalGame.Managers
             
             var eq = selectedUnit.equipment;
             
+            // Clear all current items to ensure a pure loadout
+            for (int i = 0; i < 6; i++)
+            {
+                eq.UnequipCategoryRelic(i);
+            }
+            if (selectedUnit.defaultWeaponRelic != null)
+            {
+                eq.EquipWeaponRelic(0, selectedUnit.defaultWeaponRelic);
+            }
+            
             eq.EquipCategoryRelic(0, new EquippedRelic(RelicCategory.Boots, UnitRole.Captain));
             eq.EquipCategoryRelic(1, new EquippedRelic(RelicCategory.Gloves, UnitRole.Captain));
             eq.EquipCategoryRelic(2, new EquippedRelic(RelicCategory.Hat, UnitRole.Captain));

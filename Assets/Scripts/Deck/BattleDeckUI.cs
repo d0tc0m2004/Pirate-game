@@ -741,12 +741,38 @@ namespace TacticalGame.Equipment
             ClearTileHighlights();
 
             var targetType = card.GetTargetType();
+
+            // Special case for Coat AOE feedback (Highlight caster location and radius 1)
+            if (card.category == RelicCategory.Coat && card.ownerUnit != null)
+            {
+                var gridManager = ServiceLocator.Get<GridManager>();
+                if (gridManager != null)
+                {
+                    Vector2Int pos = gridManager.WorldToGridPosition(card.ownerUnit.transform.position);
+                    var centerCell = gridManager.GetCell(pos.x, pos.y);
+                    if (centerCell != null)
+                    {
+                        Color aoeTint = new Color(1f, 1f, 0f, 0.4f); // Transparent yellow
+
+                        for (int dx = -1; dx <= 1; dx++)
+                        {
+                            for (int dy = -1; dy <= 1; dy++)
+                            {
+                                if (dx == 0 && dy == 0) continue;
+                                var cell = gridManager.GetCell(pos.x + dx, pos.y + dy);
+                                if (cell != null) PaintCell(cell, aoeTint);
+                            }
+                        }
+                    }
+                }
+                return;
+            }
             
-            // If the card strictly auto-targets
+            // If the card strictly auto-targets (Weapons and Gloves)
             if (targetType == CardTargetType.None)
             {
-                // Weapons dynamically seek out the nearest enemy and fire
-                if (card.IsWeaponCard && card.ownerUnit != null)
+                // Weapons and Gloves dynamically seek out the nearest enemy and fire
+                if ((card.IsWeaponCard || card.category == RelicCategory.Gloves) && card.ownerUnit != null)
                 {
                     UnitStatus closest = TacticalGame.Combat.TargetFinder.FindNearestEnemy(card.ownerUnit);
                     
@@ -819,6 +845,15 @@ namespace TacticalGame.Equipment
 
             // Select this card
             SelectCard(cardUI);
+
+            // Log if card is fundamentally unplayable
+            var playability = CardPlayabilityChecker.Check(card, manager.SelectedUnit);
+            if (!playability.isPlayable)
+            {
+                Debug.Log($"<color=orange>Playability Block: {playability.reason}</color>");
+                // We do not return here immediately since selecting unplayable cards is permitted 
+                // in some designs for UI inspection, but play-execution will ultimately prevent it.
+            }
 
             // If card needs target, enter targeting mode (highlights are already
             // up from the hover preview — StartTargeting will just re-paint them

@@ -2755,7 +2755,7 @@ namespace TacticalGame.Equipment
             
             return GetAllAllies(caster).Where(ally => {
                 Vector2Int allyPos = gridManager.WorldToGridPosition(ally.transform.position);
-                int distance = Mathf.Abs(casterPos.x - allyPos.x) + Mathf.Abs(casterPos.y - allyPos.y);
+                int distance = Mathf.Max(Mathf.Abs(casterPos.x - allyPos.x), Mathf.Abs(casterPos.y - allyPos.y));
                 return distance <= range && ally != caster;
             }).ToList();
         }
@@ -2769,7 +2769,7 @@ namespace TacticalGame.Equipment
             
             return GetEnemies(center).Where(enemy => {
                 Vector2Int enemyPos = gridManager.WorldToGridPosition(enemy.transform.position);
-                int distance = Mathf.Abs(centerPos.x - enemyPos.x) + Mathf.Abs(centerPos.y - enemyPos.y);
+                int distance = Mathf.Max(Mathf.Abs(centerPos.x - enemyPos.x), Mathf.Abs(centerPos.y - enemyPos.y));
                 return distance <= range;
             }).ToList();
         }

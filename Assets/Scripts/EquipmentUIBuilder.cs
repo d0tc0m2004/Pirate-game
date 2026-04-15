@@ -1226,6 +1226,12 @@ namespace TacticalGame.Managers
             UnitData unit = GetUnitByIndex(selectedUnitIndex);
             if (unit == null) return;
 
+            unit.ClearAllEquipment();
+            
+            // Re-equip default weapon relic if exists
+            if (unit.defaultWeaponRelic != null)
+                unit.EquipWeaponRelic(0, unit.defaultWeaponRelic);
+
             unit.EquipCategoryRelic(0, new EquippedRelic(RelicCategory.Boots, UnitRole.Captain));
             unit.EquipCategoryRelic(1, new EquippedRelic(RelicCategory.Gloves, UnitRole.Captain));
             unit.EquipCategoryRelic(2, new EquippedRelic(RelicCategory.Hat, UnitRole.Captain));
