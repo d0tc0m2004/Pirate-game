@@ -354,7 +354,13 @@ namespace TacticalGame.Equipment
                     break;
                     
                 case RelicEffectType.Totem_CurseCaptainReflect:
-                    ApplyCaptainDamageReflect(caster, effect.duration);
+                    {
+                        var enemyCaptain = GetEnemies(caster).FirstOrDefault(e => e.IsCaptain);
+                        if (enemyCaptain != null)
+                        {
+                            ApplyCaptainDamageReflect(enemyCaptain, effect.duration);
+                        }
+                    }
                     break;
                     
                 case RelicEffectType.Totem_RallyNoMoraleDamage:

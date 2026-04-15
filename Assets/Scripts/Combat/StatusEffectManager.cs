@@ -79,6 +79,7 @@ namespace TacticalGame.Combat
             GameEvents.OnUnitDamaged += OnAnyUnitDamaged;
             GameEvents.OnUnitHealed += OnAnyUnitHealed;
             GameEvents.OnUnitAttack += OnAnyUnitAttack;
+            GameEvents.OnMoraleDamaged += OnAnyUnitMoraleDamaged;
         }
 
         private void OnDisable()
@@ -86,6 +87,7 @@ namespace TacticalGame.Combat
             GameEvents.OnUnitDamaged -= OnAnyUnitDamaged;
             GameEvents.OnUnitHealed -= OnAnyUnitHealed;
             GameEvents.OnUnitAttack -= OnAnyUnitAttack;
+            GameEvents.OnMoraleDamaged -= OnAnyUnitMoraleDamaged;
         }
 
         #endregion
@@ -870,6 +872,49 @@ namespace TacticalGame.Combat
                     int healAmount = Mathf.RoundToInt(unitStatus.MaxHP * effect.value1);
                     unitStatus.Heal(healAmount);
                     Debug.Log($"{gameObject.name} healed {healAmount} from captain damage!");
+                }
+            }
+
+            // Check if this unit has CaptainDamageReflect and was the one damaged
+            if (unit == gameObject && HasEffect(StatusEffectType.CaptainDamageReflect))
+            {
+                var allies = UnityEngine.Object.FindObjectsByType<UnitStatus>(UnityEngine.FindObjectsSortMode.None);
+                int hitCount = 0;
+                foreach (var ally in allies)
+                {
+                    if (ally != null && ally != unitStatus && ally.Team == unitStatus.Team && !ally.HasSurrendered && ally.CurrentHP > 0)
+                    {
+                        ally.TakeDamage(damage, unit, false);
+                        hitCount++;
+                    }
+                }
+                
+                if (hitCount > 0)
+                {
+                    Debug.Log($"<color=purple>CaptainDamageReflect: {gameObject.name}'s {damage} damage reflected to {hitCount} allies!</color>");
+                }
+            }
+        }
+
+        private void OnAnyUnitMoraleDamaged(GameObject unit, int amount)
+        {
+            // Check if this unit has ReflectMoraleDamage and was the one damaged
+            if (unit == gameObject && HasEffect(StatusEffectType.ReflectMoraleDamage))
+            {
+                var enemies = UnityEngine.Object.FindObjectsByType<UnitStatus>(UnityEngine.FindObjectsSortMode.None);
+                int hitCount = 0;
+                foreach (var enemy in enemies)
+                {
+                    if (enemy != null && enemy.Team != unitStatus.Team && !enemy.HasSurrendered)
+                    {
+                        enemy.ApplyMoraleDamage(amount);
+                        hitCount++;
+                    }
+                }
+                
+                if (hitCount > 0)
+                {
+                    Debug.Log($"<color=purple>ReflectMoraleDamage: {gameObject.name}'s {amount} morale damage reflected to {hitCount} enemies!</color>");
                 }
             }
         }

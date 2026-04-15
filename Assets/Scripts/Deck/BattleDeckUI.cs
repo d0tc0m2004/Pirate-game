@@ -1114,6 +1114,28 @@ namespace TacticalGame.Equipment
         {
             if (self == null) return;
             var units = Object.FindObjectsByType<UnitStatus>(FindObjectsSortMode.None);
+
+            // If we are looking for enemies (wantSameTeam == false), check if any enemy has OnlyTargetThisTurn
+            if (!wantSameTeam)
+            {
+                var forcedTarget = units.FirstOrDefault(u => 
+                    u != null && 
+                    !u.HasSurrendered && 
+                    u.CurrentHP > 0 && 
+                    u.Team != self.Team && 
+                    u.GetComponent<StatusEffectManager>()?.HasEffect(StatusEffectType.OnlyTargetThisTurn) == true
+                );
+
+                if (forcedTarget != null)
+                {
+                    // Restrict targeting strictly to this unit
+                    Vector2Int pos = gridManager.WorldToGridPosition(forcedTarget.transform.position);
+                    var cell = gridManager.GetCell(pos.x, pos.y);
+                    if (cell != null) outList.Add(cell);
+                    return; // Skip adding any other units
+                }
+            }
+
             foreach (var u in units)
             {
                 if (u == null) continue;

@@ -157,6 +157,13 @@ namespace TacticalGame.Equipment
                 case RelicEffectType.Coat_V2_BuffTileDamageExchange:
                     return CardTargetType.Tile;
 
+                // === Captain Auto-cast / Random Target Effects (No UI Target Prompt) ===
+                case RelicEffectType.Totem_CurseCaptainReflect:
+                case RelicEffectType.Ultimate_MarkCaptainOnly:
+                case RelicEffectType.Ultimate_ShipCannon:
+                case RelicEffectType.Totem_SummonCannon:
+                    return CardTargetType.None;
+
                 // === Ultimates that target allies ===
                 case RelicEffectType.Ultimate_ReviveAlly:
                 case RelicEffectType.Ultimate_V2_MassRevive:
@@ -167,7 +174,6 @@ namespace TacticalGame.Equipment
                     return CardTargetType.Ally;
 
                 // === Ultimates that need a specific enemy target (player chooses) ===
-                case RelicEffectType.Ultimate_MarkCaptainOnly:
                 case RelicEffectType.Ultimate_FullBuzzAttack:
                 case RelicEffectType.Ultimate_KnockbackToLastColumn:
                 case RelicEffectType.Ultimate_AttackKnockbackNearby:
