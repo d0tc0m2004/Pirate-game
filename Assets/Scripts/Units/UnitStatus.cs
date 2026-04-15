@@ -1,9 +1,11 @@
 using UnityEngine;
+using System.Linq;
 using TacticalGame.Enums;
 using TacticalGame.Config;
 using TacticalGame.Core;
 using TacticalGame.Combat;
 using TacticalGame.Grid;
+using TacticalGame.Equipment;
 
 namespace TacticalGame.Units
 {
@@ -327,9 +329,60 @@ namespace TacticalGame.Units
 
             GameEvents.TriggerMoraleDamaged(gameObject, amount);
 
-            if (currentMorale < GameConfig.Instance.surrenderThreshold && !hasSurrendered)
+            CheckSurrenderCondition();
+        }
+
+        private void CheckSurrenderCondition()
+        {
+            if (hasSurrendered) return;
+
+            // Calculate dynamic surrender threshold
+            float thresholdPercent = GameConfig.Instance.surrenderThreshold;
+
+            if (team == Team.Player || team == Team.Enemy)
             {
-                Surrender();
+                var allPassives = UnityEngine.Object.FindObjectsByType<TacticalGame.Equipment.PassiveRelicManager>(UnityEngine.FindObjectsSortMode.None);
+                
+                foreach (var pm in allPassives)
+                {
+                    var pmUnit = pm.GetComponent<UnitStatus>();
+                    if (pmUnit == null) continue;
+
+                    // If an ally has the threshold lower buff
+                    if (pmUnit.Team == team && pm.ActivePassives.Contains(RelicEffectType.PassiveUnique_LowerSurrenderThreshold))
+                    {
+                        thresholdPercent = 0.10f; // 10%
+                    }
+                    
+                    // If an enemy has the threshold increase debuff
+                    if (pmUnit.Team != team && pm.ActivePassives.Contains(RelicEffectType.Trinket_EnemySurrenderEarly))
+                    {
+                        thresholdPercent = 0.30f; // 30% dominates
+                    }
+                }
+            }
+
+            int dynamicThreshold = Mathf.RoundToInt(maxMorale * thresholdPercent);
+
+            if (currentMorale < dynamicThreshold)
+            {
+                // Check if we have Coat_PreventSurrender buff
+                var effects = GetComponent<StatusEffectManager>();
+                var preventSurrender = effects?.GetEffect(StatusEffectType.PreventSurrender);
+                
+                if (preventSurrender != null)
+                {
+                    // Prevent surrender, restore morale instead
+                    float restorePercent = preventSurrender.value2;
+                    int restoreAmount = Mathf.RoundToInt(maxMorale * restorePercent);
+                    RestoreMorale(restoreAmount);
+                    effects.RemoveEffect(StatusEffectType.PreventSurrender);
+                    Debug.Log($"<color=green>{unitName} was prevented from surrendering! Restored {restoreAmount} morale.</color>");
+                }
+                else
+                {
+                    Surrender();
+                }
             }
         }
 
@@ -673,6 +726,27 @@ namespace TacticalGame.Units
             gameObject.tag = "Untagged";
             
             GameEvents.TriggerUnitSurrender(gameObject);
+        }
+
+        public void ClearSurrender()
+        {
+            hasSurrendered = false;
+
+            if (meshRenderer != null)
+            {
+                // Reset to white, assuming material color is white and not tinted
+                meshRenderer.material.color = Color.white;
+            }
+
+            if (whiteFlagVisual != null)
+            {
+                whiteFlagVisual.SetActive(false);
+            }
+
+            // Restore correct tag based on team
+            gameObject.tag = (team == Team.Player) ? "PlayerUnit" : "EnemyUnit";
+            
+            Debug.Log($"<color=green>{unitName} has been revived and is no longer surrendered!</color>");
         }
 
         private void Die()

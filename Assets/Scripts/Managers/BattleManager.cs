@@ -43,11 +43,7 @@ namespace TacticalGame.Managers
         private List<GridCell> validMoveTiles = new List<GridCell>();
         private Dictionary<GridCell, Material> originalMaterials = new Dictionary<GridCell, Material>();
         
-        // Attack target highlighting
-        private GameObject currentAttackTarget;
-        private Color originalTargetColor;
-        private MeshRenderer targetRenderer;
-        private bool isPulsing = false;
+        // Attack target highlighting handled entirely by BattleDeckUI now
 
         #endregion
 
@@ -92,7 +88,6 @@ namespace TacticalGame.Managers
             if (!isBattleActive) return;
 
             HandleInput();
-            UpdateAttackTargetPulse();
         }
 
         #endregion
@@ -107,9 +102,18 @@ namespace TacticalGame.Managers
                 HandleLeftClick();
             }
 
-            // Right click - deselect
+            // Right click - deselect or cancel actions
             if (Input.GetMouseButtonDown(1))
             {
+                // Don't deselect the unit if right clicking over a UI element (like a card's stow menu)
+                if (UnityEngine.EventSystems.EventSystem.current != null && UnityEngine.EventSystems.EventSystem.current.IsPointerOverGameObject())
+                    return;
+
+                // Don't deselect if we are currently holding a card waiting for a target 
+                // (Right click will just cancel the card target mode inside BattleDeckUI)
+                if (Equipment.BattleDeckUI.Instance != null && Equipment.BattleDeckUI.Instance.IsTargeting)
+                    return;
+
                 DeselectUnit();
             }
 
@@ -212,16 +216,12 @@ namespace TacticalGame.Managers
                 instructionText.text = "Use cards to move, attack, and use abilities";
             }
 
-            // Highlight attack target
-            HighlightAttackTarget(status);
-
             GameEvents.TriggerUnitSelected(unit);
         }
 
         private void DeselectUnit()
         {
             ResetHighlights();
-            ClearAttackTargetHighlight();
             selectedUnit = null;
             isSwapping = false;
             validMoveTiles.Clear();
@@ -265,12 +265,7 @@ namespace TacticalGame.Managers
             ResetHighlights();
             validMoveTiles.Clear();
             
-            // Re-highlight attack target after move
-            UnitStatus status = selectedUnit.GetComponent<UnitStatus>();
-            if (status != null)
-            {
-                HighlightAttackTarget(status);
-            }
+            // Re-highlighting dropped as targeting is now exclusively card-driven
         }
 
         private void CalculateValidMoves(GridCell startCell, int range)
@@ -454,53 +449,6 @@ namespace TacticalGame.Managers
             }
             originalMaterials.Clear();
         }
-
-        #endregion
-
-        #region Attack Target Highlighting
-
-        private void HighlightAttackTarget(UnitStatus attacker)
-        {
-            // Clear previous target highlight
-            ClearAttackTargetHighlight();
-
-            // Find nearest enemy using TargetFinder
-            UnitStatus target = TargetFinder.FindNearestEnemy(attacker);
-            
-            if (target == null) return;
-
-            currentAttackTarget = target.gameObject;
-
-            // Get renderer and store original color
-            targetRenderer = currentAttackTarget.GetComponent<MeshRenderer>();
-            if (targetRenderer != null)
-            {
-                originalTargetColor = targetRenderer.material.color;
-                isPulsing = true;
-            }
-        }
-
-        private void UpdateAttackTargetPulse()
-        {
-            if (!isPulsing || targetRenderer == null) return;
-
-            // Pulse between original color and highlight color using sine wave
-            float pulse = (Mathf.Sin(Time.time * pulseSpeed) + 1f) / 2f; // 0 to 1
-            targetRenderer.material.color = Color.Lerp(originalTargetColor, attackTargetColor, pulse);
-        }
-
-        private void ClearAttackTargetHighlight()
-        {
-            if (currentAttackTarget != null && targetRenderer != null)
-            {
-                targetRenderer.material.color = originalTargetColor;
-            }
-            
-            currentAttackTarget = null;
-            targetRenderer = null;
-            isPulsing = false;
-        }
-
         #endregion
     }
 }

@@ -89,6 +89,11 @@ namespace TacticalGame.Equipment
         private MeshRenderer hoveredOwnerRenderer;
         private Color hoveredOwnerOriginalColor;
         private bool isOwnerHighlighted = false;
+
+        // Enemy targeting highlight
+        private UnitStatus hoveredEnemyTarget;
+        private MeshRenderer hoveredEnemyRenderer;
+        private Color hoveredEnemyOriginalColor;
         
         #endregion
         
@@ -472,8 +477,9 @@ namespace TacticalGame.Equipment
                 CancelTargeting();
             }
 
-            // Pulse the hovered card's owner unit
+            // Pulse the hovered card's owner unit and targeted enemy
             UpdateCardOwnerPulse();
+            UpdateEnemyTargetPulse();
         }
         
         #endregion
@@ -735,6 +741,48 @@ namespace TacticalGame.Equipment
             ClearTileHighlights();
 
             var targetType = card.GetTargetType();
+            
+            // If the card strictly auto-targets
+            if (targetType == CardTargetType.None)
+            {
+                // Weapons dynamically seek out the nearest enemy and fire
+                if (card.IsWeaponCard && card.ownerUnit != null)
+                {
+                    UnitStatus closest = TacticalGame.Combat.TargetFinder.FindNearestEnemy(card.ownerUnit);
+                    
+                    if (closest != null)
+                    {
+                        var gridManager = ServiceLocator.Get<GridManager>();
+                        if (gridManager != null)
+                        {
+                            var pos = gridManager.WorldToGridPosition(closest.transform.position);
+                            var cell = gridManager.GetCell(pos.x, pos.y);
+                            Debug.Log($"[PreviewCardTargets] Nearest Enemy is {closest.UnitName} via TargetFinder!");
+
+                            if (cell != null)
+                            {
+                                // Attach material highlighting to the actual unit
+                                hoveredEnemyTarget = closest;
+                                hoveredEnemyRenderer = closest.GetComponent<MeshRenderer>();
+                                if (hoveredEnemyRenderer != null)
+                                {
+                                    hoveredEnemyOriginalColor = hoveredEnemyRenderer.material.color;
+                                    Debug.Log($"[PreviewCardTargets] Attached MeshRenderer to {closest.UnitName}");
+                                }
+                                else
+                                {
+                                    Debug.Log($"[PreviewCardTargets] CRITICAL: No MeshRenderer found on {closest.UnitName}!");
+                                }
+
+                                // Highlight nearest enemy in pure, bright solid yellow for absolute visibility against red ships
+                                PaintCell(cell, new Color(1f, 1f, 0f, 1f));
+                            }
+                        }
+                    }
+                }
+                return;
+            }
+
             bool isMovementCard = (targetType == CardTargetType.Tile && card.category == RelicCategory.Boots);
 
             if (isMovementCard)
@@ -865,24 +913,60 @@ namespace TacticalGame.Equipment
             }
         }
 
+        private UnitStatus activeHighlightedUnit;
+        private MeshRenderer activeHighlightedRenderer;
+        private Color activeHighlightedOriginalColor;
+
         private void UpdateCardOwnerPulse()
         {
-            if (!isOwnerHighlighted || hoveredOwnerRenderer == null) return;
+            var manager = BattleDeckManager.Instance;
+            UnitStatus targetUnit = hoveredCardOwner != null ? hoveredCardOwner : (manager != null ? manager.SelectedUnit : null);
 
-            float pulse = (Mathf.Sin(Time.time * ownerPulseSpeed) + 1f) / 2f;
-            hoveredOwnerRenderer.material.color = Color.Lerp(hoveredOwnerOriginalColor, cardOwnerHighlightColor, pulse);
+            // Shift visual highlight state to the new appropriate unit
+            if (activeHighlightedUnit != targetUnit)
+            {
+                if (activeHighlightedRenderer != null)
+                {
+                    activeHighlightedRenderer.material.color = activeHighlightedOriginalColor;
+                }
+                
+                activeHighlightedUnit = targetUnit;
+                if (targetUnit != null)
+                {
+                    activeHighlightedRenderer = targetUnit.GetComponent<MeshRenderer>();
+                    if (activeHighlightedRenderer != null)
+                    {
+                        activeHighlightedOriginalColor = activeHighlightedRenderer.material.color;
+                    }
+                }
+            }
+
+            if (activeHighlightedUnit != null && activeHighlightedRenderer != null)
+            {
+                // Hyper-visible pulse intensities
+                float speed = (hoveredCardOwner != null) ? ownerPulseSpeed * 1.5f : ownerPulseSpeed * 0.8f;
+                float intensity = (hoveredCardOwner != null) ? 1.0f : 0.85f;
+                float pulse = (Mathf.Sin(Time.time * speed) + 1f) / 2f * intensity;
+                activeHighlightedRenderer.material.color = Color.Lerp(activeHighlightedOriginalColor, cardOwnerHighlightColor, pulse);
+            }
         }
 
         private void ClearCardOwnerHighlight()
         {
-            if (isOwnerHighlighted && hoveredOwnerRenderer != null)
-            {
-                hoveredOwnerRenderer.material.color = hoveredOwnerOriginalColor;
-            }
-
             hoveredCardOwner = null;
             hoveredOwnerRenderer = null;
             isOwnerHighlighted = false;
+            // The Update loop will dynamically revert to the selected unit
+        }
+
+        private void UpdateEnemyTargetPulse()
+        {
+            if (hoveredEnemyTarget != null && hoveredEnemyRenderer != null)
+            {
+                float pulse = (Mathf.Sin(Time.time * ownerPulseSpeed * 1.8f) + 1f) / 2f;
+                // Bright intense yellow pulse overlaying the target
+                hoveredEnemyRenderer.material.color = Color.Lerp(hoveredEnemyOriginalColor, new Color(1f, 1f, 0f, 1f), pulse);
+            }
         }
 
         #endregion
@@ -1092,25 +1176,26 @@ namespace TacticalGame.Equipment
                     break;
 
                 case CardTargetType.Ally:
-                    AddCellsForUnits(result, gridManager, card.ownerUnit, wantSameTeam: true, includeSelf: false);
+                    bool onlyDead = (card.effectType == RelicEffectType.Ultimate_ReviveAlly || card.effectType == RelicEffectType.Ultimate_V2_MassRevive);
+                    AddCellsForUnits(result, gridManager, card.ownerUnit, wantSameTeam: true, includeSelf: false, targetOnlyDead: onlyDead);
                     break;
 
                 case CardTargetType.Enemy:
                 case CardTargetType.AdjacentEnemy:
                 case CardTargetType.RangedEnemy:
-                    AddCellsForUnits(result, gridManager, card.ownerUnit, wantSameTeam: false, includeSelf: false);
+                    AddCellsForUnits(result, gridManager, card.ownerUnit, wantSameTeam: false, includeSelf: false, targetOnlyDead: false);
                     break;
 
                 case CardTargetType.AnyUnit:
-                    AddCellsForUnits(result, gridManager, card.ownerUnit, wantSameTeam: true, includeSelf: false);
-                    AddCellsForUnits(result, gridManager, card.ownerUnit, wantSameTeam: false, includeSelf: false);
+                    AddCellsForUnits(result, gridManager, card.ownerUnit, wantSameTeam: true, includeSelf: false, targetOnlyDead: false);
+                    AddCellsForUnits(result, gridManager, card.ownerUnit, wantSameTeam: false, includeSelf: false, targetOnlyDead: false);
                     break;
             }
 
             return result;
         }
 
-        private void AddCellsForUnits(List<GridCell> outList, GridManager gridManager, UnitStatus self, bool wantSameTeam, bool includeSelf)
+        private void AddCellsForUnits(List<GridCell> outList, GridManager gridManager, UnitStatus self, bool wantSameTeam, bool includeSelf, bool targetOnlyDead = false)
         {
             if (self == null) return;
             var units = Object.FindObjectsByType<UnitStatus>(FindObjectsSortMode.None);
@@ -1140,8 +1225,16 @@ namespace TacticalGame.Equipment
             {
                 if (u == null) continue;
                 if (!includeSelf && u == self) continue;
-                if (u.HasSurrendered) continue;
-                if (u.CurrentHP <= 0) continue;
+                
+                if (targetOnlyDead)
+                {
+                    if (!u.HasSurrendered && u.CurrentHP > 0) continue; // Only target surrendered/dead
+                }
+                else
+                {
+                    if (u.HasSurrendered) continue;
+                    if (u.CurrentHP <= 0) continue;
+                }
                 bool sameTeam = (u.Team == self.Team);
                 if (wantSameTeam != sameTeam) continue;
 
@@ -1190,6 +1283,14 @@ namespace TacticalGame.Equipment
             }
             highlightedMoveCells.Clear();
             originalCellColors.Clear();
+
+            // Clear the 3D unit target highlight as well
+            if (hoveredEnemyTarget != null && hoveredEnemyRenderer != null)
+            {
+                hoveredEnemyRenderer.material.color = hoveredEnemyOriginalColor;
+            }
+            hoveredEnemyTarget = null;
+            hoveredEnemyRenderer = null;
         }
 
         /// <summary>

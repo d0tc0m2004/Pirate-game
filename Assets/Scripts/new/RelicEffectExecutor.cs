@@ -297,7 +297,7 @@ namespace TacticalGame.Equipment
                     break;
                     
                 case RelicEffectType.Coat_PreventSurrender:
-                    ApplyPreventSurrender(caster, effect.value2, effect.duration);
+                    ApplyPreventSurrender(target ?? caster, effect.value2, effect.duration);
                     break;
                     
                 case RelicEffectType.Coat_ReduceRumEffect:
@@ -418,7 +418,7 @@ namespace TacticalGame.Equipment
                     break;
                     
                 case RelicEffectType.Ultimate_ReviveAlly:
-                    ReviveAlly(caster, effect.value2);
+                    ReviveAlly(caster, target, effect.value2);
                     break;
                     
                 case RelicEffectType.Ultimate_FullBuzzAttack:
@@ -2606,9 +2606,21 @@ namespace TacticalGame.Equipment
             }
         }
         
-        private static void ReviveAlly(UnitStatus caster, float healthPercent)
+        private static void ReviveAlly(UnitStatus caster, UnitStatus target, float healthPercent)
         {
-            // Find surrendered or dead allies
+            if (target != null && target.HasSurrendered && target.Team == caster.Team)
+            {
+                target.Heal(Mathf.RoundToInt(target.MaxHP * healthPercent));
+                target.RestoreMorale(Mathf.RoundToInt(target.MaxMorale * healthPercent));
+                
+                // Remove surrendered state
+                target.ClearSurrender();
+                
+                Debug.Log($"Revived exactly {target.UnitName} at {healthPercent*100}%");
+                return;
+            }
+
+            // Fallback: Find first surrendered or dead ally if target isn't specified
             var allUnits = GameObject.FindGameObjectsWithTag("Untagged")
                 .Select(go => go.GetComponent<UnitStatus>())
                 .Where(u => u != null && u.HasSurrendered && u.Team == caster.Team)
@@ -2619,7 +2631,11 @@ namespace TacticalGame.Equipment
                 var ally = allUnits[0];
                 ally.Heal(Mathf.RoundToInt(ally.MaxHP * healthPercent));
                 ally.RestoreMorale(Mathf.RoundToInt(ally.MaxMorale * healthPercent));
-                Debug.Log($"Revived {ally.UnitName} at {healthPercent*100}%");
+                
+                // Remove surrendered state
+                ally.ClearSurrender();
+                
+                Debug.Log($"Revived fallback {ally.UnitName} at {healthPercent*100}%");
             }
         }
         

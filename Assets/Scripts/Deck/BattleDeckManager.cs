@@ -24,7 +24,7 @@ namespace TacticalGame.Equipment
             {
                 if (_instance == null)
                 {
-                    _instance = FindObjectOfType<BattleDeckManager>();
+                    _instance = FindFirstObjectByType<BattleDeckManager>();
                     if (_instance == null)
                     {
                         var go = new GameObject("BattleDeckManager");
@@ -121,6 +121,7 @@ namespace TacticalGame.Equipment
             GameEvents.OnPlayerTurnStart += OnPlayerTurnStart;
             GameEvents.OnPlayerTurnEnd += OnPlayerTurnEnd;
             GameEvents.OnUnitSelected += OnUnitSelected;
+            GameEvents.OnUnitDeselected += OnUnitDeselected;
         }
         
         private void OnDisable()
@@ -128,6 +129,7 @@ namespace TacticalGame.Equipment
             GameEvents.OnPlayerTurnStart -= OnPlayerTurnStart;
             GameEvents.OnPlayerTurnEnd -= OnPlayerTurnEnd;
             GameEvents.OnUnitSelected -= OnUnitSelected;
+            GameEvents.OnUnitDeselected -= OnUnitDeselected;
         }
         
         #endregion
@@ -761,6 +763,13 @@ namespace TacticalGame.Equipment
             selectedUnit = unitGO?.GetComponent<UnitStatus>();
             selectedCard = null;
             
+            OnHandChanged?.Invoke(hand);
+        }
+
+        private void OnUnitDeselected()
+        {
+            selectedUnit = null;
+            selectedCard = null;
             OnHandChanged?.Invoke(hand);
         }
         

@@ -26,7 +26,7 @@ namespace TacticalGame.Equipment
             {
                 if (_instance == null)
                 {
-                    _instance = FindObjectOfType<RelicTargetSelector>();
+                    _instance = FindFirstObjectByType<RelicTargetSelector>();
                     if (_instance == null)
                     {
                         var go = new GameObject("RelicTargetSelector");

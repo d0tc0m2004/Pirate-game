@@ -68,8 +68,8 @@ namespace TacticalGame.Equipment
         /// </summary>
         public bool RequiresTarget()
         {
-            // Weapon cards always need target
-            if (IsWeaponCard) return true;
+            // Let the target type govern targeting requirements entirely
+            // (Weapons now return None to auto-target closest enemy)
 
             // Use the resolved target type — None means no target needed
             return GetTargetType() != CardTargetType.None;
@@ -82,15 +82,8 @@ namespace TacticalGame.Equipment
         {
             if (IsWeaponCard)
             {
-                if (sourceWeaponRelic.baseWeaponData == null)
-                {
-                    Debug.LogWarning($"BattleCard {cardName} (Weapon) has missing baseWeaponData! Defaulting to AdjacentEnemy.");
-                    return CardTargetType.AdjacentEnemy;
-                }
-
-                return sourceWeaponRelic.baseWeaponData.attackType == WeaponType.Melee
-                    ? CardTargetType.AdjacentEnemy
-                    : CardTargetType.RangedEnemy;
+                // Weapons now auto-evaluate the nearest enemy
+                return CardTargetType.None;
             }
 
             // Check specific effect types that override category defaults
@@ -146,6 +139,7 @@ namespace TacticalGame.Equipment
 
                 // === Coat effects that target allies ===
                 case RelicEffectType.Coat_DoubleAllyStats:
+                case RelicEffectType.Coat_PreventSurrender:
                     return CardTargetType.Ally;
 
                 // === Hat effects that target allies ===
@@ -157,11 +151,12 @@ namespace TacticalGame.Equipment
                 case RelicEffectType.Coat_V2_BuffTileDamageExchange:
                     return CardTargetType.Tile;
 
-                // === Captain Auto-cast / Random Target Effects (No UI Target Prompt) ===
+                // === Auto-cast / Random Target Effects (No UI Target Prompt) ===
                 case RelicEffectType.Totem_CurseCaptainReflect:
                 case RelicEffectType.Ultimate_MarkCaptainOnly:
                 case RelicEffectType.Ultimate_ShipCannon:
                 case RelicEffectType.Totem_SummonCannon:
+                case RelicEffectType.Boots_AllyFreeMoveLowestMorale:
                     return CardTargetType.None;
 
                 // === Ultimates that target allies ===
