@@ -2696,9 +2696,7 @@ namespace TacticalGame.Equipment
         
         private static UnitStatus GetClosestEnemy(UnitStatus caster)
         {
-            return GetEnemies(caster)
-                .OrderBy(e => Vector3.Distance(caster.transform.position, e.transform.position))
-                .FirstOrDefault();
+            return TacticalGame.Combat.TargetFinder.FindNearestEnemy(caster);
         }
         
         private static UnitStatus GetLowestMoraleAlly(UnitStatus caster)
