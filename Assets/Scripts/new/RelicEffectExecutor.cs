@@ -2556,19 +2556,21 @@ namespace TacticalGame.Equipment
             var hazardManager = ServiceLocator.Get<HazardManager>();
             var gridManager = ServiceLocator.Get<GridManager>();
 
+            var alreadyHit = new HashSet<UnitStatus>(); // Each enemy can only be hit once
             int hits = 0;
+
             for (int i = 0; i < shots; i++)
             {
-                // Refresh the enemy list each shot so we never waste a shot on a
-                // corpse — and so the cannon fight ends naturally when there's
-                // nothing left to shoot.
-                var living = GetEnemies(caster).Where(e => e != null && e.CurrentHP > 0).ToList();
-                if (living.Count == 0) break;
+                // Get living enemies that haven't been hit yet
+                var eligible = GetEnemies(caster)
+                    .Where(e => e != null && e.CurrentHP > 0 && !alreadyHit.Contains(e))
+                    .ToList();
+                if (eligible.Count == 0) break;
 
-                var target = living[Random.Range(0, living.Count)];
+                var target = eligible[Random.Range(0, eligible.Count)];
+                alreadyHit.Add(target);
 
-                // Capture the target's tile BEFORE damage in case the shot kills
-                // them and they get cleared off the grid.
+                // Capture the target's tile BEFORE damage
                 GridCell hitCell = null;
                 if (gridManager != null)
                 {
@@ -2576,19 +2578,18 @@ namespace TacticalGame.Equipment
                     hitCell = gridManager.GetCell(pos.x, pos.y);
                 }
 
-                target.TakeDamage(damage, caster.gameObject, false);
+                // HP-only damage — cannon shots don't affect morale
+                target.TakeEnvironmentalDamage(damage, "ShipCannon");
                 hits++;
 
-                // Spawn a fire hazard on the hit tile. CreateFireTile silently
-                // skips cells that already have a hazard, so repeat hits on the
-                // same enemy don't stack fire — that's intentional.
+                // Spawn a fire hazard on the hit tile
                 if (hazardManager != null && hitCell != null)
                 {
                     hazardManager.CreateFireTile(hitCell, SHIP_CANNON_FIRE_DPS, SHIP_CANNON_FIRE_DURATION);
                 }
             }
 
-            Debug.Log($"<color=orange>Ship cannon fired {hits}/{shots} shots for {damage} damage each, leaving fire hazards</color>");
+            Debug.Log($"<color=orange>Ship cannon fired {hits}/{shots} shots for {damage} HP damage each (0 morale), hitting {hits} different enemies</color>");
         }
         
         private static void ExecuteMarkCaptainOnly(UnitStatus caster, UnitStatus target)

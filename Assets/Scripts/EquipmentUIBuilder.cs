@@ -1223,21 +1223,42 @@ namespace TacticalGame.Managers
 
         private void OnEquipCaptain()
         {
+            // Fully wipe all player units to guarantee no other units' gear pollutes the deck
+            foreach (var pUnit in playerUnits)
+            {
+                pUnit.ClearAllEquipment();
+                if (pUnit.defaultWeaponRelic != null)
+                {
+                    pUnit.EquipWeaponRelic(0, pUnit.defaultWeaponRelic);
+                }
+            }
+
+            var captainEffects = TacticalGame.Equipment.RelicEffectsDatabase.Instance.GetEffectsByRole(UnitRole.Captain);
+            int effectIndex = 0;
+
+            foreach (var pUnit in playerUnits)
+            {
+                // Each unit has 7 category slots
+                for (int slot = 0; slot < 7; slot++)
+                {
+                    if (effectIndex >= captainEffects.Count)
+                    {
+                        break;
+                    }
+                    var currentEffect = captainEffects[effectIndex];
+                    // Create an equipped relic specifically mapped dynamically
+                    pUnit.EquipCategoryRelic(slot, new EquippedRelic(currentEffect));
+                    effectIndex++;
+                }
+
+                if (effectIndex >= captainEffects.Count)
+                {
+                    break;
+                }
+            }
+
             UnitData unit = GetUnitByIndex(selectedUnitIndex);
             if (unit == null) return;
-
-            unit.ClearAllEquipment();
-            
-            // Re-equip default weapon relic if exists
-            if (unit.defaultWeaponRelic != null)
-                unit.EquipWeaponRelic(0, unit.defaultWeaponRelic);
-
-            unit.EquipCategoryRelic(0, new EquippedRelic(RelicCategory.Boots, UnitRole.Captain));
-            unit.EquipCategoryRelic(1, new EquippedRelic(RelicCategory.Gloves, UnitRole.Captain));
-            unit.EquipCategoryRelic(2, new EquippedRelic(RelicCategory.Hat, UnitRole.Captain));
-            unit.EquipCategoryRelic(3, new EquippedRelic(RelicCategory.Coat, UnitRole.Captain));
-            unit.EquipCategoryRelic(4, new EquippedRelic(RelicCategory.Ultimate, UnitRole.Captain));
-            unit.EquipCategoryRelic(5, new EquippedRelic(RelicCategory.Trinket, UnitRole.Captain)); 
 
             RefreshSlots(unit); 
             UpdateJewelBudget(unit); 

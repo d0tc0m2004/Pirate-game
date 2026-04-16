@@ -93,7 +93,7 @@ namespace TacticalGame.Hazards
         /// </summary>
         public void OnTurnEnd(GameObject unit)
         {
-            if (unit == null) return;
+            if (unit == null || data == null) return;
             
             UnitStatus status = unit.GetComponent<UnitStatus>();
             if (status == null) return;
@@ -101,15 +101,15 @@ namespace TacticalGame.Hazards
             switch (data.effectType)
             {
                 case HazardEffectType.Fire:
-                    status.TakeDamage(data.damageHP, gameObject, false);
+                    status.TakeEnvironmentalDamage(data.damageHP, $"Fire({data.hazardName})");
                     break;
 
                 case HazardEffectType.Plague:
-                    status.ApplyMoraleDamage(data.damageMorale);
+                    status.TakeEnvironmentalMoraleDamage(data.damageMorale, $"Plague({data.hazardName})");
                     break;
 
                 case HazardEffectType.ShiftingSand:
-                    status.ApplyMoraleDamage(data.damageMorale);
+                    status.TakeEnvironmentalMoraleDamage(data.damageMorale, $"ShiftingSand({data.hazardName})");
                     break;
 
                 case HazardEffectType.Lightning:
@@ -130,6 +130,8 @@ namespace TacticalGame.Hazards
         /// </summary>
         public void OnUnitEnter(GameObject unit)
         {
+            if (data == null) return;
+
             UnitStatus status = unit.GetComponent<UnitStatus>();
             if (status == null) return;
 

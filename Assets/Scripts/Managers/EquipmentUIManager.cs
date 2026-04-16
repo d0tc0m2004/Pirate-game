@@ -452,24 +452,46 @@ namespace TacticalGame.Managers
         {
             if (selectedUnit == null || selectedUnit.equipment == null) return;
             
+            // Wipe all player units completely to ensure no other units' gear pollutes the deck
+            foreach (var pUnit in playerUnits)
+            {
+                if (pUnit != null && pUnit.equipment != null)
+                {
+                    for (int i = 0; i < 6; i++)
+                    {
+                        pUnit.equipment.UnequipCategoryRelic(i);
+                    }
+                    pUnit.equipment.UnequipWeaponRelic(0);
+                    pUnit.equipment.UnequipWeaponRelic(1);
+                }
+            }
+            
             var eq = selectedUnit.equipment;
             
-            // Clear all current items to ensure a pure loadout
-            for (int i = 0; i < 6; i++)
-            {
-                eq.UnequipCategoryRelic(i);
-            }
+
             if (selectedUnit.defaultWeaponRelic != null)
             {
                 eq.EquipWeaponRelic(0, selectedUnit.defaultWeaponRelic);
             }
             
-            eq.EquipCategoryRelic(0, new EquippedRelic(RelicCategory.Boots, UnitRole.Captain));
-            eq.EquipCategoryRelic(1, new EquippedRelic(RelicCategory.Gloves, UnitRole.Captain));
-            eq.EquipCategoryRelic(2, new EquippedRelic(RelicCategory.Hat, UnitRole.Captain));
-            eq.EquipCategoryRelic(3, new EquippedRelic(RelicCategory.Coat, UnitRole.Captain));
-            eq.EquipCategoryRelic(4, new EquippedRelic(RelicCategory.Ultimate, UnitRole.Captain));
-            eq.EquipCategoryRelic(5, new EquippedRelic(RelicCategory.Trinket, UnitRole.Captain)); 
+            var captainEffects = TacticalGame.Equipment.RelicEffectsDatabase.Instance.GetEffectsByRole(UnitRole.Captain);
+            int effectIndex = 0;
+
+            foreach (var pUnit in playerUnits)
+            {
+                if (pUnit == null || pUnit.equipment == null) continue;
+
+                for (int slot = 0; slot < 6; slot++)
+                {
+                    if (effectIndex >= captainEffects.Count) break;
+                    
+                    var currentEffect = captainEffects[effectIndex];
+                    pUnit.equipment.EquipCategoryRelic(slot, new EquippedRelic(currentEffect));
+                    effectIndex++;
+                }
+
+                if (effectIndex >= captainEffects.Count) break;
+            }
             
             UpdateRelicSlots();
             RefreshRelicPool();

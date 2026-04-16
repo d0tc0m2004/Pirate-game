@@ -645,14 +645,12 @@ namespace TacticalGame.Combat
                 {
                     case StatusEffectType.Fire:
                         int fireDamage = Mathf.RoundToInt(effect.value1);
-                        unitStatus.TakeDamage(fireDamage, effect.source, false);
-                        Debug.Log($"{gameObject.name} takes {fireDamage} fire damage!");
+                        unitStatus.TakeEnvironmentalDamage(fireDamage, "FireDoT");
                         break;
 
                     case StatusEffectType.Poison:
                         int poisonDamage = Mathf.RoundToInt(effect.value1);
-                        unitStatus.TakeDamage(poisonDamage, effect.source, false);
-                        Debug.Log($"{gameObject.name} takes {poisonDamage} poison damage!");
+                        unitStatus.TakeEnvironmentalDamage(poisonDamage, "PoisonDoT");
                         break;
 
                     case StatusEffectType.Regeneration:
@@ -709,8 +707,7 @@ namespace TacticalGame.Combat
             {
                 StatusEffect bleed = GetEffect(StatusEffectType.Bleed);
                 int bleedDamage = Mathf.RoundToInt(bleed.value1);
-                unitStatus.TakeDamage(bleedDamage, bleed.source, false);
-                Debug.Log($"{gameObject.name} takes {bleedDamage} bleed damage from moving!");
+                unitStatus.TakeEnvironmentalDamage(bleedDamage, "BleedDoT");
             }
 
             // Movement trap damage
@@ -718,8 +715,7 @@ namespace TacticalGame.Combat
             {
                 StatusEffect trap = GetEffect(StatusEffectType.MovementTrap);
                 int trapDamage = Mathf.RoundToInt(unitStatus.CurrentHP * trap.value1);
-                unitStatus.TakeDamage(trapDamage, trap.source, false);
-                Debug.Log($"{gameObject.name} takes {trapDamage} trap damage from moving!");
+                unitStatus.TakeEnvironmentalDamage(trapDamage, "MovementTrap");
                 RemoveEffect(StatusEffectType.MovementTrap);
             }
 

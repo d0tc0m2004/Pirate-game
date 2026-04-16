@@ -152,17 +152,41 @@ namespace TacticalGame.Hazards
         }
         
         /// <summary>
-        /// Create a fire tile at a specific cell.
+        /// Create a fire tile at a specific cell using the ORIGINAL fire hazard system.
+        /// Uses the same HazardData/HazardInstance path as scene-spawned hazards.
+        /// Falls back to a simple runtime visual if no fire HazardData is configured.
+        /// damagePerTurn and duration params are only used for the fallback.
         /// </summary>
         public RuntimeHazard CreateFireTile(GridCell cell, int damagePerTurn, int duration)
         {
             if (cell == null || cell.HasHazard) return null;
             
+            // Try to use the original fire hazard system
+            HazardData fireData = possibleHazards?.Find(h => h != null && h.effectType == HazardEffectType.Fire);
+            if (fireData != null && fireData.hazardPrefab != null)
+            {
+                // Use the SAME system as scene-placed hazards
+                cell.ApplyHazard(fireData.hazardPrefab, fireData.isBlocking);
+                
+                GameObject spawnedObj = cell.HazardVisualObject;
+                if (spawnedObj != null)
+                {
+                    HazardInstance instance = spawnedObj.GetComponent<HazardInstance>();
+                    if (instance == null)
+                        instance = spawnedObj.AddComponent<HazardInstance>();
+                    instance.Initialize(fireData, cell);
+                }
+                
+                Debug.Log($"Spawned original fire hazard at ({cell.XPosition}, {cell.YPosition})");
+                return null; // No RuntimeHazard needed - handled by HazardInstance
+            }
+            
+            // Fallback: runtime hazard if no fire HazardData is configured
+            Debug.LogWarning("No fire HazardData in possibleHazards - using runtime fallback");
             var hazard = CreateRuntimeHazard(cell, RuntimeHazardType.Fire, damagePerTurn, duration);
             if (hazard != null)
             {
-                hazard.SetColor(new Color(1f, 0.4f, 0.1f, 0.6f)); // Orange for fire
-                Debug.Log($"Created fire tile at ({cell.XPosition}, {cell.YPosition})");
+                hazard.SetColor(new Color(1f, 0.4f, 0.1f, 0.6f));
             }
             return hazard;
         }
@@ -431,8 +455,7 @@ namespace TacticalGame.Hazards
             {
                 case RuntimeHazardType.Poison:
                 case RuntimeHazardType.Fire:
-                    unit.TakeDamage(hazard.Value, hazard.Visual, false);
-                    Debug.Log($"{unit.UnitName} took {hazard.Value} {hazard.Type} damage!");
+                    unit.TakeEnvironmentalDamage(hazard.Value, hazard.Type.ToString());
                     break;
                     
                 case RuntimeHazardType.Trap:
@@ -455,8 +478,7 @@ namespace TacticalGame.Hazards
 
                 case RuntimeHazardType.ExplodingBarrel:
                     // Barrel explodes when its timer runs out (handled below) or when a unit stands on it
-                    unit.TakeDamage(hazard.Value, hazard.Visual, false);
-                    Debug.Log($"Exploding barrel hit {unit.UnitName} for {hazard.Value} damage!");
+                    unit.TakeEnvironmentalDamage(hazard.Value, "ExplodingBarrel");
                     hazard.Duration = 0; // Consumed
                     break;
 
@@ -482,8 +504,7 @@ namespace TacticalGame.Hazards
                         var unit = cell.OccupyingUnit.GetComponent<UnitStatus>();
                         if (unit != null && !unit.HasSurrendered)
                         {
-                            unit.TakeDamage(damage, barrel.Visual, false);
-                            Debug.Log($"Barrel explosion hit {unit.UnitName} for {damage} damage!");
+                            unit.TakeEnvironmentalDamage(damage, "BarrelExplosion");
                         }
                     }
                 }

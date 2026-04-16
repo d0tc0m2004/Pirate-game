@@ -309,6 +309,49 @@ namespace TacticalGame.Units
         }
 
         /// <summary>
+        /// Take environmental/hazard damage. This bypasses the full DamageCalculator,
+        /// applies flat HP damage only (no morale), and does not trigger focus fire
+        /// or combat modifier stacking.
+        /// </summary>
+        public void TakeEnvironmentalDamage(int flatDamage, string sourceName = "Hazard")
+        {
+            if (hasSurrendered || flatDamage <= 0) return;
+
+            // Apply HP damage directly (no Grit, no Hull, no modifiers)
+            currentHP -= flatDamage;
+
+            Debug.Log($"<color=orange>{gameObject.name} took {flatDamage} environmental damage from {sourceName}. HP: {currentHP}/{maxHP}</color>");
+
+            // Fire event
+            GameEvents.TriggerUnitDamaged(gameObject, flatDamage);
+
+            // Check death
+            if (currentHP <= 0)
+            {
+                Die();
+            }
+        }
+
+        /// <summary>
+        /// Take environmental/hazard morale damage. Reduces morale WITHOUT
+        /// triggering surrender checks. Hazards should weaken morale gradually
+        /// but not instantly disable units.
+        /// </summary>
+        public void TakeEnvironmentalMoraleDamage(int amount, string sourceName = "Hazard")
+        {
+            if (hasSurrendered || amount <= 0) return;
+
+            currentMorale -= amount;
+            if (currentMorale < 0) currentMorale = 0;
+
+            Debug.Log($"<color=yellow>{gameObject.name} lost {amount} morale from {sourceName}. Morale: {currentMorale}/{maxMorale}</color>");
+
+            GameEvents.TriggerMoraleDamaged(gameObject, amount);
+            // NOTE: No CheckSurrenderCondition() — environmental morale damage
+            // weakens but does not trigger surrender on its own.
+        }
+
+        /// <summary>
         /// Calculate Grit-based damage reduction.
         /// Formula: GritFactor = ((1 - HP%) × 0.50 + Morale% × 0.40)
         /// DR = min(DRCap, GritFactor × (Grit / 100))
