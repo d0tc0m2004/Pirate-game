@@ -76,6 +76,7 @@ namespace TacticalGame.Equipment
         
         // Highlight tracking
         private List<GridCell> highlightedCells = new List<GridCell>();
+        private Dictionary<GridCell, Color> originalCellColors = new Dictionary<GridCell, Color>();
         private List<UnitStatus> validTargets = new List<UnitStatus>();
         
         #endregion
@@ -486,28 +487,32 @@ namespace TacticalGame.Equipment
             var renderer = cell.GetComponent<Renderer>();
             if (renderer != null)
             {
-                // Store original and apply highlight
-                renderer.material.color = color * 0.5f + renderer.material.color * 0.5f;
+                // Save original color before modifying
+                if (!originalCellColors.ContainsKey(cell))
+                {
+                    originalCellColors[cell] = renderer.material.color;
+                }
+                renderer.material.color = color;
             }
         }
         
         private void ClearHighlights()
         {
-            // Reset all highlighted cells
+            // Restore original colors for all highlighted cells
             foreach (var cell in highlightedCells)
             {
                 if (cell != null)
                 {
                     var renderer = cell.GetComponent<Renderer>();
-                    if (renderer != null)
+                    if (renderer != null && originalCellColors.TryGetValue(cell, out Color originalColor))
                     {
-                        // Reset color - ideally store original
-                        renderer.material.color = Color.white;
+                        renderer.material.color = originalColor;
                     }
                 }
             }
             
             highlightedCells.Clear();
+            originalCellColors.Clear();
             validTargets.Clear();
         }
         

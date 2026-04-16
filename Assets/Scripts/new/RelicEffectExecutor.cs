@@ -1757,32 +1757,34 @@ namespace TacticalGame.Equipment
             Debug.Log($"Swapped {a.UnitName} with {b.UnitName}");
         }
 
-        private static void ExecuteMoveAlly(UnitStatus caster, UnitStatus _, int tiles)
+        private static void ExecuteMoveAlly(UnitStatus caster, UnitStatus target, int tiles)
         {
-            // Captain V2 Boots: player picks an ally, then a destination tile within range.
+            // The card system already picked the ally (target). Just pick a destination.
             if (caster == null) return;
 
-            RelicTargetSelector.Instance.SelectAllyThenTile(
-                $"Select an ally, then a destination (up to {tiles} tiles away)",
-                (ally, destinationCell) =>
-                {
-                    if (ally == null || destinationCell == null) return;
-                    if (ally.Team != caster.Team) return;
+            // Use the target selected by the card system, fallback to caster
+            UnitStatus allyToMove = target ?? caster;
 
-                    var movement = ally.GetComponent<UnitMovement>();
+            RelicTargetSelector.Instance.SelectTile(
+                $"Select destination for {allyToMove.UnitName} (up to {tiles} tiles)",
+                (destinationCell) =>
+                {
+                    if (destinationCell == null) return;
+
+                    var movement = allyToMove.GetComponent<UnitMovement>();
                     if (movement == null) return;
 
                     var gridManager = ServiceLocator.Get<GridManager>();
                     if (gridManager == null) return;
 
-                    Vector2Int allyPos = gridManager.WorldToGridPosition(ally.transform.position);
+                    Vector2Int allyPos = gridManager.WorldToGridPosition(allyToMove.transform.position);
                     int distance = Mathf.Abs(destinationCell.XPosition - allyPos.x) +
                                    Mathf.Abs(destinationCell.YPosition - allyPos.y);
 
                     if (distance <= tiles)
                     {
                         movement.MoveToCell(destinationCell);
-                        Debug.Log($"{ally.UnitName} moved to ({destinationCell.XPosition}, {destinationCell.YPosition})");
+                        Debug.Log($"{allyToMove.UnitName} moved to ({destinationCell.XPosition}, {destinationCell.YPosition})");
                     }
                     else
                     {
