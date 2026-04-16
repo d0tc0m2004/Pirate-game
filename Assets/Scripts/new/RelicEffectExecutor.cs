@@ -2355,8 +2355,12 @@ namespace TacticalGame.Equipment
             }
             if (spawnCell != null)
             {
-                hazardManager.CreateSoftObstacle(spawnCell, hp, -1); // Permanent until destroyed
-                Debug.Log($"<color=green>{caster.UnitName} summoned a cannon with {hp} HP!</color>");
+                int baseDamage = caster.WeaponType == WeaponType.Melee 
+                    ? DamageCalculator.GetMeleeBaseDamage(caster) 
+                    : DamageCalculator.GetRangedBaseDamage(caster);
+                    
+                hazardManager.CreateCannonObstacle(spawnCell, hp, baseDamage);
+                Debug.Log($"<color=green>{caster.UnitName} summoned a cannon with {hp} HP and {baseDamage} damage!</color>");
             }
         }
 

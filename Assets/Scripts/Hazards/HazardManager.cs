@@ -274,6 +274,23 @@ namespace TacticalGame.Hazards
         }
 
         /// <summary>
+        /// Create a cannon obstacle (destructible) at a specific cell.
+        /// </summary>
+        public RuntimeHazard CreateCannonObstacle(GridCell cell, int hp, int damage)
+        {
+            if (cell == null || cell.HasHazard || cell.IsOccupied) return null;
+
+            var hazard = CreateRuntimeHazard(cell, RuntimeHazardType.CannonObstacle, hp, -1, damage);
+            if (hazard != null)
+            {
+                hazard.SetColor(new Color(1f, 1f, 1f, 1f)); // White cube for cannon
+                cell.isBlockedState = true;
+                Debug.Log($"Created cannon obstacle ({hp} HP, {damage} dmg) at ({cell.XPosition}, {cell.YPosition})");
+            }
+            return hazard;
+        }
+
+        /// <summary>
         /// Create an exploding barrel at a specific cell.
         /// </summary>
         public RuntimeHazard CreateExplodingBarrel(GridCell cell, int damage, int fuseTimer)
@@ -346,9 +363,10 @@ namespace TacticalGame.Hazards
             {
                 visual = Instantiate(prefab, cell.GetWorldPosition(), Quaternion.identity);
             }
-            else if (type == RuntimeHazardType.HardObstacle || type == RuntimeHazardType.SoftObstacle || type == RuntimeHazardType.ExplodingBarrel)
+            else if (type == RuntimeHazardType.HardObstacle || type == RuntimeHazardType.SoftObstacle || 
+                     type == RuntimeHazardType.ExplodingBarrel || type == RuntimeHazardType.CannonObstacle)
             {
-                // 3D cube for obstacles/barrels so they're visible
+                // 3D cube for obstacles/barrels/cannon so they're visible
                 visual = GameObject.CreatePrimitive(PrimitiveType.Cube);
                 visual.transform.position = cell.GetWorldPosition();
                 visual.transform.localScale = new Vector3(0.7f, 0.7f, 0.7f);
@@ -424,6 +442,12 @@ namespace TacticalGame.Hazards
                         toRemove.Add(hazard);
                     }
                 }
+
+                // Cannon auto-attacks every turn
+                if (hazard.Type == RuntimeHazardType.CannonObstacle)
+                {
+                    FireCannon(hazard);
+                }
             }
             
             // Clean up expired hazards
@@ -432,9 +456,10 @@ namespace TacticalGame.Hazards
                 if (hazard.Cell != null)
                 {
                     hazard.Cell.hasHazardState = false;
-                    // Clear blocking for obstacles
+                    // Clears blocking for obstacles and cannons
                     if (hazard.Type == RuntimeHazardType.HardObstacle ||
-                        hazard.Type == RuntimeHazardType.SoftObstacle)
+                        hazard.Type == RuntimeHazardType.SoftObstacle ||
+                        hazard.Type == RuntimeHazardType.CannonObstacle)
                     {
                         hazard.Cell.isBlockedState = false;
                     }
@@ -484,8 +509,26 @@ namespace TacticalGame.Hazards
 
                 case RuntimeHazardType.HardObstacle:
                 case RuntimeHazardType.SoftObstacle:
+                case RuntimeHazardType.CannonObstacle:
                     // Obstacles block movement, don't apply effect
                     break;
+            }
+        }
+        
+        private void FireCannon(RuntimeHazard cannon)
+        {
+            // Pick a random enemy and deal ExtraValue damage
+            var target = TacticalGame.Core.ServiceLocator.Get<TacticalGame.Managers.DeploymentManager>()?.GetLivingEnemies()?[0]; 
+            // Better: Let's find all enemies and pick a random one
+            var enemies = Object.FindObjectsByType<UnitStatus>(FindObjectsSortMode.None)
+                .Where(u => u != null && u.Team == Team.Enemy && !u.HasSurrendered)
+                .ToList();
+                
+            if (enemies.Count > 0)
+            {
+                var targetUnit = enemies[Random.Range(0, enemies.Count)];
+                targetUnit.TakeEnvironmentalDamage(cannon.ExtraValue, "SummonedCannon");
+                Debug.Log($"Summoned Cannon ({cannon.Value} HP) fired at {targetUnit.UnitName} for {cannon.ExtraValue} dmg!");
             }
         }
         
@@ -725,7 +768,8 @@ namespace TacticalGame.Hazards
         Slow,
         HardObstacle,
         SoftObstacle,
-        ExplodingBarrel
+        ExplodingBarrel,
+        CannonObstacle
     }
     
     /// <summary>
@@ -738,14 +782,16 @@ namespace TacticalGame.Hazards
         public RuntimeHazardType Type { get; private set; }
         public int Value { get; private set; }
         public int Duration { get; set; }
+        public int ExtraValue { get; private set; } // Used for cannon damage
         
-        public RuntimeHazard(GridCell cell, GameObject visual, RuntimeHazardType type, int value, int duration)
+        public RuntimeHazard(GridCell cell, GameObject visual, RuntimeHazardType type, int value, int duration, int extraValue = 0)
         {
             Cell = cell;
             Visual = visual;
             Type = type;
             Value = value;
             Duration = duration;
+            ExtraValue = extraValue;
         }
         
         public void SetColor(Color color)
