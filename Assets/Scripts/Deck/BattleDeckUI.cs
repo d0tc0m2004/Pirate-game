@@ -839,7 +839,7 @@ namespace TacticalGame.Equipment
             // Check if already selected - deselect
             if (selectedCardUI == cardUI)
             {
-                DeselectCard();
+                CancelTargeting();
                 return;
             }
 
@@ -1517,6 +1517,12 @@ namespace TacticalGame.Equipment
         
         private void ShowCardContextMenu(CardUI cardUI)
         {
+            if (isTargeting)
+            {
+                CancelTargeting();
+                return;
+            }
+            
             var card = cardUI.Card;
 
             if (!card.BelongsTo(BattleDeckManager.Instance.SelectedUnit))

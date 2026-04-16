@@ -4,6 +4,8 @@ using TacticalGame.Core;
 using TacticalGame.Grid;
 using TacticalGame.Units;
 using TacticalGame.Combat;
+using TacticalGame.Enums;
+using System.Linq;
 
 namespace TacticalGame.Hazards
 {
@@ -351,7 +353,7 @@ namespace TacticalGame.Hazards
         
         #region Runtime Hazard Logic
         
-        private RuntimeHazard CreateRuntimeHazard(GridCell cell, RuntimeHazardType type, int value, int duration)
+        private RuntimeHazard CreateRuntimeHazard(GridCell cell, RuntimeHazardType type, int value, int duration, int extraValue = 0)
         {
             if (cell == null) return null;
             
@@ -388,7 +390,7 @@ namespace TacticalGame.Hazards
             visual.transform.SetParent(cell.transform);
             
             // Create runtime hazard data
-            var hazard = new RuntimeHazard(cell, visual, type, value, duration);
+            var hazard = new RuntimeHazard(cell, visual, type, value, duration, extraValue);
             activeRuntimeHazards.Add(hazard);
             
             // Mark cell as having hazard
@@ -517,9 +519,7 @@ namespace TacticalGame.Hazards
         
         private void FireCannon(RuntimeHazard cannon)
         {
-            // Pick a random enemy and deal ExtraValue damage
-            var target = TacticalGame.Core.ServiceLocator.Get<TacticalGame.Managers.DeploymentManager>()?.GetLivingEnemies()?[0]; 
-            // Better: Let's find all enemies and pick a random one
+            // Find all enemies and pick a random one
             var enemies = Object.FindObjectsByType<UnitStatus>(FindObjectsSortMode.None)
                 .Where(u => u != null && u.Team == Team.Enemy && !u.HasSurrendered)
                 .ToList();
