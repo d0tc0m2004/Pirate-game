@@ -212,8 +212,8 @@ namespace TacticalGame.Equipment
                     // Edge Case 2 Fix: Restrict highlight to actual move range
                     if (centerUnit != null && maxRange < 99)
                     {
-                        int distance = Mathf.Abs(cell.XPosition - centerPos.x) + Mathf.Abs(cell.YPosition - centerPos.y);
-                        valid = valid && (distance <= maxRange);
+                        int distance = Mathf.Max(Mathf.Abs(cell.XPosition - centerPos.x), Mathf.Abs(cell.YPosition - centerPos.y));
+                        valid = valid && (distance <= maxRange) && (distance > 0);
                     }
                     
                     if (valid)

@@ -1780,45 +1780,101 @@ namespace TacticalGame.Equipment
         private static void ExecuteMoveAlly(UnitStatus caster, UnitStatus target, int tiles, BattleCard card = null)
         {
             if (caster == null) return;
-
             UnitStatus allyToMove = target ?? caster;
+            
+            // Start the recursive step-by-step movement loop
+            ExecuteMoveAllyStep(allyToMove, tiles, card, true);
+        }
+
+        private static void ExecuteMoveAllyStep(UnitStatus allyToMove, int remainingSteps, BattleCard card, bool isFirstStep)
+        {
+            if (remainingSteps <= 0 || allyToMove == null) return;
+
             bool isPlayerAlly = allyToMove.Team == Team.Player;
 
-            // Notice we are passing 'tiles', 'allyToMove', and 'isPlayerAlly' to the UI now!
+            // SAFETY CHECK: If they box themselves in on step 1, end the movement early so they don't get soft-locked!
+            if (!HasValidAdjacentTile(allyToMove, isPlayerAlly))
+            {
+                Debug.Log($"{allyToMove.UnitName} has no valid adjacent tiles left. Movement ends.");
+                return;
+            }
+
             RelicTargetSelector.Instance.SelectTile(
-                $"Select destination for {allyToMove.UnitName} (up to {tiles} tiles)",
+                $"Move {allyToMove.UnitName} ({remainingSteps} steps left) — click an adjacent tile",
                 (destinationCell) =>
                 {
                     if (destinationCell == null) return;
 
-                    var movement = allyToMove.GetComponent<UnitMovement>();
                     var gridManager = ServiceLocator.Get<GridManager>();
-                    if (movement == null || gridManager == null) return;
+                    if (gridManager == null) return;
 
                     Vector2Int allyPos = gridManager.WorldToGridPosition(allyToMove.transform.position);
-                    int distance = Mathf.Abs(destinationCell.XPosition - allyPos.x) + Mathf.Abs(destinationCell.YPosition - allyPos.y);
+                    
+                    // FIXED: 8-way distance check
+                    int distance = Mathf.Max(Mathf.Abs(destinationCell.XPosition - allyPos.x), Mathf.Abs(destinationCell.YPosition - allyPos.y));
 
-                    // Final safety math checks
-                    if (distance <= tiles && (!isPlayerAlly || destinationCell.IsPlayerSide))
+                    if (distance == 1 && (!isPlayerAlly || destinationCell.IsPlayerSide))
                     {
-                        movement.MoveToCell(destinationCell);
-                        Debug.Log($"{allyToMove.UnitName} moved to ({destinationCell.XPosition}, {destinationCell.YPosition})");
+                        // 1. Instantly update the Grid occupancy
+                        GridCell oldCell = gridManager.GetCell(allyPos.x, allyPos.y);
+                        if (oldCell != null) oldCell.RemoveUnit();
+                        destinationCell.PlaceUnit(allyToMove.gameObject);
+
+                        // 2. Instantly move the physical unit
+                        allyToMove.transform.position = destinationCell.GetWorldPosition();
+                        GameEvents.TriggerUnitMoved(allyToMove.gameObject, oldCell, destinationCell);
+
+                        Debug.Log($"{allyToMove.UnitName} stepped to ({destinationCell.XPosition}, {destinationCell.YPosition})");
+
+                        // 3. Trigger the next step (isFirstStep is now FALSE)
+                        ExecuteMoveAllyStep(allyToMove, remainingSteps - 1, card, false);
                     }
                     else
                     {
-                        Debug.Log($"Destination invalid (too far or wrong side).");
-                        if (card != null) BattleDeckManager.Instance.RefundCard(card);
+                        Debug.Log("Invalid tile! Must be exactly 1 step away.");
+                        ExecuteMoveAllyStep(allyToMove, remainingSteps, card, isFirstStep); 
                     }
                 },
                 () => {
-                    if (card != null) BattleDeckManager.Instance.RefundCard(card);
-                    else Debug.Log("Move ally cancelled");
+                    if (isFirstStep)
+                    {
+                        // Cancel allowed ONLY on the very first step
+                        if (card != null) BattleDeckManager.Instance.RefundCard(card);
+                        Debug.Log("Movement cancelled. Card refunded.");
+                    }
+                    else
+                    {
+                        // Mid-way cancel is BLOCKED!
+                        Debug.Log("Cannot cancel mid-movement! You must finish taking your steps.");
+                        ExecuteMoveAllyStep(allyToMove, remainingSteps, card, false);
+                    }
                 },
                 true, // onlyEmpty
-                tiles, // maxRange
+                1,    // maxRange = 1
                 allyToMove, // centerUnit
                 isPlayerAlly // playerSideOnly
             );
+        }
+
+        private static bool HasValidAdjacentTile(UnitStatus unit, bool playerSideOnly)
+        {
+            var gridManager = ServiceLocator.Get<GridManager>();
+            if (gridManager == null) return false;
+            
+            Vector2Int pos = gridManager.WorldToGridPosition(unit.transform.position);
+            // FIXED: All 8 directions
+            Vector2Int[] dirs = { 
+                new Vector2Int(0, 1), new Vector2Int(0, -1), new Vector2Int(1, 0), new Vector2Int(-1, 0),
+                new Vector2Int(1, 1), new Vector2Int(1, -1), new Vector2Int(-1, 1), new Vector2Int(-1, -1)
+            };
+            
+            foreach(var d in dirs) {
+                var cell = gridManager.GetCell(pos.x + d.x, pos.y + d.y);
+                if (cell != null && !cell.IsMiddleColumn && cell.CanPlaceUnit()) {
+                    if (!playerSideOnly || cell.IsPlayerSide) return true;
+                }
+            }
+            return false;
         }
         
         private static void ExecuteMoveToNeutralZone(UnitStatus caster, GridCell targetCell)
