@@ -167,7 +167,11 @@ namespace TacticalGame.Equipment
         /// <summary>
         /// Select a single tile.
         /// </summary>
-        public void SelectTile(string prompt, Action<GridCell> callback, Action cancelCallback = null, bool onlyEmpty = true)
+        /// <summary>
+        /// Select a single tile. Now supports range limits and side restrictions!
+        /// </summary>
+        public void SelectTile(string prompt, Action<GridCell> callback, Action cancelCallback = null, 
+                               bool onlyEmpty = true, int maxRange = 99, UnitStatus centerUnit = null, bool playerSideOnly = false)
         {
             currentMode = SelectionMode.SingleTile;
             promptText = prompt;
@@ -175,7 +179,50 @@ namespace TacticalGame.Equipment
             onCancelled = cancelCallback;
             
             StartSelection();
-            HighlightValidTiles(onlyEmpty);
+            HighlightValidTiles(onlyEmpty, maxRange, centerUnit, playerSideOnly);
+        }
+
+        private void HighlightValidTiles(bool onlyEmpty, int maxRange = 99, UnitStatus centerUnit = null, bool playerSideOnly = false)
+        {
+            highlightedCells.Clear();
+            
+            var gridManager = ServiceLocator.Get<GridManager>();
+            if (gridManager == null) return;
+
+            Vector2Int centerPos = Vector2Int.zero;
+            if (centerUnit != null)
+            {
+                centerPos = gridManager.WorldToGridPosition(centerUnit.transform.position);
+            }
+            
+            for (int x = 0; x < gridManager.GridWidth; x++)
+            {
+                for (int y = 0; y < gridManager.GridHeight; y++)
+                {
+                    var cell = gridManager.GetCell(x, y);
+                    if (cell == null) continue;
+                    
+                    bool valid = !cell.IsMiddleColumn; // Never highlight middle column
+                    
+                    // Edge Case 1 Fix: Restrict to Player Side
+                    if (playerSideOnly) valid = valid && cell.IsPlayerSide;
+                    
+                    if (onlyEmpty) valid = valid && cell.CanPlaceUnit();
+
+                    // Edge Case 2 Fix: Restrict highlight to actual move range
+                    if (centerUnit != null && maxRange < 99)
+                    {
+                        int distance = Mathf.Abs(cell.XPosition - centerPos.x) + Mathf.Abs(cell.YPosition - centerPos.y);
+                        valid = valid && (distance <= maxRange);
+                    }
+                    
+                    if (valid)
+                    {
+                        highlightedCells.Add(cell);
+                        HighlightCell(cell, Color.cyan);
+                    }
+                }
+            }
         }
         
         /// <summary>

@@ -134,7 +134,9 @@ namespace TacticalGame.Equipment
                     if (target != null)
                     {
                         ExecuteAttack(caster, target);
-                        ApplyReduceCardDraw(target, (int)effect.value2, effect.duration);
+                        // Only apply debuff if they survived the attack
+                        if (target != null && target.CurrentHP > 0 && !target.HasSurrendered)
+                            ApplyReduceCardDraw(target, (int)effect.value2, effect.duration);
                     }
                     break;
                     
@@ -142,7 +144,9 @@ namespace TacticalGame.Equipment
                     if (target != null)
                     {
                         ExecuteAttack(caster, target);
-                        ApplyIncreaseCost(target, (int)effect.value2, effect.duration);
+                        // Only apply debuff if they survived the attack
+                        if (target != null && target.CurrentHP > 0 && !target.HasSurrendered)
+                            ApplyIncreaseCost(target, (int)effect.value2, effect.duration);
                     }
                     break;
                     
@@ -1719,7 +1723,6 @@ namespace TacticalGame.Equipment
         {
             if (caster == null) return;
 
-            // If a target was already provided (like from V2 Boots), just swap directly
             if (target != null)
             {
                 SwapUnitsOnGrid(caster, target);
@@ -1730,7 +1733,13 @@ namespace TacticalGame.Equipment
                 "Select an ally to swap locations with",
                 (ally) =>
                 {
-                    if (ally == null || ally == caster) return;
+                    // Edge Case 3 Fix: If they click themselves, REFUND the card instead of swallowing it
+                    if (ally == null || ally == caster) 
+                    {
+                        if (card != null) BattleDeckManager.Instance.RefundCard(card);
+                        Debug.Log("Invalid swap target. Card refunded.");
+                        return;
+                    }
                     SwapUnitsOnGrid(caster, ally);
                 },
                 () => {
@@ -1772,9 +1781,10 @@ namespace TacticalGame.Equipment
         {
             if (caster == null) return;
 
-            // Use the target selected by the card system, fallback to caster
             UnitStatus allyToMove = target ?? caster;
+            bool isPlayerAlly = allyToMove.Team == Team.Player;
 
+            // Notice we are passing 'tiles', 'allyToMove', and 'isPlayerAlly' to the UI now!
             RelicTargetSelector.Instance.SelectTile(
                 $"Select destination for {allyToMove.UnitName} (up to {tiles} tiles)",
                 (destinationCell) =>
@@ -1782,30 +1792,32 @@ namespace TacticalGame.Equipment
                     if (destinationCell == null) return;
 
                     var movement = allyToMove.GetComponent<UnitMovement>();
-                    if (movement == null) return;
-
                     var gridManager = ServiceLocator.Get<GridManager>();
-                    if (gridManager == null) return;
+                    if (movement == null || gridManager == null) return;
 
                     Vector2Int allyPos = gridManager.WorldToGridPosition(allyToMove.transform.position);
-                    int distance = Mathf.Abs(destinationCell.XPosition - allyPos.x) +
-                                   Mathf.Abs(destinationCell.YPosition - allyPos.y);
+                    int distance = Mathf.Abs(destinationCell.XPosition - allyPos.x) + Mathf.Abs(destinationCell.YPosition - allyPos.y);
 
-                    if (distance <= tiles)
+                    // Final safety math checks
+                    if (distance <= tiles && (!isPlayerAlly || destinationCell.IsPlayerSide))
                     {
                         movement.MoveToCell(destinationCell);
                         Debug.Log($"{allyToMove.UnitName} moved to ({destinationCell.XPosition}, {destinationCell.YPosition})");
                     }
                     else
                     {
-                        Debug.Log($"Destination {distance} tiles away, max {tiles}");
+                        Debug.Log($"Destination invalid (too far or wrong side).");
                         if (card != null) BattleDeckManager.Instance.RefundCard(card);
                     }
                 },
                 () => {
                     if (card != null) BattleDeckManager.Instance.RefundCard(card);
                     else Debug.Log("Move ally cancelled");
-                }
+                },
+                true, // onlyEmpty
+                tiles, // maxRange
+                allyToMove, // centerUnit
+                isPlayerAlly // playerSideOnly
             );
         }
         
@@ -2570,47 +2582,68 @@ namespace TacticalGame.Equipment
         private const int SHIP_CANNON_FIRE_DPS = 25;
         private const int SHIP_CANNON_FIRE_DURATION = 2;
 
-        private static void ExecuteShipCannonUltimate(UnitStatus caster, int damage, int shots)
+        private static void ExecuteShipCannonUltimate(UnitStatus caster, int damage, int shots, BattleCard card = null)
         {
             if (caster == null || shots <= 0) return;
 
             var hazardManager = ServiceLocator.Get<HazardManager>();
             var gridManager = ServiceLocator.Get<GridManager>();
+            if (gridManager == null) return;
 
-            var alreadyHit = new HashSet<UnitStatus>(); // Each enemy can only be hit once
-            int hits = 0;
-
-            for (int i = 0; i < shots; i++)
+            int middleCol = gridManager.GetMiddleColumnIndex();
+            int width = gridManager.GridWidth;
+            int height = gridManager.GridHeight;
+            
+            // 1. Gather all valid tiles on the ENEMY side that DO NOT have hazards
+            List<GridCell> validCells = new List<GridCell>();
+            for (int x = middleCol + 1; x < width; x++)
             {
-                // Get living enemies that haven't been hit yet
-                var eligible = GetEnemies(caster)
-                    .Where(e => e != null && e.CurrentHP > 0 && !alreadyHit.Contains(e))
-                    .ToList();
-                if (eligible.Count == 0) break;
-
-                var target = eligible[Random.Range(0, eligible.Count)];
-                alreadyHit.Add(target);
-
-                // Capture the target's tile BEFORE damage
-                GridCell hitCell = null;
-                if (gridManager != null)
+                for (int y = 0; y < height; y++)
                 {
-                    Vector2Int pos = gridManager.WorldToGridPosition(target.transform.position);
-                    hitCell = gridManager.GetCell(pos.x, pos.y);
-                }
-
-                // HP-only damage — cannon shots don't affect morale
-                target.TakeEnvironmentalDamage(damage, "ShipCannon");
-                hits++;
-
-                // Spawn a fire hazard on the hit tile
-                if (hazardManager != null && hitCell != null)
-                {
-                    hazardManager.CreateFireTile(hitCell, SHIP_CANNON_FIRE_DPS, SHIP_CANNON_FIRE_DURATION);
+                    var cell = gridManager.GetCell(x, y);
+                    if (cell != null && !cell.HasHazard)
+                    {
+                        validCells.Add(cell);
+                    }
                 }
             }
 
-            Debug.Log($"<color=orange>Ship cannon fired {hits}/{shots} shots for {damage} HP damage each (0 morale), hitting {hits} different enemies</color>");
+            int hits = 0;
+            int shotsFired = 0;
+
+            // 2. Fire 'shots' times, picking a random hazard-free tile each time
+            for (int i = 0; i < shots; i++)
+            {
+                if (validCells.Count == 0) break; // Stop if the board is completely covered in hazards!
+
+                // Pick a random valid cell from our list
+                int randomIndex = UnityEngine.Random.Range(0, validCells.Count);
+                GridCell targetCell = validCells[randomIndex];
+                
+                // Remove it from the list so the next shot doesn't hit the exact same tile
+                validCells.RemoveAt(randomIndex);
+
+                shotsFired++;
+
+                // Deal damage if a unit happens to be standing on this tile
+                if (targetCell.IsOccupied && targetCell.OccupyingUnit != null)
+                {
+                    var unit = targetCell.OccupyingUnit.GetComponent<UnitStatus>();
+                    if (unit != null && unit.CurrentHP > 0 && !unit.HasSurrendered)
+                    {
+                        unit.TakeEnvironmentalDamage(damage, "ShipCannon");
+                        hits++;
+                    }
+                }
+
+                // Always create the fire hazard on the tile, regardless of whether it hit someone
+                if (hazardManager != null)
+                {
+                    hazardManager.CreateFireTile(targetCell, SHIP_CANNON_FIRE_DPS, SHIP_CANNON_FIRE_DURATION);
+                }
+            }
+
+            Debug.Log($"<color=orange>Ship cannon fired {shotsFired} shots at random tiles! Hit {hits} units for {damage} HP each.</color>");
         }
         
         private static void ExecuteMarkCaptainOnly(UnitStatus caster, UnitStatus target)

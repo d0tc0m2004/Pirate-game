@@ -140,8 +140,9 @@ namespace TacticalGame.Equipment
                     return "";
 
                 // Totem V2: "Curse enemy captain this turn, damage reflects to other enemies"
-                // User rule: always playable (game over if captain is dead)
                 case RelicEffectType.Totem_CurseCaptainReflect:
+                    if (!HasEnemyCaptain(card.ownerUnit))
+                        return "Requires an Enemy Captain";
                     return "";
 
                 // Ultimate V1: "Fire ship cannon: 3 shots, 200 damage + fire hazard"
@@ -150,8 +151,9 @@ namespace TacticalGame.Equipment
                     return "";
 
                 // Ultimate V2: "Attack enemy captain with weapon, mark as only target this turn"
-                // User rule: always playable (game over if captain is dead)
                 case RelicEffectType.Ultimate_MarkCaptainOnly:
+                    if (!HasEnemyCaptain(card.ownerUnit))
+                        return "Requires an Enemy Captain";
                     return "";
 
                 // ==================== OTHER ROLES ====================
@@ -199,6 +201,25 @@ namespace TacticalGame.Equipment
                 if (u.HasSurrendered) continue;
                 if (u.CurrentHP <= 0) continue;
                 return true;
+            }
+            return false;
+        }
+
+        /// <summary>
+        /// Is there a living enemy Captain on the board?
+        /// </summary>
+        private static bool HasEnemyCaptain(UnitStatus self)
+        {
+            if (self == null) return false;
+
+            var units = Object.FindObjectsByType<UnitStatus>(FindObjectsSortMode.None);
+            foreach (var u in units)
+            {
+                if (u == null || u == self) continue;
+                if (u.Team == self.Team) continue;
+                if (u.HasSurrendered) continue;
+                if (u.CurrentHP <= 0) continue;
+                if (u.IsCaptain) return true;
             }
             return false;
         }

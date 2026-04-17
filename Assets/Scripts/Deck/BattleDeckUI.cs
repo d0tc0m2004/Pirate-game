@@ -843,21 +843,19 @@ namespace TacticalGame.Equipment
                 return;
             }
 
-            // Select this card
-            SelectCard(cardUI);
-
-            // Log if card is fundamentally unplayable
             var playability = CardPlayabilityChecker.Check(card, manager.SelectedUnit);
             if (!playability.isPlayable)
             {
-                Debug.Log($"<color=orange>Playability Block: {playability.reason}</color>");
-                // We do not return here immediately since selecting unplayable cards is permitted 
-                // in some designs for UI inspection, but play-execution will ultimately prevent it.
+                // The card is unplayable (no energy, no target, dead captain, etc.)
+                // We return immediately to block selection, targeting, and energy usage!
+                Debug.Log($"<color=orange>Action Blocked: {playability.reason}</color>");
+                return; 
             }
 
-            // If card needs target, enter targeting mode (highlights are already
-            // up from the hover preview — StartTargeting will just re-paint them
-            // and flip the input mode to "waiting for a target click").
+            // Select this card (lifts it up)
+            SelectCard(cardUI);
+
+            // If card needs target, enter targeting mode
             if (card.RequiresTarget())
             {
                 StartTargeting(card);
