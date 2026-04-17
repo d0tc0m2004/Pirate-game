@@ -22,7 +22,7 @@ namespace TacticalGame.Equipment
         /// <summary>
         /// Execute a relic effect from an EquippedRelic.
         /// </summary>
-        public static void Execute(EquippedRelic relic, UnitStatus caster, UnitStatus target = null, GridCell targetCell = null)
+        public static void Execute(EquippedRelic relic, UnitStatus caster, UnitStatus target = null, GridCell targetCell = null, BattleCard card = null)
         {
             if (relic == null || caster == null)
             {
@@ -37,13 +37,13 @@ namespace TacticalGame.Equipment
                 return;
             }
             
-            ExecuteByEffectType(effectData.effectType, effectData, caster, target, targetCell);
+            ExecuteByEffectType(effectData.effectType, effectData, caster, target, targetCell, card);
         }
         
         /// <summary>
         /// Execute a relic effect directly from RelicEffectData.
         /// </summary>
-        public static void Execute(RelicEffectData effectData, UnitStatus caster, UnitStatus target = null, GridCell targetCell = null)
+        public static void Execute(RelicEffectData effectData, UnitStatus caster, UnitStatus target = null, GridCell targetCell = null, BattleCard card = null)
         {
             if (effectData == null || caster == null)
             {
@@ -51,14 +51,14 @@ namespace TacticalGame.Equipment
                 return;
             }
             
-            ExecuteByEffectType(effectData.effectType, effectData, caster, target, targetCell);
+            ExecuteByEffectType(effectData.effectType, effectData, caster, target, targetCell, card);
         }
         
         /// <summary>
         /// Main execution switch based on effect type.
         /// </summary>
         private static void ExecuteByEffectType(RelicEffectType effectType, RelicEffectData effect, 
-            UnitStatus caster, UnitStatus target, GridCell targetCell)
+            UnitStatus caster, UnitStatus target, GridCell targetCell, BattleCard card = null)
         {
             Debug.Log($"<color=cyan>Executing {effectType} by {caster.UnitName}</color>");
             
@@ -72,11 +72,11 @@ namespace TacticalGame.Equipment
             {
                 // ==================== BOOTS ====================
                 case RelicEffectType.Boots_SwapWithUnit:
-                    ExecuteSwapWithUnit(caster, target);
+                    ExecuteSwapWithUnit(caster, target, card);
                     break;
                     
                 case RelicEffectType.Boots_MoveAlly:
-                    ExecuteMoveAlly(caster, target, (int)effect.value1);
+                    ExecuteMoveAlly(caster, target, (int)effect.value1, card);
                     break;
                     
                 case RelicEffectType.Boots_MoveRestoreMorale:
@@ -494,10 +494,10 @@ namespace TacticalGame.Equipment
                 // ==================== V2 BOOTS ====================
                 case RelicEffectType.Boots_V2_SwapWithEnemy:
                     if (target != null && target.Team != caster.Team)
-                        ExecuteSwapWithUnit(caster, target);
+                        ExecuteSwapWithUnit(caster, target, card);
                     break;
                 case RelicEffectType.Boots_V2_MoveAllyGainShield:
-                    ExecuteMoveAlly(caster, target, (int)effect.value1);
+                    ExecuteMoveAlly(caster, target, (int)effect.value1, card);
                     // Shield would be applied via StatusEffectManager
                     break;
                 case RelicEffectType.Boots_V2_MoveGainMoraleOnKill:
@@ -820,7 +820,10 @@ namespace TacticalGame.Equipment
                         (ally, destinationCell) => {
                             TeleportUnit(ally, destinationCell);
                         },
-                        () => Debug.Log("Teleport cancelled")
+                        () => {
+                            if (card != null) BattleDeckManager.Instance.RefundCard(card);
+                            else Debug.Log("Teleport cancelled");
+                        }
                     );
                     break;
                 case RelicEffectType.Ultimate_V2_MassHeal:
@@ -863,7 +866,7 @@ namespace TacticalGame.Equipment
                     {
                         var lowestAlly = GetLowestHPAlly(caster);
                         if (lowestAlly != null)
-                            ExecuteSwapWithUnit(caster, lowestAlly);
+                            ExecuteSwapWithUnit(caster, lowestAlly, card);
                     }
                     break;
                 case RelicEffectType.Gloves_AttackHealLowestAlly:
@@ -1518,7 +1521,7 @@ namespace TacticalGame.Equipment
                                 Vector3.Distance(caster.transform.position, e.transform.position)).ToList();
                             var closest2 = sorted.First();
                             var furthest = sorted.Last();
-                            ExecuteSwapWithUnit(closest2, furthest);
+                            ExecuteSwapWithUnit(closest2, furthest, card);
                             Debug.Log($"Swapped {closest2.UnitName} and {furthest.UnitName} positions");
                         }
                     }
@@ -1712,11 +1715,16 @@ namespace TacticalGame.Equipment
             }
         }
         
-        private static void ExecuteSwapWithUnit(UnitStatus caster, UnitStatus _)
+        private static void ExecuteSwapWithUnit(UnitStatus caster, UnitStatus target, BattleCard card = null)
         {
-            // Captain V1 Boots: player picks an ally to swap positions with.
-            // Uses RelicTargetSelector to prompt the player rather than auto-targeting.
             if (caster == null) return;
+
+            // If a target was already provided (like from V2 Boots), just swap directly
+            if (target != null)
+            {
+                SwapUnitsOnGrid(caster, target);
+                return;
+            }
 
             RelicTargetSelector.Instance.SelectAlly(
                 "Select an ally to swap locations with",
@@ -1725,7 +1733,10 @@ namespace TacticalGame.Equipment
                     if (ally == null || ally == caster) return;
                     SwapUnitsOnGrid(caster, ally);
                 },
-                () => Debug.Log("Swap cancelled")
+                () => {
+                    if (card != null) BattleDeckManager.Instance.RefundCard(card);
+                    else Debug.Log("Swap cancelled");
+                }
             );
         }
 
@@ -1757,9 +1768,8 @@ namespace TacticalGame.Equipment
             Debug.Log($"Swapped {a.UnitName} with {b.UnitName}");
         }
 
-        private static void ExecuteMoveAlly(UnitStatus caster, UnitStatus target, int tiles)
+        private static void ExecuteMoveAlly(UnitStatus caster, UnitStatus target, int tiles, BattleCard card = null)
         {
-            // The card system already picked the ally (target). Just pick a destination.
             if (caster == null) return;
 
             // Use the target selected by the card system, fallback to caster
@@ -1789,9 +1799,13 @@ namespace TacticalGame.Equipment
                     else
                     {
                         Debug.Log($"Destination {distance} tiles away, max {tiles}");
+                        if (card != null) BattleDeckManager.Instance.RefundCard(card);
                     }
                 },
-                () => Debug.Log("Move ally cancelled")
+                () => {
+                    if (card != null) BattleDeckManager.Instance.RefundCard(card);
+                    else Debug.Log("Move ally cancelled");
+                }
             );
         }
         

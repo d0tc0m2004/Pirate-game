@@ -586,10 +586,34 @@ namespace TacticalGame.Equipment
             }
             else
             {
-                RelicEffectExecutor.Execute(card.sourceRelic, card.ownerUnit, target, targetCell);
+                RelicEffectExecutor.Execute(card.sourceRelic, card.ownerUnit, target, targetCell, card);
             }
         }
         
+        /// <summary>
+        /// Refund a card and its energy cost if a multi-step async targeter was cancelled.
+        /// </summary>
+        public void RefundCard(BattleCard card)
+        {
+            if (discardPile.Contains(card))
+            {
+                discardPile.Remove(card);
+                hand.Add(card);
+                
+                var energyManager = ServiceLocator.Get<EnergyManager>();
+                if (energyManager != null)
+                {
+                    // Spending negative energy refunds it
+                    energyManager.TrySpendEnergy(-card.energyCost);
+                }
+                
+                selectedCard = null;
+                OnHandChanged?.Invoke(hand);
+                
+                Debug.Log($"<color=orange>Refunded card: {card.GetDisplayName()}</color>");
+            }
+        }
+
         private void ExecuteWeaponCard(BattleCard card, UnitStatus target)
         {
             if (target == null)
