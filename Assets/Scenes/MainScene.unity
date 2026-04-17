@@ -17767,6 +17767,7 @@ GameObject:
   - component: {fileID: 1030682495}
   - component: {fileID: 1030682494}
   - component: {fileID: 1030682500}
+  - component: {fileID: 1030682501}
   m_Layer: 0
   m_Name: GameManager
   m_TagString: Untagged
@@ -17921,6 +17922,23 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::TacticalGame.Combat.DeadMansLockerManager
   lockerPrefab: {fileID: 0}
   lockerMaterial: {fileID: 0}
+--- !u!114 &1030682501
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1030682491}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cd994fc2309c83840af7bb779539835e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::TacticalGame.DebugTools.DebugConsoleLogger
+  inspectUnitKey: 282
+  inspectGlobalKey: 283
+  unitLayerMask:
+    serializedVersion: 2
+    m_Bits: 4294967295
 --- !u!1 &1058338509
 GameObject:
   m_ObjectHideFlags: 0
