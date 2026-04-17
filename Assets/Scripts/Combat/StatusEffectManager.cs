@@ -750,16 +750,30 @@ namespace TacticalGame.Combat
                 }
             }
 
-            // Draw on enemy attack
+            // Draw on enemy attack AND force discard
             if (HasEffect(StatusEffectType.DrawOnEnemyAttack))
             {
                 StatusEffect effect = GetEffect(StatusEffectType.DrawOnEnemyAttack);
                 if (!effect.triggeredThisTurn && effect.value1 > 0)
                 {
+                    // 1. Captain draws a card
                     DeckManager?.DrawOneCard();
+                    Debug.Log($"{gameObject.name} drew a card from being attacked!");
+
+                    // 2. Attacker is forced to discard (using value2)
+                    if (effect.value2 > 0 && attacker != null)
+                    {
+                        var attackerStatus = attacker.GetComponent<UnitStatus>();
+                        if (attackerStatus != null)
+                        {
+                            DeckManager?.ForceDiscardFromUnit(attackerStatus, (int)effect.value2);
+                            Debug.Log($"{attacker.name} forced to discard {(int)effect.value2} card(s) due to {gameObject.name}'s retaliation!");
+                        }
+                    }
+
+                    // 3. Tick down the charges (max 3)
                     effect.value1--;
                     effect.triggeredThisTurn = true;
-                    Debug.Log($"{gameObject.name} drew a card from being attacked!");
                     
                     if (effect.value1 <= 0)
                         RemoveEffect(StatusEffectType.DrawOnEnemyAttack);

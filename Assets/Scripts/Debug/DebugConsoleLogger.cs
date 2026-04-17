@@ -5,6 +5,7 @@ using TacticalGame.Combat;
 using TacticalGame.Managers;
 using TacticalGame.Equipment;
 using TacticalGame.Grid;
+using TacticalGame.Hazards;
 using TacticalGame.Core;
 
 namespace TacticalGame.DebugTools
@@ -20,12 +21,10 @@ namespace TacticalGame.DebugTools
         [Tooltip("Make sure this matches the physics layer your units are on")]
         public LayerMask unitLayerMask = ~0;
 
-        // Explicitly telling Unity to use its built-in Camera class
         private UnityEngine.Camera mainCam;
 
         private void Start()
         {
-            // Explicitly using UnityEngine.Camera here too
             mainCam = UnityEngine.Camera.main;
         }
 
@@ -79,7 +78,7 @@ namespace TacticalGame.DebugTools
             sb.AppendLine($"- Grit: {unit.Grit}");
             sb.AppendLine($"- Speed: {unit.Speed}");
 
-            // 2. STATUS EFFECTS (Buffs/Debuffs)
+            // 2. STATUS EFFECTS (Now with human-readable translations!)
             sb.AppendLine("\n<color=yellow><b>[2. STATUS EFFECTS]</b></color>");
             var effectsManager = unit.GetComponent<StatusEffectManager>();
             if (effectsManager != null)
@@ -88,22 +87,28 @@ namespace TacticalGame.DebugTools
                 if (buffs.Count > 0)
                 {
                     sb.AppendLine("  <color=#00FF00>Buffs:</color>");
-                    // FIXED: Changed b.duration to b.remainingTurns
-                    foreach (var b in buffs) sb.AppendLine($"   + {b.effectName} ({b.remainingTurns} turns left)");
+                    foreach (var b in buffs) 
+                    {
+                        string details = GetEffectDetails(b);
+                        sb.AppendLine($"   + {b.effectName} <color=white>{details}</color> ({b.remainingTurns} turns left)");
+                    }
                 }
 
                 var debuffs = effectsManager.GetActiveDebuffs();
                 if (debuffs.Count > 0)
                 {
                     sb.AppendLine("  <color=#FF4444>Debuffs:</color>");
-                    // FIXED: Changed d.duration to d.remainingTurns
-                    foreach (var d in debuffs) sb.AppendLine($"   - {d.effectName} ({d.remainingTurns} turns left)");
+                    foreach (var d in debuffs) 
+                    {
+                        string details = GetEffectDetails(d);
+                        sb.AppendLine($"   - {d.effectName} <color=white>{details}</color> ({d.remainingTurns} turns left)");
+                    }
                 }
 
                 if (buffs.Count == 0 && debuffs.Count == 0) sb.AppendLine("  None Active");
             }
 
-            // 3. GRID & HAZARD LAYER (Where they stand)
+            // 3. GRID & HAZARD LAYER
             sb.AppendLine("\n<color=#a29bfe><b>[3. GRID & TILE DATA]</b></color>");
             var gridManager = ServiceLocator.Get<GridManager>();
             if (gridManager != null)
@@ -119,7 +124,24 @@ namespace TacticalGame.DebugTools
                     if (cell.HasHazard)
                     {
                         sb.AppendLine($"  <color=red>! TILE HAZARD DETECTED !</color>");
-                        sb.AppendLine($"  - Cell is currently marked as having an active hazard/trap.");
+                        sb.AppendLine($"  - Static Hazard Name: {cell.CurrentHazardName}");
+                        
+                        if (cell.HazardVisualObject != null)
+                        {
+                            var hazardInst = cell.HazardVisualObject.GetComponent<HazardInstance>();
+                            if (hazardInst != null && (hazardInst.IsSoftObstacle || hazardInst.IsHardObstacle))
+                            {
+                                sb.AppendLine($"  - Obstacle HP: {hazardInst.ObstacleHP}");
+                            }
+                        }
+
+                        foreach (Transform child in cell.transform)
+                        {
+                            if (child.name.StartsWith("RuntimeHazard_"))
+                            {
+                                sb.AppendLine($"  - Runtime Hazard Type: {child.name.Replace("RuntimeHazard_", "")}");
+                            }
+                        }
                     }
                     else
                     {
@@ -128,7 +150,6 @@ namespace TacticalGame.DebugTools
                 }
             }
 
-            // Log it as one single block so the console doesn't clutter
             Debug.Log(sb.ToString());
         }
 
@@ -146,19 +167,128 @@ namespace TacticalGame.DebugTools
                 sb.AppendLine($"- Grog Tokens: {energyManager.GrogTokens}");
             }
 
-            // DECK STATE
+            // DECK STATE & HAND INSPECTION
             if (BattleDeckManager.Instance != null)
             {
                 sb.AppendLine("\n<color=cyan><b>[DECK & HAND]</b></color>");
-                sb.AppendLine($"- Cards in Hand: {BattleDeckManager.Instance.HandCount}");
                 sb.AppendLine($"- Cards in Deck: {BattleDeckManager.Instance.DeckCount}");
                 sb.AppendLine($"- Cards in Discard: {BattleDeckManager.Instance.DiscardCount}");
                 
                 int stowed = BattleDeckManager.Instance.GetStowedCount();
                 if (stowed > 0) sb.AppendLine($"- Stowed Cards: {stowed}");
+
+                sb.AppendLine($"\n  <color=yellow>--- Current Hand ({BattleDeckManager.Instance.HandCount} cards) ---</color>");
+                var currentHand = BattleDeckManager.Instance.Hand;
+                
+                if (currentHand.Count == 0)
+                {
+                    sb.AppendLine("  (Hand is empty)");
+                }
+                else
+                {
+                    foreach (var card in currentHand)
+                    {
+                        string stowedStr = card.isStowed ? " <color=blue>[STOWED]</color>" : "";
+                        sb.AppendLine($"  [{card.energyCost} Energy] {card.GetDisplayName()} (Owner: {card.GetOwnerName()}){stowedStr}");
+                    }
+                }
             }
 
             Debug.Log(sb.ToString());
+        }
+
+        /// <summary>
+        /// Translates the raw float values of a Status Effect into human-readable text.
+        /// </summary>
+        private string GetEffectDetails(StatusEffect effect)
+        {
+            switch (effect.type)
+            {
+                // DoTs
+                case StatusEffectType.Fire:
+                case StatusEffectType.Poison:
+                    return $"[{effect.value1} HP Dmg/Turn]";
+                case StatusEffectType.Bleed:
+                    return $"[{effect.value1} HP Dmg/Move]";
+                case StatusEffectType.MovementTrap:
+                    return $"[{effect.value1 * 100}% HP Dmg if moved]";
+
+                // Flat Stat Boosts/Reductions
+                case StatusEffectType.GritBoost:
+                case StatusEffectType.AimBoost:
+                case StatusEffectType.PowerBoost:
+                case StatusEffectType.SpeedBoost:
+                    return $"[+{effect.value1}]";
+                case StatusEffectType.GritReduction:
+                case StatusEffectType.AimReduction:
+                case StatusEffectType.PowerReduction:
+                case StatusEffectType.SpeedReduction:
+                    return $"[-{effect.value1}]";
+
+                // Percentages
+                case StatusEffectType.DamageBoost:
+                case StatusEffectType.DamageReduction:
+                case StatusEffectType.Vulnerable:
+                case StatusEffectType.RangedDamageReduction:
+                case StatusEffectType.MoraleDamageReduction:
+                case StatusEffectType.HealthStatBoost:
+                case StatusEffectType.HealthStatReduction:
+                case StatusEffectType.ProficiencyBoost:
+                case StatusEffectType.RumHealBoost:
+                case StatusEffectType.MaxHPBoost:
+                case StatusEffectType.Weakness:
+                case StatusEffectType.Dodge:
+                case StatusEffectType.MissChance:
+                case StatusEffectType.MoraleOnKill:
+                case StatusEffectType.BuzzGainReduction:
+                case StatusEffectType.FoodEffectBoost:
+                    return $"[{effect.value1 * 100}%]";
+                    
+                case StatusEffectType.HealOnCardPlay:
+                    return $"[{effect.value1 * 100}% Max HP per card]";
+
+                // Shields / Flat Heals
+                case StatusEffectType.Regeneration:
+                    return $"[{effect.value1} HP Heal/Turn]";
+                case StatusEffectType.MoraleShield:
+                case StatusEffectType.Shielded:
+                case StatusEffectType.Thorns:
+                    return $"[{effect.value1} Amount]";
+
+                // Costs & Resources
+                case StatusEffectType.ReduceAllCosts:
+                case StatusEffectType.ReduceNextRangedCost:
+                    return $"[-{effect.value1} Energy Cost]";
+                case StatusEffectType.IncreaseCost:
+                case StatusEffectType.EnemyWeaponCostIncrease:
+                    return $"[+{effect.value1} Energy Cost]";
+                case StatusEffectType.EnergyDrain:
+                    return $"[-{effect.value1} Energy/Turn]";
+                case StatusEffectType.ReduceCardDraw:
+                    return $"[-{effect.value1} Cards Drawn]";
+                case StatusEffectType.GrogOnKill:
+                    return $"[+{effect.value1} Grog/Kill]";
+
+                // Charges & Complex Triggers
+                case StatusEffectType.DrawOnEnemyAttack:
+                    return $"[{effect.value1} Charges Left | Attacker discards {effect.value2}]";
+                case StatusEffectType.ReturnDamage:
+                case StatusEffectType.FreeStows:
+                case StatusEffectType.FreeRumUsage:
+                case StatusEffectType.RangedBlock:
+                case StatusEffectType.WeaponUseTwice:
+                    return $"[{effect.value1} Charges Left]";
+
+                // Fallback for simple toggles (like "Stun" or "Taunt") which don't use math values
+                default:
+                    if (effect.value1 != 0 || effect.value2 != 0)
+                    {
+                        string fallback = $"[Val1: {effect.value1}";
+                        if (effect.value2 != 0) fallback += $", Val2: {effect.value2}";
+                        return fallback + "]";
+                    }
+                    return "";
+            }
         }
     }
 }

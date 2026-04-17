@@ -375,8 +375,8 @@ namespace TacticalGame.Combat
         public static StatusEffect CreateEnergyOnKnockback(int duration, int energyGain, GameObject source = null)
             => new StatusEffect(StatusEffectType.EnergyOnKnockback, "Spring Loaded", duration, energyGain, 0f, source);
 
-        public static StatusEffect CreateDrawOnEnemyAttack(int duration, int maxDraws, GameObject source = null)
-            => new StatusEffect(StatusEffectType.DrawOnEnemyAttack, "Counter Draw", duration, maxDraws, 0f, source);
+        public static StatusEffect CreateDrawOnEnemyAttack(int duration, int maxDraws, int discardAmount, GameObject source = null)
+            => new StatusEffect(StatusEffectType.DrawOnEnemyAttack, "Counter Draw/Discard", duration, maxDraws, discardAmount, source);
 
         public static StatusEffect CreateDodgeFirstAttack(int duration, GameObject source = null)
             => new StatusEffect(StatusEffectType.DodgeFirstAttack, "Evasive", duration, 0f, 0f, source);

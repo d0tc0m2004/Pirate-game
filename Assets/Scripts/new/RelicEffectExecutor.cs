@@ -289,7 +289,7 @@ namespace TacticalGame.Equipment
                     break;
                     
                 case RelicEffectType.Coat_DrawOnEnemyAttack:
-                    ApplyDrawOnEnemyAttack(caster, 1, effect.duration);
+                    ApplyDrawOnEnemyAttack(caster, effect.duration);
                     break;
                     
                 case RelicEffectType.Coat_ReduceMoraleDamage:
@@ -2074,11 +2074,12 @@ namespace TacticalGame.Equipment
             Debug.Log($"{unit.UnitName} can use weapon twice for {duration} turns");
         }
         
-        private static void ApplyDrawOnEnemyAttack(UnitStatus unit, int cards, int duration)
+        private static void ApplyDrawOnEnemyAttack(UnitStatus unit, int duration)
         {
             var effects = GetStatusEffects(unit);
-            effects?.ApplyEffect(StatusEffect.CreateDrawOnEnemyAttack(duration, cards, null));
-            Debug.Log($"{unit.UnitName} draws {cards} cards when attacked for {duration} turns");
+            // 3 max triggers (val1), 1 discard per trigger (val2)
+            effects?.ApplyEffect(StatusEffect.CreateDrawOnEnemyAttack(duration, 3, 1, null));
+            Debug.Log($"{unit.UnitName} draws a card and forces attacker discard for next 3 attacks ({duration} turns)");
         }
         
         private static void ApplyPreventSurrender(UnitStatus unit, float moraleRestore, int duration)
