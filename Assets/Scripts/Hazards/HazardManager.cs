@@ -66,15 +66,19 @@ namespace TacticalGame.Hazards
         
         private void OnEnable()
         {
-            GameEvents.OnPlayerTurnEnd += ProcessRuntimeHazards;
-            GameEvents.OnEnemyTurnEnd += ProcessRuntimeHazards;
+            GameEvents.OnPlayerTurnEnd += OnPlayerTurnEnded;
+            GameEvents.OnEnemyTurnEnd += OnEnemyTurnEnded;
         }
         
         private void OnDisable()
         {
-            GameEvents.OnPlayerTurnEnd -= ProcessRuntimeHazards;
-            GameEvents.OnEnemyTurnEnd -= ProcessRuntimeHazards;
+            GameEvents.OnPlayerTurnEnd -= OnPlayerTurnEnded;
+            GameEvents.OnEnemyTurnEnd -= OnEnemyTurnEnded;
         }
+
+        // The Middleman methods to identify whose turn just ended
+        private void OnPlayerTurnEnded() { ProcessRuntimeHazards(true); }
+        private void OnEnemyTurnEnded() { ProcessRuntimeHazards(false); }
 
         #endregion
 
@@ -422,7 +426,7 @@ namespace TacticalGame.Hazards
             };
         }
         
-        private void ProcessRuntimeHazards()
+        private void ProcessRuntimeHazards(bool isPlayerTurnEnd)
         {
             var toRemove = new List<RuntimeHazard>();
             
@@ -454,8 +458,8 @@ namespace TacticalGame.Hazards
                     }
                 }
 
-                // Cannon auto-attacks every turn
-                if (hazard.Type == RuntimeHazardType.CannonObstacle)
+                // THE GATEKEEPER: Cannon ONLY attacks if it is the Player's turn end
+                if (hazard.Type == RuntimeHazardType.CannonObstacle && isPlayerTurnEnd)
                 {
                     FireCannon(hazard);
                 }
