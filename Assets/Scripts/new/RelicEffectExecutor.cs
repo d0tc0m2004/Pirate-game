@@ -354,8 +354,52 @@ namespace TacticalGame.Equipment
 
                 // ==================== TOTEM ====================
                 case RelicEffectType.Totem_SummonCannon:
-                    SummonCannon(caster, targetCell, (int)effect.value1);
+                {
+                    var hazardManager = ServiceLocator.Get<HazardManager>();
+                    var gridManager = ServiceLocator.Get<GridManager>();
+                    if (hazardManager != null && gridManager != null)
+                    {
+                        // 1. Gather ALL valid empty tiles on the player side
+                        System.Collections.Generic.List<GridCell> validCells = new System.Collections.Generic.List<GridCell>();
+                        for (int x = 0; x < gridManager.GetMiddleColumnIndex(); x++)
+                        {
+                            for (int y = 0; y < gridManager.GridHeight; y++)
+                            {
+                                var cell = gridManager.GetCell(x, y);
+                                if (cell != null && !cell.IsOccupied && !cell.HasHazard)
+                                {
+                                    validCells.Add(cell);
+                                }
+                            }
+                        }
+
+                        // 2. Pick one truly at random
+                        if (validCells.Count > 0)
+                        {
+                            GridCell randomCell = validCells[UnityEngine.Random.Range(0, validCells.Count)];
+                            
+                            // 3. Get actual base damage depending on weapon type
+                            int weaponDamage = 0;
+                            if (caster.WeaponType == TacticalGame.Enums.WeaponType.Melee)
+                            {
+                                weaponDamage = TacticalGame.Combat.DamageCalculator.GetMeleeBaseDamage(caster);
+                            }
+                            else
+                            {
+                                weaponDamage = TacticalGame.Combat.DamageCalculator.GetRangedBaseDamage(caster);
+                            }
+
+                            // 4. Use your existing HazardManager method directly!
+                            hazardManager.CreateCannonObstacle(randomCell, (int)effect.value1, weaponDamage);
+                        }
+                        else
+                        {
+                            Debug.Log("No empty tiles on player side to spawn cannon!");
+                            if (card != null) BattleDeckManager.Instance.RefundCard(card);
+                        }
+                    }
                     break;
+                }
                     
                 case RelicEffectType.Totem_CurseCaptainReflect:
                     {

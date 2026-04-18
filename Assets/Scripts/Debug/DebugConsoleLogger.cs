@@ -32,7 +32,7 @@ namespace TacticalGame.DebugTools
         {
             if (Input.GetKeyDown(inspectUnitKey))
             {
-                TryLogUnitState();
+                TryLogTargetState(); // UPGRADED: Now targets both Units AND Tiles
             }
 
             if (Input.GetKeyDown(inspectGlobalKey))
@@ -41,7 +41,7 @@ namespace TacticalGame.DebugTools
             }
         }
 
-        private void TryLogUnitState()
+        private void TryLogTargetState()
         {
             if (mainCam == null) return;
 
@@ -49,18 +49,75 @@ namespace TacticalGame.DebugTools
             
             if (Physics.Raycast(ray, out RaycastHit hit, 100f, unitLayerMask))
             {
+                // 1. Did we hit a Unit?
                 UnitStatus unit = hit.collider.GetComponent<UnitStatus>();
                 if (unit == null) unit = hit.collider.GetComponentInParent<UnitStatus>();
 
                 if (unit != null)
                 {
                     GenerateUnitReport(unit);
+                    return;
+                }
+
+                // 2. If no unit, did we hit a Hazard or a Grid Cell directly?
+                GridCell cell = hit.collider.GetComponent<GridCell>();
+                if (cell == null) cell = hit.collider.GetComponentInParent<GridCell>();
+
+                if (cell != null)
+                {
+                    GenerateCellReport(cell);
+                    return;
+                }
+
+                Debug.LogWarning("Debug: No Unit or GridCell found under mouse cursor.");
+            }
+        }
+
+        private void GenerateCellReport(GridCell cell)
+        {
+            StringBuilder sb = new StringBuilder();
+            sb.AppendLine($"<color=#a29bfe><b>=== TILE DIAGNOSTIC: X:{cell.XPosition}, Y:{cell.YPosition} ===</b></color>");
+            sb.AppendLine($"- Is Middle Column: {cell.IsMiddleColumn}");
+            sb.AppendLine($"- Is Occupied by Unit: {cell.IsOccupied}");
+            
+            if (cell.HasHazard)
+            {
+                sb.AppendLine($"\n<color=red><b>[HAZARD DATA]</b></color>");
+                sb.AppendLine($"Static Hazard: {cell.CurrentHazardName}");
+
+                var hazardManager = ServiceLocator.Get<HazardManager>();
+                if (hazardManager != null)
+                {
+                    // Check for Runtime Hazards (like the Cannon)
+                    var runtimeHaz = hazardManager.GetRuntimeHazard(cell);
+                    if (runtimeHaz != null)
+                    {
+                        sb.AppendLine($"- Runtime Type: {runtimeHaz.Type}");
+                        sb.AppendLine($"- Duration: {(runtimeHaz.Duration < 0 ? "Permanent" : $"{runtimeHaz.Duration} turns left")}");
+                        
+                        // Expose specific hazard math!
+                        if (runtimeHaz.Type == RuntimeHazardType.CannonObstacle)
+                        {
+                            sb.AppendLine($"- <color=orange>Cannon HP: {runtimeHaz.Value}</color>");
+                            sb.AppendLine($"- <color=orange>Cannon Damage: {runtimeHaz.ExtraValue}</color>");
+                        }
+                        else if (runtimeHaz.Type == RuntimeHazardType.ExplodingBarrel)
+                        {
+                            sb.AppendLine($"- <color=orange>Barrel Explosion Damage: {runtimeHaz.Value}</color>");
+                        }
+                        else if (runtimeHaz.Type == RuntimeHazardType.Poison || runtimeHaz.Type == RuntimeHazardType.Fire)
+                        {
+                            sb.AppendLine($"- <color=orange>Damage Per Turn: {runtimeHaz.Value}</color>");
+                        }
+                    }
                 }
             }
             else
             {
-                Debug.LogWarning("Debug: No unit found under mouse cursor.");
+                sb.AppendLine("\n<color=green>- Tile is clear (No Hazards)</color>");
             }
+
+            Debug.Log(sb.ToString());
         }
 
         private void GenerateUnitReport(UnitStatus unit)
@@ -78,7 +135,7 @@ namespace TacticalGame.DebugTools
             sb.AppendLine($"- Grit: {unit.Grit}");
             sb.AppendLine($"- Speed: {unit.Speed}");
 
-            // 2. STATUS EFFECTS (Now with human-readable translations!)
+            // 2. STATUS EFFECTS
             sb.AppendLine("\n<color=yellow><b>[2. STATUS EFFECTS]</b></color>");
             var effectsManager = unit.GetComponent<StatusEffectManager>();
             if (effectsManager != null)
@@ -108,6 +165,21 @@ namespace TacticalGame.DebugTools
                 if (buffs.Count == 0 && debuffs.Count == 0) sb.AppendLine("  None Active");
             }
 
+            // 4. RECENT DAMAGE HISTORY
+            sb.AppendLine("\n<color=#fdcb6e><b>[4. RECENT DAMAGE HISTORY]</b></color>");
+            if (unit.RecentDamageLog != null && unit.RecentDamageLog.Count > 0)
+            {
+                // Loop through the unit's memory and print every recent hit
+                foreach (var log in unit.RecentDamageLog)
+                {
+                    sb.AppendLine($"  - {log}");
+                }
+            }
+            else
+            {
+                sb.AppendLine("  - No recent damage taken.");
+            }
+
             // 3. GRID & HAZARD LAYER
             sb.AppendLine("\n<color=#a29bfe><b>[3. GRID & TILE DATA]</b></color>");
             var gridManager = ServiceLocator.Get<GridManager>();
@@ -126,20 +198,13 @@ namespace TacticalGame.DebugTools
                         sb.AppendLine($"  <color=red>! TILE HAZARD DETECTED !</color>");
                         sb.AppendLine($"  - Static Hazard Name: {cell.CurrentHazardName}");
                         
-                        if (cell.HazardVisualObject != null)
+                        var hazardManager = ServiceLocator.Get<HazardManager>();
+                        if (hazardManager != null)
                         {
-                            var hazardInst = cell.HazardVisualObject.GetComponent<HazardInstance>();
-                            if (hazardInst != null && (hazardInst.IsSoftObstacle || hazardInst.IsHardObstacle))
+                            var runtimeHaz = hazardManager.GetRuntimeHazard(cell);
+                            if (runtimeHaz != null)
                             {
-                                sb.AppendLine($"  - Obstacle HP: {hazardInst.ObstacleHP}");
-                            }
-                        }
-
-                        foreach (Transform child in cell.transform)
-                        {
-                            if (child.name.StartsWith("RuntimeHazard_"))
-                            {
-                                sb.AppendLine($"  - Runtime Hazard Type: {child.name.Replace("RuntimeHazard_", "")}");
+                                sb.AppendLine($"  - Runtime Hazard Type: {runtimeHaz.Type}");
                             }
                         }
                     }

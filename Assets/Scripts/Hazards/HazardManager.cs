@@ -333,6 +333,15 @@ namespace TacticalGame.Hazards
         }
 
         /// <summary>
+        /// Gets the active runtime hazard on a specific cell (useful for the Debug Logger).
+        /// </summary>
+        public RuntimeHazard GetRuntimeHazard(GridCell cell)
+        {
+            if (cell == null) return null;
+            return activeRuntimeHazards.Find(h => h.Cell == cell);
+        }
+        
+        /// <summary>
         /// Remove all runtime hazards from a cell.
         /// </summary>
         public void ClearHazard(GridCell cell)

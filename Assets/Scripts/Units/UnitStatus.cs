@@ -147,6 +147,16 @@ namespace TacticalGame.Units
         public int FocusFireStacks => focusFireStacks;
         public GameObject LastAttacker => lastAttacker;
 
+        // Damage History (For Debug Logger)
+        public System.Collections.Generic.List<string> RecentDamageLog { get; private set; } = new System.Collections.Generic.List<string>();
+
+        public void RecordDamageHistory(string logEntry)
+        {
+            RecentDamageLog.Add(logEntry);
+            // Keep only the last 5 hits so memory doesn't bloat!
+            if (RecentDamageLog.Count > 5) RecentDamageLog.RemoveAt(0); 
+        }
+
         #endregion
 
         #region Unity Lifecycle
@@ -295,6 +305,8 @@ namespace TacticalGame.Units
                       $"<b>HP Lost: {finalHPDamage}</b> (Grit DR: {gritDR:P0}){hullInfo} [{result.HPBreakdown}]\n" +
                       $"<b>Morale Lost: {result.FinalMoraleDamage}</b>  [{result.MoraleBreakdown}]");
 
+            RecordDamageHistory($"Took {finalHPDamage} HP dmg from {attackerName}");
+            
             // Reduce curse charges
             if (curseCharges > 0) curseCharges--;
 
@@ -319,6 +331,8 @@ namespace TacticalGame.Units
 
             // Apply HP damage directly (no Grit, no Hull, no modifiers)
             currentHP -= flatDamage;
+
+            RecordDamageHistory($"Took {flatDamage} HP dmg from {sourceName}");
 
             Debug.Log($"<color=orange>{gameObject.name} took {flatDamage} environmental damage from {sourceName}. HP: {currentHP}/{maxHP}</color>");
 
