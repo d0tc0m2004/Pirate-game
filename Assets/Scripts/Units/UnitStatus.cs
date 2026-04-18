@@ -332,6 +332,7 @@ namespace TacticalGame.Units
             // Apply HP damage directly (no Grit, no Hull, no modifiers)
             currentHP -= flatDamage;
 
+            // F1 Logger Tracking
             RecordDamageHistory($"Took {flatDamage} HP dmg from {sourceName}");
 
             Debug.Log($"<color=orange>{gameObject.name} took {flatDamage} environmental damage from {sourceName}. HP: {currentHP}/{maxHP}</color>");
@@ -347,9 +348,9 @@ namespace TacticalGame.Units
         }
 
         /// <summary>
-        /// Take environmental/hazard morale damage. Reduces morale WITHOUT
-        /// triggering surrender checks. Hazards should weaken morale gradually
-        /// but not instantly disable units.
+        /// Take environmental/hazard damage. This bypasses the full DamageCalculator,
+        /// applies flat HP damage only (no morale), and does not trigger focus fire
+        /// or combat modifier stacking.
         /// </summary>
         public void TakeEnvironmentalMoraleDamage(int amount, string sourceName = "Hazard")
         {
@@ -358,12 +359,16 @@ namespace TacticalGame.Units
             currentMorale -= amount;
             if (currentMorale < 0) currentMorale = 0;
 
+            // NEW: The math is finalized, record it before firing events!
+            RecordDamageHistory($"Lost {amount} Morale from {sourceName}");
+
             Debug.Log($"<color=yellow>{gameObject.name} lost {amount} morale from {sourceName}. Morale: {currentMorale}/{maxMorale}</color>");
 
             GameEvents.TriggerMoraleDamaged(gameObject, amount);
             // NOTE: No CheckSurrenderCondition() — environmental morale damage
             // weakens but does not trigger surrender on its own.
         }
+
 
         /// <summary>
         /// Calculate Grit-based damage reduction.
@@ -383,6 +388,7 @@ namespace TacticalGame.Units
         {
             currentMorale -= amount;
             if (currentMorale < 0) currentMorale = 0;
+            RecordDamageHistory($"Lost {amount} Morale");
 
             GameEvents.TriggerMoraleDamaged(gameObject, amount);
 
@@ -470,12 +476,15 @@ namespace TacticalGame.Units
             {
                 GameEvents.TriggerUnitHealed(gameObject, currentHP - oldHP);
             }
+            else if (currentHP < oldHP) // NEW: Catch HP drain from Swaps!
+            {
+                RecordDamageHistory($"Lost {oldHP - currentHP} HP (Life Swap)");
+            }
             else if (currentHP <= 0 && oldHP > 0)
             {
                 Die();
             }
         }
-
         /// <summary>
         /// Restore morale.
         /// </summary>
@@ -570,7 +579,9 @@ namespace TacticalGame.Units
         /// </summary>
         public void DamageHullDirect(int amount)
         {
+            int oldHull = currentHullPool;
             currentHullPool = Mathf.Max(0, currentHullPool - amount);
+            RecordDamageHistory($"Lost {oldHull - currentHullPool} Hull (Shield)");
         }
 
         /// <summary>
