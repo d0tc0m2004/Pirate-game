@@ -395,7 +395,7 @@ namespace TacticalGame.Equipment
                         else
                         {
                             Debug.Log("No empty tiles on player side to spawn cannon!");
-                            if (card != null) BattleDeckManager.Instance.RefundCard(card);
+                            // Removed refund! Just cancel.
                         }
                     }
                     break;
@@ -866,11 +866,13 @@ namespace TacticalGame.Equipment
                     RelicTargetSelector.Instance.SelectAllyThenTile(
                         "Select ally to teleport",
                         (ally, destinationCell) => {
+                            // NEW: Consume right before teleporting!
+                            if (card != null) BattleDeckManager.Instance.ConsumeCard(card);
                             TeleportUnit(ally, destinationCell);
                         },
                         () => {
-                            if (card != null) BattleDeckManager.Instance.RefundCard(card);
-                            else Debug.Log("Teleport cancelled");
+                            // NEW: Removed refund! Just cancel.
+                            Debug.Log("Teleport cancelled");
                         }
                     );
                     break;
@@ -1777,18 +1779,19 @@ namespace TacticalGame.Equipment
                 "Select an ally to swap locations with",
                 (ally) =>
                 {
-                    // Edge Case 3 Fix: If they click themselves, REFUND the card instead of swallowing it
                     if (ally == null || ally == caster) 
                     {
-                        if (card != null) BattleDeckManager.Instance.RefundCard(card);
-                        Debug.Log("Invalid swap target. Card refunded.");
+                        // NEW: Removed refund! Just cancel.
+                        Debug.Log("Invalid swap target. Cancelled.");
                         return;
                     }
+                    // NEW: Consume right before swapping!
+                    if (card != null) BattleDeckManager.Instance.ConsumeCard(card);
                     SwapUnitsOnGrid(caster, ally);
                 },
                 () => {
-                    if (card != null) BattleDeckManager.Instance.RefundCard(card);
-                    else Debug.Log("Swap cancelled");
+                    // NEW: Removed refund! Just cancel.
+                    Debug.Log("Swap cancelled");
                 }
             );
         }
@@ -1859,6 +1862,9 @@ namespace TacticalGame.Equipment
 
                     if (distance == 1 && (!isPlayerAlly || destinationCell.IsPlayerSide))
                     {
+                        // NEW: Consume the card ONLY on the very first step!
+                        if (isFirstStep && card != null) BattleDeckManager.Instance.ConsumeCard(card);
+
                         // 1. Instantly update the Grid occupancy
                         GridCell oldCell = gridManager.GetCell(allyPos.x, allyPos.y);
                         if (oldCell != null) oldCell.RemoveUnit();
@@ -1882,9 +1888,8 @@ namespace TacticalGame.Equipment
                 () => {
                     if (isFirstStep)
                     {
-                        // Cancel allowed ONLY on the very first step
-                        if (card != null) BattleDeckManager.Instance.RefundCard(card);
-                        Debug.Log("Movement cancelled. Card refunded.");
+                        // NEW: Removed refund! Just cancel.
+                        Debug.Log("Movement cancelled.");
                     }
                     else
                     {

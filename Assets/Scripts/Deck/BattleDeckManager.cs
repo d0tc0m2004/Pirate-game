@@ -226,6 +226,28 @@ namespace TacticalGame.Equipment
                 }
             }
         }
+
+        /// <summary>
+        /// Called ONLY when the player confirms a target, or an instant card begins its effect.
+        /// </summary>
+        public void ConsumeCard(BattleCard card)
+        {
+            if (card == null || !hand.Contains(card)) return; // Safety check
+
+            // 1. Spend the Energy
+            var energyManager = ServiceLocator.Get<EnergyManager>();
+            energyManager.TrySpendEnergy(card.energyCost);
+
+            // 2. Discard the Card
+            hand.Remove(card);
+            card.isStowed = false;
+            discardPile.Add(card);
+            selectedCard = null;
+
+            // 3. Update the UI so the card visually vanishes!
+            OnCardPlayed?.Invoke(card);
+            OnHandChanged?.Invoke(hand);
+        }
         
         /// <summary>
         /// Auto-detect and build deck from all player units in scene.
@@ -500,48 +522,28 @@ namespace TacticalGame.Equipment
         }
         
         /// <summary>
-        /// Play a card from hand.
+        /// Validates if a card CAN be played and starts the targeting/execution phase.
         /// </summary>
         public bool PlayCard(BattleCard card, UnitStatus target = null, GridCell targetCell = null)
         {
-            if (!hand.Contains(card))
-            {
-                Debug.LogWarning("Card not in hand!");
-                return false;
-            }
+            if (card == null || !hand.Contains(card)) return false;
             
-            // Check if correct unit is selected
-            if (selectedUnit != card.ownerUnit)
-            {
-                Debug.LogWarning($"Select {card.GetOwnerName()} to play this card!");
-                return false;
-            }
+            // Validate ownership
+            if (selectedUnit != card.ownerUnit) return false;
             
-            // Check energy
+            // Validate energy (Check only, DO NOT SPEND YET)
             var energyManager = ServiceLocator.Get<EnergyManager>();
-            if (!energyManager.HasEnergy(card.energyCost))
+            if (!energyManager.HasEnergy(card.energyCost)) return false;
+
+            // Start the execution/targeting phase
+            ExecuteCard(card, target, targetCell); 
+            
+            // THE SMART CHECK: 
+            // If the RelicTargetSelector is NOT active, this was an instant card. Consume it!
+            if (!RelicTargetSelector.Instance.IsSelecting)
             {
-                Debug.Log("Not enough energy!");
-                return false;
+                ConsumeCard(card);
             }
-            
-            // Spend energy
-            energyManager.TrySpendEnergy(card.energyCost);
-            
-            // Execute the card effect
-            ExecuteCard(card, target, targetCell);
-            
-            // Move to discard pile
-            hand.Remove(card);
-            card.isStowed = false; // Reset stow state
-            discardPile.Add(card);
-            
-            selectedCard = null;
-            
-            OnCardPlayed?.Invoke(card);
-            OnHandChanged?.Invoke(hand);
-            
-            Debug.Log($"<color=yellow>Played: {card.GetDisplayName()} (Hand: {hand.Count}, Discard: {discardPile.Count})</color>");
             
             return true;
         }
