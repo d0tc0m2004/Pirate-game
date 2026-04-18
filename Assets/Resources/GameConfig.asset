@@ -112,7 +112,7 @@ MonoBehaviour:
   maxSwapsPerRound: 1
   swapMoralePenalty: 0.15
   minHPPercentToSwap: 0.2
-  surrenderThreshold: 20
+  surrenderThreshold: 0.2
   energyPerTurn: 3
   attackEnergyCost: 1
   speedToInitiative: 1
@@ -128,4 +128,13 @@ MonoBehaviour:
   obstacleBlockDamage: 100
   enemyTurnDelay: 1.5
   moveAnimationSpeed: 5
+  lockerBasePips: 3
+  lockerMaxFortifyPips: 2
+  lockerMinCount: 1
+  lockerMaxCount: 4
+  lockerMinDistance: 2
+  lockerMinDistanceFromUnits: 1
+  lockerDestroyTributeLoss: 0.5
+  lockerHitTributeLeak: 0.1
+  lockerTributeQuota: 100
   defaultMaxArrows: 10

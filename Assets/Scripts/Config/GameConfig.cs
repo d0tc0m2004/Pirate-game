@@ -159,7 +159,7 @@ namespace TacticalGame.Config
         public float minHPPercentToSwap = 0.2f;
 
         [Header("=== SURRENDER SYSTEM ===")]
-        public int surrenderThreshold = 20;
+        public float surrenderThreshold = 20;
 
         [Header("=== ENERGY SYSTEM ===")]
         public int energyPerTurn = 3;
