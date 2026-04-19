@@ -54,9 +54,6 @@ namespace TacticalGame.Equipment
         
         [Header("Card Colors")]
         [SerializeField] private Color playableColor = Color.white;
-        // Dim — but stay readable. The card stack's CanvasGroup alpha ALSO drops
-        // to 0.9 for non-interactable cards, so don't push this too low or text
-        // becomes unreadable on top of the tint.
         [SerializeField] private Color unplayableColor = new Color(0.45f, 0.45f, 0.45f, 1f);
         [SerializeField] private Color stowedColor = new Color(0.7f, 0.9f, 1f, 1f);
         [SerializeField] private Color selectedColor = new Color(1f, 1f, 0.7f, 1f);
@@ -115,9 +112,6 @@ namespace TacticalGame.Equipment
             HideUI();
         }
 
-        /// <summary>
-        /// Hide all deck UI elements. Called initially and when leaving battle.
-        /// </summary>
         public void HideUI()
         {
             if (handContainer != null) handContainer.gameObject.SetActive(false);
@@ -127,35 +121,18 @@ namespace TacticalGame.Equipment
             if (targetingOverlay != null) targetingOverlay.SetActive(false);
         }
 
-        /// <summary>
-        /// Show all deck UI elements. Called when battle starts.
-        /// </summary>
         public void ShowUI()
         {
             if (handContainer != null) handContainer.gameObject.SetActive(true);
             if (deckPileContainer != null) deckPileContainer.gameObject.SetActive(true);
             if (discardPileContainer != null) discardPileContainer.gameObject.SetActive(true);
             if (passivesButton != null) passivesButton.gameObject.SetActive(true);
-            // Note: targetingOverlay stays hidden until targeting mode
         }
         
-        /// <summary>
-        /// AUTO-GENERATES DECK UI AT RUNTIME.
-        /// 
-        /// ============================================
-        /// TEMPORARY - REMOVE WHEN ADDING CUSTOM UI
-        /// ============================================
-        /// 
-        /// To replace with your own UI:
-        /// 1. Create your own Canvas with hand, deck pile, discard pile
-        /// 2. Assign references in inspector
-        /// 3. Remove this method call from Awake()
-        /// </summary>
         private void AutoGenerateUI()
         {
             Debug.Log("<color=yellow>BattleDeckUI: Auto-generating UI (assign references to disable)</color>");
             
-            // Ensure we have a Canvas
             var canvas = GetComponent<Canvas>();
             if (canvas == null)
             {
@@ -166,7 +143,6 @@ namespace TacticalGame.Equipment
                 gameObject.AddComponent<GraphicRaycaster>();
             }
             
-            // === HAND CONTAINER (bottom center) ===
             if (handContainer == null)
             {
                 var handGO = new GameObject("HandContainer");
@@ -180,7 +156,6 @@ namespace TacticalGame.Equipment
                 handContainer = handRT;
             }
             
-            // === DECK PILE (bottom left) ===
             if (deckPileContainer == null)
             {
                 var deckGO = new GameObject("DeckPile");
@@ -192,12 +167,10 @@ namespace TacticalGame.Equipment
                 deckRT.anchoredPosition = new Vector2(20, 20);
                 deckRT.sizeDelta = new Vector2(80, 100);
                 
-                // Background
                 var deckBG = deckGO.AddComponent<Image>();
                 deckBG.color = new Color(0.2f, 0.3f, 0.4f, 0.9f);
                 deckPileIcon = deckBG;
                 
-                // Label
                 var labelGO = new GameObject("Label");
                 labelGO.transform.SetParent(deckGO.transform, false);
                 var labelRT = labelGO.AddComponent<RectTransform>();
@@ -212,7 +185,6 @@ namespace TacticalGame.Equipment
                 labelText.color = Color.white;
                 labelText.alignment = TextAlignmentOptions.Center;
                 
-                // Count
                 var countGO = new GameObject("Count");
                 countGO.transform.SetParent(deckGO.transform, false);
                 var countRT = countGO.AddComponent<RectTransform>();
@@ -227,14 +199,12 @@ namespace TacticalGame.Equipment
                 deckCountText.color = Color.white;
                 deckCountText.alignment = TextAlignmentOptions.Center;
                 
-                // Click handler
                 var deckBtn = deckGO.AddComponent<Button>();
                 deckBtn.onClick.AddListener(OnDeckPileClicked);
                 
                 deckPileContainer = deckRT;
             }
             
-            // === DISCARD PILE (next to deck) ===
             if (discardPileContainer == null)
             {
                 var discardGO = new GameObject("DiscardPile");
@@ -246,12 +216,10 @@ namespace TacticalGame.Equipment
                 discardRT.anchoredPosition = new Vector2(110, 20);
                 discardRT.sizeDelta = new Vector2(80, 100);
                 
-                // Background
                 var discardBG = discardGO.AddComponent<Image>();
                 discardBG.color = new Color(0.4f, 0.25f, 0.2f, 0.9f);
                 discardPileIcon = discardBG;
                 
-                // Label
                 var labelGO = new GameObject("Label");
                 labelGO.transform.SetParent(discardGO.transform, false);
                 var labelRT = labelGO.AddComponent<RectTransform>();
@@ -266,7 +234,6 @@ namespace TacticalGame.Equipment
                 labelText.color = Color.white;
                 labelText.alignment = TextAlignmentOptions.Center;
                 
-                // Count
                 var countGO = new GameObject("Count");
                 countGO.transform.SetParent(discardGO.transform, false);
                 var countRT = countGO.AddComponent<RectTransform>();
@@ -281,14 +248,12 @@ namespace TacticalGame.Equipment
                 discardCountText.color = new Color(1f, 0.8f, 0.8f);
                 discardCountText.alignment = TextAlignmentOptions.Center;
                 
-                // Click handler
                 var discardBtn = discardGO.AddComponent<Button>();
                 discardBtn.onClick.AddListener(OnDiscardPileClicked);
                 
                 discardPileContainer = discardRT;
             }
             
-            // === PASSIVES BUTTON (bottom right of discard) ===
             if (passivesButton == null)
             {
                 var btnGO = new GameObject("PassivesButton");
@@ -322,7 +287,6 @@ namespace TacticalGame.Equipment
                 passivesButton = btnRT;
             }
             
-            // === PASSIVES PANEL (hidden) ===
             if (passivesPanel == null)
             {
                 var panelGO = new GameObject("PassivesPanel");
@@ -337,10 +301,6 @@ namespace TacticalGame.Equipment
                 var panelBG = panelGO.AddComponent<Image>();
                 panelBG.color = new Color(0.15f, 0.15f, 0.2f, 0.95f);
 
-                // Create all children FIRST before adding PassiveRelicsPanel component
-                // (so Awake can find them)
-
-                // Header
                 var headerGO = new GameObject("Header");
                 headerGO.transform.SetParent(panelGO.transform, false);
                 var headerRT = headerGO.AddComponent<RectTransform>();
@@ -356,7 +316,6 @@ namespace TacticalGame.Equipment
                 headerText.color = Color.white;
                 headerText.alignment = TextAlignmentOptions.Center;
 
-                // Content area with scroll
                 var contentGO = new GameObject("Content");
                 contentGO.transform.SetParent(panelGO.transform, false);
                 var contentRT = contentGO.AddComponent<RectTransform>();
@@ -373,7 +332,6 @@ namespace TacticalGame.Equipment
                 vlg.childForceExpandWidth = true;
                 vlg.padding = new RectOffset(5, 5, 5, 5);
 
-                // Close button
                 var closeGO = new GameObject("CloseButton");
                 closeGO.transform.SetParent(panelGO.transform, false);
                 var closeRT = closeGO.AddComponent<RectTransform>();
@@ -403,14 +361,12 @@ namespace TacticalGame.Equipment
                 closeText.color = Color.white;
                 closeText.alignment = TextAlignmentOptions.Center;
 
-                // Add PassiveRelicsPanel component LAST (after all children exist)
                 panelGO.AddComponent<PassiveRelicsPanel>();
 
                 panelGO.SetActive(false);
                 passivesPanel = panelGO;
             }
             
-            // === TARGETING OVERLAY (hidden) ===
             if (targetingOverlay == null)
             {
                 var overlayGO = new GameObject("TargetingOverlay");
@@ -449,10 +405,10 @@ namespace TacticalGame.Equipment
             BattleDeckManager.OnHandChanged += OnHandChanged;
             BattleDeckManager.OnCardPlayed += OnCardPlayed;
             BattleDeckManager.OnCardStowed += OnCardStowed;
-            // Refresh card visuals when energy changes — this is what flips cards
-            // to/from the red "can't afford" state in real time, without waiting
-            // for the player to click anything.
             GameEvents.OnEnergyChanged += OnEnergyChanged;
+
+            // NEW: Listen for the target selector being cancelled!
+            RelicTargetSelector.OnTargetingCancelled += ForceDeselectCard;
         }
 
         private void OnDisable()
@@ -462,6 +418,9 @@ namespace TacticalGame.Equipment
             BattleDeckManager.OnCardPlayed -= OnCardPlayed;
             BattleDeckManager.OnCardStowed -= OnCardStowed;
             GameEvents.OnEnergyChanged -= OnEnergyChanged;
+
+            // NEW: Clean up the listener!
+            RelicTargetSelector.OnTargetingCancelled -= ForceDeselectCard;
         }
 
         private void OnEnergyChanged(int newValue)
@@ -471,13 +430,11 @@ namespace TacticalGame.Equipment
         
         private void Update()
         {
-            // Cancel targeting with right click or escape
             if (isTargeting && (Input.GetMouseButtonDown(1) || Input.GetKeyDown(KeyCode.Escape)))
             {
                 CancelTargeting();
             }
 
-            // Pulse the hovered card's owner unit and targeted enemy
             UpdateCardOwnerPulse();
             UpdateEnemyTargetPulse();
         }
@@ -488,9 +445,7 @@ namespace TacticalGame.Equipment
         
         private void RefreshAll()
         {
-            // Show UI when deck is built (battle starts)
             ShowUI();
-
             RefreshDeckPile();
             RefreshDiscardPile();
             RefreshHand(BattleDeckManager.Instance.Hand.ToList());
@@ -521,15 +476,12 @@ namespace TacticalGame.Equipment
         
         private void RefreshHand(List<BattleCard> hand)
         {
-            // Clear stale hover/selection/highlight state from previous turn
-            // (cards are being destroyed, so we can't rely on OnPointerExit firing)
             hoveredCard = null;
             selectedCardUI = null;
             ClearCardOwnerHighlight();
             ClearTileHighlights();
             if (isTargeting) CancelTargeting();
 
-            // Clear old card UIs
             foreach (var cardUI in cardUIInstances)
             {
                 if (cardUI != null)
@@ -541,7 +493,6 @@ namespace TacticalGame.Equipment
             
             if (hand == null || hand.Count == 0) return;
             
-            // Create new card UIs
             for (int i = 0; i < hand.Count; i++)
             {
                 CreateCardUI(hand[i], i, hand.Count);
@@ -557,7 +508,6 @@ namespace TacticalGame.Equipment
             GameObject cardGO;
             CardUI cardUI;
             
-            // Use prefab if assigned, otherwise auto-generate
             if (cardUIPrefab != null)
             {
                 cardGO = Instantiate(cardUIPrefab, handContainer);
@@ -569,11 +519,6 @@ namespace TacticalGame.Equipment
             }
             else
             {
-                // AUTO-GENERATE CARD UI
-                // To use your own prefab instead:
-                // 1. Create card prefab with CardUI component
-                // 2. Assign to cardUIPrefab field in inspector
-                // 3. Delete CardUIGenerator.cs
                 cardGO = CardUIGenerator.CreateCard(card, handContainer);
                 cardUI = cardGO.GetComponent<CardUI>();
             }
@@ -581,21 +526,17 @@ namespace TacticalGame.Equipment
             cardUI.Initialize(card, this);
             cardUIInstances.Add(cardUI);
             
-            // Position in fan layout
             PositionCardInFan(cardUI, index, totalCards);
         }
         
         private void PositionCardInFan(CardUI cardUI, int index, int totalCards)
         {
-            // Calculate fan position
             float centerOffset = (totalCards - 1) / 2f;
             float xOffset = (index - centerOffset) * cardSpacing;
             
-            // Arc effect - cards in middle are higher
             float normalizedPos = (index - centerOffset) / Mathf.Max(1, centerOffset);
             float yOffset = -Mathf.Abs(normalizedPos) * fanArcHeight;
             
-            // Rotation - slight angle for each card
             float rotation = -(index - centerOffset) * fanAngle;
             
             var rt = cardUI.GetComponent<RectTransform>();
@@ -605,7 +546,6 @@ namespace TacticalGame.Equipment
                 rt.localRotation = Quaternion.Euler(0, 0, rotation);
             }
             
-            // Set sibling index for proper layering
             cardUI.transform.SetSiblingIndex(index);
         }
         
@@ -623,17 +563,11 @@ namespace TacticalGame.Equipment
                 bool isStowed = cardUI.Card.isStowed;
                 bool isSelected = cardUI == selectedCardUI;
 
-                // Always show the real playability state for EVERY card, not just
-                // ones owned by the currently selected unit. We pass the card's
-                // own owner as the "selected unit" so the "Not your card" guard
-                // doesn't trip — the player shouldn't have to click a unit just
-                // to find out which of its cards are red.
                 CardPlayabilityChecker.Result playability =
                     CardPlayabilityChecker.Check(cardUI.Card, cardUI.Card.ownerUnit);
 
                 bool isPlayable = playability.isPlayable;
 
-                // Determine color
                 Color targetColor;
                 if (isSelected)
                     targetColor = selectedColor;
@@ -647,9 +581,6 @@ namespace TacticalGame.Equipment
                     targetColor = unplayableColor;
 
                 cardUI.SetColor(targetColor);
-                // SetPlayability must run AFTER SetColor — it overrides the border
-                // with red when unplayable, tints the energy cost text red when
-                // the player can't afford the cost, and applies the blue highlight border.
                 cardUI.SetPlayability(playability, belongsToSelected);
                 cardUI.SetInteractable(belongsToSelected);
                 cardUI.SetStowedIndicator(isStowed);
@@ -660,16 +591,12 @@ namespace TacticalGame.Equipment
         
         #region Card Interactions
         
-        /// <summary>
-        /// Called when mouse enters a card.
-        /// </summary>
         public void OnCardHoverEnter(CardUI cardUI)
         {
             if (isTargeting) return;
 
             hoveredCard = cardUI;
 
-            // Lift card slightly
             var rt = cardUI.GetComponent<RectTransform>();
             if (rt != null)
             {
@@ -678,71 +605,52 @@ namespace TacticalGame.Equipment
                 rt.anchoredPosition = pos;
             }
 
-            // Bring to front
             cardUI.transform.SetAsLastSibling();
 
-            // Show stow and discard buttons if card belongs to selected unit
             if (cardUI.Card.BelongsTo(BattleDeckManager.Instance.SelectedUnit))
             {
                 cardUI.ShowStowButton(true);
                 cardUI.ShowDiscardButton(true);
             }
 
-            // Highlight the card's owner unit
             HighlightCardOwner(cardUI.Card.ownerUnit);
-
-            // Show what cells the card would hit. Auto-target cards (CardTargetType.None)
-            // produce an empty preview, so this is a no-op for them.
             PreviewCardTargets(cardUI.Card);
         }
 
-        /// <summary>
-        /// Called when mouse exits a card.
-        /// </summary>
         public void OnCardHoverExit(CardUI cardUI)
         {
+            // NEW: If this is the currently selected card, DON'T drop it! Let it float.
+            if (cardUI == selectedCardUI) return;
+
             if (cardUI != hoveredCard) return;
 
             hoveredCard = null;
 
-            // Restore position
             int index = cardUIInstances.IndexOf(cardUI);
             if (index >= 0)
             {
                 PositionCardInFan(cardUI, index, cardUIInstances.Count);
             }
 
-            // Hide stow and discard buttons
             cardUI.ShowStowButton(false);
             cardUI.ShowDiscardButton(false);
 
-            // Clear owner unit highlight
             ClearCardOwnerHighlight();
 
-            // Clear the target preview — but ONLY if we haven't already committed
-            // to playing this card (in which case targeting mode owns the highlights
-            // and they'll be cleared when the card resolves or is cancelled).
             if (!isTargeting)
             {
                 ClearTileHighlights();
             }
         }
 
-        /// <summary>
-        /// Paint the cells a card would target as a hover-time preview.
-        /// Reuses the same highlight system as targeting mode, so when the player
-        /// clicks the card the highlights are already in place — no flicker.
-        /// </summary>
         private void PreviewCardTargets(BattleCard card)
         {
             if (card == null) return;
 
-            // Start fresh — clears any leftover preview from a previously hovered card.
             ClearTileHighlights();
 
             var targetType = card.GetTargetType();
 
-            // Special case for Coat AOE feedback (Highlight caster location and radius 1)
             if (card.category == RelicCategory.Coat && card.ownerUnit != null)
             {
                 var gridManager = ServiceLocator.Get<GridManager>();
@@ -752,7 +660,7 @@ namespace TacticalGame.Equipment
                     var centerCell = gridManager.GetCell(pos.x, pos.y);
                     if (centerCell != null)
                     {
-                        Color aoeTint = new Color(1f, 1f, 0f, 0.4f); // Transparent yellow
+                        Color aoeTint = new Color(1f, 1f, 0f, 0.4f);
 
                         for (int dx = -1; dx <= 1; dx++)
                         {
@@ -768,10 +676,8 @@ namespace TacticalGame.Equipment
                 return;
             }
             
-            // If the card strictly auto-targets (Weapons and Gloves)
             if (targetType == CardTargetType.None)
             {
-                // Weapons and Gloves dynamically seek out the nearest enemy and fire
                 if ((card.IsWeaponCard || card.category == RelicCategory.Gloves) && card.ownerUnit != null)
                 {
                     UnitStatus closest = TacticalGame.Combat.TargetFinder.FindNearestEnemy(card.ownerUnit);
@@ -783,24 +689,16 @@ namespace TacticalGame.Equipment
                         {
                             var pos = gridManager.WorldToGridPosition(closest.transform.position);
                             var cell = gridManager.GetCell(pos.x, pos.y);
-                            Debug.Log($"[PreviewCardTargets] Nearest Enemy is {closest.UnitName} via TargetFinder!");
 
                             if (cell != null)
                             {
-                                // Attach material highlighting to the actual unit
                                 hoveredEnemyTarget = closest;
                                 hoveredEnemyRenderer = closest.GetComponent<MeshRenderer>();
                                 if (hoveredEnemyRenderer != null)
                                 {
                                     hoveredEnemyOriginalColor = hoveredEnemyRenderer.material.color;
-                                    Debug.Log($"[PreviewCardTargets] Attached MeshRenderer to {closest.UnitName}");
-                                }
-                                else
-                                {
-                                    Debug.Log($"[PreviewCardTargets] CRITICAL: No MeshRenderer found on {closest.UnitName}!");
                                 }
 
-                                // Highlight nearest enemy in pure, bright solid yellow for absolute visibility against red ships
                                 PaintCell(cell, new Color(1f, 1f, 0f, 1f));
                             }
                         }
@@ -821,24 +719,23 @@ namespace TacticalGame.Equipment
             }
         }
         
-        /// <summary>
-        /// Called when a card is clicked.
-        /// </summary>
         public void OnCardClicked(CardUI cardUI)
         {
             var manager = BattleDeckManager.Instance;
             var card = cardUI.Card;
 
-            // Check if card belongs to selected unit
             if (!card.BelongsTo(manager.SelectedUnit))
             {
                 Debug.Log($"Select {card.GetOwnerName()} first!");
                 return;
             }
 
-            // Check if already selected - deselect
             if (selectedCardUI == cardUI)
             {
+                if (RelicTargetSelector.Instance != null && RelicTargetSelector.Instance.IsSelecting)
+                {
+                     RelicTargetSelector.Instance.CancelSelection();
+                }
                 CancelTargeting();
                 return;
             }
@@ -846,33 +743,24 @@ namespace TacticalGame.Equipment
             var playability = CardPlayabilityChecker.Check(card, manager.SelectedUnit);
             if (!playability.isPlayable)
             {
-                // The card is unplayable (no energy, no target, dead captain, etc.)
-                // We return immediately to block selection, targeting, and energy usage!
                 Debug.Log($"<color=orange>Action Blocked: {playability.reason}</color>");
                 return; 
             }
 
-            // Select this card (lifts it up)
             SelectCard(cardUI);
 
-            // If card needs target, enter targeting mode
             if (card.RequiresTarget())
             {
                 StartTargeting(card);
             }
             else
             {
-                // Auto-target card: play immediately on the first click. Clear any
-                // leftover preview highlights so the board returns to its base state.
                 manager.PlayCard(card);
                 ClearTileHighlights();
                 DeselectCard();
             }
         }
         
-        /// <summary>
-        /// Called when right-clicking a card (for stow/discard menu).
-        /// </summary>
         public void OnCardRightClicked(CardUI cardUI)
         {
             ShowCardContextMenu(cardUI);
@@ -880,7 +768,6 @@ namespace TacticalGame.Equipment
         
         private void SelectCard(CardUI cardUI)
         {
-            // Deselect previous
             if (selectedCardUI != null)
             {
                 ResetCardPosition(selectedCardUI);
@@ -889,7 +776,6 @@ namespace TacticalGame.Equipment
             selectedCardUI = cardUI;
             BattleDeckManager.Instance.SelectCard(cardUI.Card);
             
-            // Lift selected card
             var rt = cardUI.GetComponent<RectTransform>();
             if (rt != null)
             {
@@ -903,6 +789,15 @@ namespace TacticalGame.Equipment
         }
         
         private void DeselectCard()
+        {
+            // THE GATEKEEPER: If the Target Selector is actively aiming, DO NOT drop the card!
+            if (RelicTargetSelector.Instance != null && RelicTargetSelector.Instance.IsSelecting) return;
+
+            ForceDeselectCard();
+        }
+        
+        // NEW: This forces the card to drop back into the hand when explicitly told to
+        private void ForceDeselectCard()
         {
             if (selectedCardUI != null)
             {
@@ -931,7 +826,6 @@ namespace TacticalGame.Equipment
         {
             if (owner == null) return;
 
-            // Clear previous highlight if different owner
             if (isOwnerHighlighted && hoveredCardOwner != owner)
             {
                 ClearCardOwnerHighlight();
@@ -955,7 +849,6 @@ namespace TacticalGame.Equipment
             var manager = BattleDeckManager.Instance;
             UnitStatus targetUnit = hoveredCardOwner != null ? hoveredCardOwner : (manager != null ? manager.SelectedUnit : null);
 
-            // Shift visual highlight state to the new appropriate unit
             if (activeHighlightedUnit != targetUnit)
             {
                 if (activeHighlightedRenderer != null)
@@ -976,7 +869,6 @@ namespace TacticalGame.Equipment
 
             if (activeHighlightedUnit != null && activeHighlightedRenderer != null)
             {
-                // Hyper-visible pulse intensities
                 float speed = (hoveredCardOwner != null) ? ownerPulseSpeed * 1.5f : ownerPulseSpeed * 0.8f;
                 float intensity = (hoveredCardOwner != null) ? 1.0f : 0.85f;
                 float pulse = (Mathf.Sin(Time.time * speed) + 1f) / 2f * intensity;
@@ -989,7 +881,6 @@ namespace TacticalGame.Equipment
             hoveredCardOwner = null;
             hoveredOwnerRenderer = null;
             isOwnerHighlighted = false;
-            // The Update loop will dynamically revert to the selected unit
         }
 
         private void UpdateEnemyTargetPulse()
@@ -997,7 +888,6 @@ namespace TacticalGame.Equipment
             if (hoveredEnemyTarget != null && hoveredEnemyRenderer != null)
             {
                 float pulse = (Mathf.Sin(Time.time * ownerPulseSpeed * 1.8f) + 1f) / 2f;
-                // Bright intense yellow pulse overlaying the target
                 hoveredEnemyRenderer.material.color = Color.Lerp(hoveredEnemyOriginalColor, new Color(1f, 1f, 0f, 1f), pulse);
             }
         }
@@ -1017,9 +907,6 @@ namespace TacticalGame.Equipment
 
             var targetType = card.GetTargetType();
 
-            // Boots tile cards are MOVEMENT — they walk the unit step by step.
-            // Other tile cards (Totem placement, Coat tile effects) are SINGLE-CLICK
-            // placements anywhere on the player side.
             bool isMovementCard = (targetType == CardTargetType.Tile && card.category == RelicCategory.Boots);
 
             if (isMovementCard)
@@ -1047,7 +934,7 @@ namespace TacticalGame.Equipment
             if (targetingOverlay != null)
                 targetingOverlay.SetActive(false);
 
-            DeselectCard();
+            ForceDeselectCard();
         }
 
         private void UpdateTargetingPrompt(string text)
@@ -1076,9 +963,6 @@ namespace TacticalGame.Equipment
             }
         }
 
-        /// <summary>
-        /// Get the movement range from a card's effect data.
-        /// </summary>
         private int GetCardMoveRange(BattleCard card)
         {
             if (card.sourceRelic?.effectData != null)
@@ -1086,14 +970,10 @@ namespace TacticalGame.Equipment
                 int range = (int)card.sourceRelic.effectData.value1;
                 if (range > 0) return range;
             }
-            // Fallback to unit's default move range
             var movement = card.ownerUnit?.GetComponent<UnitMovement>();
             return movement != null ? movement.GetEffectiveMoveRange() : 2;
         }
 
-        /// <summary>
-        /// Highlight only adjacent (manhattan distance 1) empty tiles around a unit.
-        /// </summary>
         private void HighlightAdjacentTiles(UnitStatus unit)
         {
             ClearTileHighlights();
@@ -1115,25 +995,17 @@ namespace TacticalGame.Equipment
                 {
                     highlightedMoveCells.Add(cell);
 
-                    // Tint the cell to show it's a valid move target
                     var renderer = cell.GetComponent<Renderer>();
                     if (renderer != null)
                     {
                         if (!originalCellColors.ContainsKey(cell))
                             originalCellColors[cell] = renderer.material.color;
-                        renderer.material.color = new Color(0.3f, 0.8f, 1f, 1f); // Cyan highlight
+                        renderer.material.color = new Color(0.3f, 0.8f, 1f, 1f); 
                     }
                 }
             }
         }
 
-        /// <summary>
-        /// Highlight all valid target cells for a card (units or tiles), and any
-        /// area-of-effect cells the card would hit around each target.
-        ///
-        /// Cyan tint  = valid target cell (player can click here)
-        /// Purple tint = AoE preview (would be hit, but not directly clickable)
-        /// </summary>
         private void HighlightValidTargets(BattleCard card)
         {
             var gridManager = ServiceLocator.Get<GridManager>();
@@ -1142,11 +1014,9 @@ namespace TacticalGame.Equipment
             var targetType = card.GetTargetType();
             var validCells = CollectValidTargetCells(card, targetType, gridManager);
 
-            // Tile-target cards click on the cell directly, so the cell list also
-            // doubles as the validation list for OnTargetSelected.
             bool isTileCard = (targetType == CardTargetType.Tile);
 
-            Color targetTint = new Color(0.3f, 0.8f, 1f, 1f); // cyan
+            Color targetTint = new Color(0.3f, 0.8f, 1f, 1f);
             foreach (var cell in validCells)
             {
                 if (cell == null) continue;
@@ -1154,13 +1024,10 @@ namespace TacticalGame.Equipment
                 PaintCell(cell, targetTint);
             }
 
-            // AoE preview: for effects that splash around a clicked target, paint
-            // every cell that would be hit in a softer color. Returns 0 for cards
-            // that don't splash (skips the preview entirely).
             int aoeRadius = GetCardAoeRadius(card);
             if (aoeRadius > 0)
             {
-                Color aoeTint = new Color(0.65f, 0.4f, 0.9f, 0.8f); // pale purple
+                Color aoeTint = new Color(0.65f, 0.4f, 0.9f, 0.8f);
                 var seen = new HashSet<GridCell>();
                 foreach (var center in validCells)
                 {
@@ -1174,7 +1041,7 @@ namespace TacticalGame.Equipment
 
                             var aoeCell = gridManager.GetCell(center.XPosition + dx, center.YPosition + dy);
                             if (aoeCell == null) continue;
-                            if (originalCellColors.ContainsKey(aoeCell)) continue; // don't overwrite a primary
+                            if (originalCellColors.ContainsKey(aoeCell)) continue; 
                             if (!seen.Add(aoeCell)) continue;
                             PaintCell(aoeCell, aoeTint);
                         }
@@ -1183,9 +1050,6 @@ namespace TacticalGame.Equipment
             }
         }
 
-        /// <summary>
-        /// Build the list of grid cells that constitute valid targets for a card.
-        /// </summary>
         private List<GridCell> CollectValidTargetCells(BattleCard card, CardTargetType targetType, GridManager gridManager)
         {
             var result = new List<GridCell>();
@@ -1193,9 +1057,6 @@ namespace TacticalGame.Equipment
             switch (targetType)
             {
                 case CardTargetType.Tile:
-                    // Empty, non-blocked tiles on the player side. (For movement cards
-                    // we use the existing HighlightAdjacentTiles path instead — this
-                    // branch handles cards like Totem_SummonCannon.)
                     int middleCol = gridManager.GetMiddleColumnIndex();
                     for (int x = 0; x < middleCol; x++)
                     {
@@ -1233,7 +1094,6 @@ namespace TacticalGame.Equipment
             if (self == null) return;
             var units = Object.FindObjectsByType<UnitStatus>(FindObjectsSortMode.None);
 
-            // If we are looking for enemies (wantSameTeam == false), check if any enemy has OnlyTargetThisTurn
             if (!wantSameTeam)
             {
                 var forcedTarget = units.FirstOrDefault(u => 
@@ -1246,11 +1106,10 @@ namespace TacticalGame.Equipment
 
                 if (forcedTarget != null)
                 {
-                    // Restrict targeting strictly to this unit
                     Vector2Int pos = gridManager.WorldToGridPosition(forcedTarget.transform.position);
                     var cell = gridManager.GetCell(pos.x, pos.y);
                     if (cell != null) outList.Add(cell);
-                    return; // Skip adding any other units
+                    return; 
                 }
             }
 
@@ -1261,7 +1120,7 @@ namespace TacticalGame.Equipment
                 
                 if (targetOnlyDead)
                 {
-                    if (!u.HasSurrendered && u.CurrentHP > 0) continue; // Only target surrendered/dead
+                    if (!u.HasSurrendered && u.CurrentHP > 0) continue; 
                 }
                 else
                 {
@@ -1286,23 +1145,12 @@ namespace TacticalGame.Equipment
             renderer.material.color = color;
         }
 
-        /// <summary>
-        /// AoE radius (in manhattan distance) of cells that splash around a clicked
-        /// target. Returns 0 for single-target / self-targeted / non-AoE cards.
-        ///
-        /// Add cases here as new role batches introduce splash effects.
-        /// Captain has no around-target AoE cards, so this returns 0 for all of them.
-        /// </summary>
         private int GetCardAoeRadius(BattleCard card)
         {
             if (card == null) return 0;
-            // Future: switch on card.effectType for splash cards (e.g. cannon AoE).
             return 0;
         }
 
-        /// <summary>
-        /// Clear all tile highlights and restore original colors.
-        /// </summary>
         private void ClearTileHighlights()
         {
             foreach (var kvp in originalCellColors)
@@ -1317,7 +1165,6 @@ namespace TacticalGame.Equipment
             highlightedMoveCells.Clear();
             originalCellColors.Clear();
 
-            // Clear the 3D unit target highlight as well
             if (hoveredEnemyTarget != null && hoveredEnemyRenderer != null)
             {
                 hoveredEnemyRenderer.material.color = hoveredEnemyOriginalColor;
@@ -1326,9 +1173,6 @@ namespace TacticalGame.Equipment
             hoveredEnemyRenderer = null;
         }
 
-        /// <summary>
-        /// Called when a target is selected (unit or tile).
-        /// </summary>
         public void OnTargetSelected(UnitStatus target = null, GridCell cell = null)
         {
             if (!isTargeting || cardAwaitingTarget == null) return;
@@ -1350,8 +1194,30 @@ namespace TacticalGame.Equipment
 
             if (valid)
             {
-                BattleDeckManager.Instance.PlayCard(cardAwaitingTarget, target, cell);
-                CancelTargeting();
+                // 1. Cache the card
+                var playedCard = cardAwaitingTarget;
+                
+                // 2. Clean up BattleDeckUI's targeting state FIRST! 
+                // This prevents our old highlights from overwriting the new ones.
+                isTargeting = false;
+                cardAwaitingTarget = null;
+                if (targetingOverlay != null) targetingOverlay.SetActive(false);
+                ClearTileHighlights();
+
+                // 3. Play the card (This will trigger RelicTargetSelector for Boots!)
+                BattleDeckManager.Instance.PlayCard(playedCard, target, cell);
+                
+                // 4. Check for the Handoff!
+                if (RelicTargetSelector.Instance != null && RelicTargetSelector.Instance.IsSelecting)
+                {
+                    // A secondary targeting phase has opened (like Captain Boots selecting a tile).
+                    // We leave the card beautifully floating in the air!
+                }
+                else
+                {
+                    // The card effect resolved instantly without a handoff. Safe to drop.
+                    ForceDeselectCard();
+                }
             }
             else
             {
@@ -1359,9 +1225,6 @@ namespace TacticalGame.Equipment
             }
         }
 
-        /// <summary>
-        /// Handle one step of multi-step tile movement.
-        /// </summary>
         private void HandleMovementStep(GridCell cell)
         {
             if (cell == null || !highlightedMoveCells.Contains(cell))
@@ -1373,7 +1236,6 @@ namespace TacticalGame.Equipment
             var unit = cardAwaitingTarget.ownerUnit;
             if (unit == null) return;
 
-            // Move the unit's grid cell registration
             var gridManager = ServiceLocator.Get<GridManager>();
             if (gridManager != null)
             {
@@ -1383,7 +1245,6 @@ namespace TacticalGame.Equipment
                 cell.PlaceUnit(unit.gameObject);
             }
 
-            // Move the unit visually
             unit.transform.position = cell.GetWorldPosition();
             GameEvents.TriggerUnitMoved(unit.gameObject, null, cell);
 
@@ -1391,26 +1252,18 @@ namespace TacticalGame.Equipment
 
             if (remainingMoveSteps <= 0)
             {
-                // All steps used — spend energy and finish
                 var manager = BattleDeckManager.Instance;
-                // Spend energy and discard the card manually (don't call PlayCard since we already moved)
                 var energyManager = ServiceLocator.Get<EnergyManager>();
                 if (energyManager != null)
                     energyManager.TrySpendEnergy(cardAwaitingTarget.energyCost);
 
-                // IMPORTANT: Cache the card. If ExecutePostMoveEffects draws a new card,
-                // it instantly triggers OnHandChanged, which forces BattleDeckUI to refresh,
-                // calling CancelTargeting() and setting cardAwaitingTarget to NULL.
                 var cachedCard = cardAwaitingTarget;
 
-                // Execute any additional effects (morale restore, buff, etc.) via the relic effect
                 if (cachedCard != null && cachedCard.sourceRelic != null)
                 {
-                    // Execute non-movement parts of the effect (buffs, heals, etc.)
                     ExecutePostMoveEffects(cachedCard, unit);
                 }
 
-                // Discard the card from hand using the cached reference
                 if (cachedCard != null)
                 {
                     manager.FinishCardAfterMove(cachedCard);
@@ -1420,23 +1273,17 @@ namespace TacticalGame.Equipment
             }
             else
             {
-                // More steps remaining — re-highlight from new position
                 HighlightAdjacentTiles(unit);
                 UpdateTargetingPrompt($"Move {unit.UnitName} ({remainingMoveSteps} steps left) — click adjacent tile");
             }
         }
 
-        /// <summary>
-        /// Execute post-movement effects (buffs, morale, etc.) from boots cards.
-        /// </summary>
         private void ExecutePostMoveEffects(BattleCard card, UnitStatus unit)
         {
             if (card.sourceRelic?.effectData == null) return;
 
             var effect = card.sourceRelic.effectData;
 
-            // Apply secondary effects based on effect type
-            // These are the buff/heal parts of boots effects that happen after movement
             switch (effect.effectType)
             {
                 case RelicEffectType.Boots_MoveRestoreMorale:
@@ -1462,7 +1309,6 @@ namespace TacticalGame.Equipment
                 case RelicEffectType.Boots_V2_MoveGainArmor:
                     unit.RestoreHull((int)effect.value2);
                     break;
-                // === COOK BOOTS ===
                 case RelicEffectType.Boots_MoveDrawCard:
                     var deckManager = BattleDeckManager.Instance;
                     if (deckManager != null && deckManager.DrawOneCard())
@@ -1529,13 +1375,9 @@ namespace TacticalGame.Equipment
                 return;
             }
 
-            // Right-click discards the card and draws a new one
             BattleDeckManager.Instance.DiscardAndDraw(card);
         }
         
-        /// <summary>
-        /// Stow the currently hovered/selected card.
-        /// </summary>
         public void StowCard()
         {
             var cardUI = selectedCardUI ?? hoveredCard;
@@ -1544,9 +1386,6 @@ namespace TacticalGame.Equipment
             BattleDeckManager.Instance.StowCard(cardUI.Card);
         }
         
-        /// <summary>
-        /// Discard and draw for the currently hovered/selected card.
-        /// </summary>
         public void DiscardAndDraw()
         {
             var cardUI = selectedCardUI ?? hoveredCard;
@@ -1561,7 +1400,6 @@ namespace TacticalGame.Equipment
         
         private void OnCardPlayed(BattleCard card)
         {
-            // Visual feedback
             Debug.Log($"Card played: {card.GetDisplayName()}");
         }
         
@@ -1574,9 +1412,6 @@ namespace TacticalGame.Equipment
         
         #region Passives Panel
         
-        /// <summary>
-        /// Toggle the passive relics panel.
-        /// </summary>
         public void TogglePassivesPanel()
         {
             if (passivesPanel != null)
@@ -1592,8 +1427,6 @@ namespace TacticalGame.Equipment
         
         private void RefreshPassivesPanel()
         {
-            // Populate passives panel with all passive relics
-            // This would create UI elements for each passive
             var passives = BattleDeckManager.Instance.PassiveRelics;
             Debug.Log($"Showing {passives.Count} passive relics");
         }
@@ -1602,21 +1435,13 @@ namespace TacticalGame.Equipment
         
         #region Deck/Discard Click Handlers
         
-        /// <summary>
-        /// Called when clicking the deck pile.
-        /// </summary>
         public void OnDeckPileClicked()
         {
-            // Could show deck contents or just a count
             Debug.Log($"Deck: {BattleDeckManager.Instance.DeckCount} cards");
         }
         
-        /// <summary>
-        /// Called when clicking the discard pile.
-        /// </summary>
         public void OnDiscardPileClicked()
         {
-            // Could show discard pile contents
             Debug.Log($"Discard: {BattleDeckManager.Instance.DiscardCount} cards");
         }
         
