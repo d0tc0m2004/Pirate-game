@@ -1901,7 +1901,8 @@ namespace TacticalGame.Equipment
                 true, // onlyEmpty
                 1,    // maxRange = 1
                 allyToMove, // centerUnit
-                isPlayerAlly // playerSideOnly
+                isPlayerAlly, // playerSideOnly
+                isFirstStep
             );
         }
 

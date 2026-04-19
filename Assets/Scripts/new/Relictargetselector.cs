@@ -73,6 +73,7 @@ namespace TacticalGame.Equipment
         private string promptText = "Select a target";
         
         private bool isSelecting = false;
+        private bool canCancelSelection = true; // NEW: Tracks if we are allowed to cancel right now
         
         // Highlight tracking
         private List<GridCell> highlightedCells = new List<GridCell>();
@@ -116,8 +117,8 @@ namespace TacticalGame.Equipment
         {
             if (!isSelecting) return;
             
-            // Cancel with right-click or Escape
-            if (Input.GetMouseButtonDown(1) || Input.GetKeyDown(KeyCode.Escape))
+            // Cancel with right-click or Escape (ONLY if cancellation is currently allowed)
+            if ((Input.GetMouseButtonDown(1) || Input.GetKeyDown(KeyCode.Escape)) && canCancelSelection)
             {
                 CancelSelection();
                 return;
@@ -144,6 +145,7 @@ namespace TacticalGame.Equipment
             onUnitSelected = callback;
             onCancelled = cancelCallback;
             maxSelections = 1;
+            canCancelSelection = true;
             
             StartSelection();
             HighlightAllies();
@@ -159,24 +161,23 @@ namespace TacticalGame.Equipment
             onUnitSelected = callback;
             onCancelled = cancelCallback;
             maxSelections = 1;
+            canCancelSelection = true;
             
             StartSelection();
             HighlightEnemies();
         }
         
         /// <summary>
-        /// Select a single tile.
-        /// </summary>
-        /// <summary>
-        /// Select a single tile. Now supports range limits and side restrictions!
+        /// Select a single tile. Now supports range limits, side restrictions, and disabling cancellation!
         /// </summary>
         public void SelectTile(string prompt, Action<GridCell> callback, Action cancelCallback = null, 
-                               bool onlyEmpty = true, int maxRange = 99, UnitStatus centerUnit = null, bool playerSideOnly = false)
+                               bool onlyEmpty = true, int maxRange = 99, UnitStatus centerUnit = null, bool playerSideOnly = false, bool allowCancel = true)
         {
             currentMode = SelectionMode.SingleTile;
             promptText = prompt;
             onTileSelected = callback;
             onCancelled = cancelCallback;
+            canCancelSelection = allowCancel; // Store the state
             
             StartSelection();
             HighlightValidTiles(onlyEmpty, maxRange, centerUnit, playerSideOnly);
@@ -236,6 +237,7 @@ namespace TacticalGame.Equipment
             onCancelled = cancelCallback;
             maxSelections = maxCount;
             selectedUnits.Clear();
+            canCancelSelection = true;
             
             StartSelection();
             HighlightAllies();
@@ -251,6 +253,7 @@ namespace TacticalGame.Equipment
             onAllyAndTileSelected = callback;
             onCancelled = cancelCallback;
             firstSelectedUnit = null;
+            canCancelSelection = true;
             
             StartSelection();
             HighlightAllies();
@@ -283,6 +286,11 @@ namespace TacticalGame.Equipment
         {
             isSelecting = true;
             ShowUI();
+            
+            // NEW: Hide the cancel button if we aren't allowed to cancel!
+            if (cancelButton != null) 
+                cancelButton.gameObject.SetActive(canCancelSelection);
+                
             UpdatePrompt();
         }
         
@@ -489,35 +497,6 @@ namespace TacticalGame.Equipment
             }
         }
         
-        private void HighlightValidTiles(bool onlyEmpty)
-        {
-            highlightedCells.Clear();
-            
-            var gridManager = ServiceLocator.Get<GridManager>();
-            if (gridManager == null) return;
-            
-            for (int x = 0; x < gridManager.GridWidth; x++)
-            {
-                for (int y = 0; y < gridManager.GridHeight; y++)
-                {
-                    var cell = gridManager.GetCell(x, y);
-                    if (cell == null) continue;
-                    
-                    bool valid = !cell.IsMiddleColumn;
-                    if (onlyEmpty)
-                    {
-                        valid = valid && cell.CanPlaceUnit();
-                    }
-                    
-                    if (valid)
-                    {
-                        highlightedCells.Add(cell);
-                        HighlightCell(cell, Color.cyan);
-                    }
-                }
-            }
-        }
-        
         private void HighlightUnit(UnitStatus unit, Color color)
         {
             // Add a highlight effect - could be outline, glow, etc.
@@ -664,7 +643,11 @@ namespace TacticalGame.Equipment
                 text += $" ({selectedUnits.Count}/{maxSelections})";
             }
             
-            text += "\n<size=12><color=#aaaaaa>Right-click or ESC to cancel</color></size>";
+            // NEW: Only show the shortcut hint if they are allowed to cancel
+            if (canCancelSelection)
+            {
+                text += "\n<size=12><color=#aaaaaa>Right-click or ESC to cancel</color></size>";
+            }
             
             promptLabel.text = text;
         }
