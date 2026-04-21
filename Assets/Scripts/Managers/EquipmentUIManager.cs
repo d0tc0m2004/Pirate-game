@@ -62,7 +62,7 @@ namespace TacticalGame.Managers
         [SerializeField] private Button startBattleButton;
         [SerializeField] private Button backButton;
         [SerializeField] private Button unequipAllButton;
-        [SerializeField] private Button autoEquipCaptainButton;
+        [SerializeField] private Button autoEquipQuartermasterButton;
 
         [Header("Managers")]
         [SerializeField] private DeploymentManager deploymentManager;
@@ -89,7 +89,7 @@ namespace TacticalGame.Managers
             if (startBattleButton) startBattleButton.onClick.AddListener(OnStartBattle);
             if (backButton) backButton.onClick.AddListener(OnBack);
             if (unequipAllButton) unequipAllButton.onClick.AddListener(UnequipAll);
-            if (autoEquipCaptainButton) autoEquipCaptainButton.onClick.AddListener(AutoEquipCaptainCards);
+            if (autoEquipQuartermasterButton) autoEquipQuartermasterButton.onClick.AddListener(AutoEquipQuartermasterCards); // Updated
 
             SetupSlotCallbacks();
 
@@ -448,7 +448,7 @@ namespace TacticalGame.Managers
             if (creationCanvas) creationCanvas.SetActive(true);
         }
 
-        public void AutoEquipCaptainCards()
+        public void AutoEquipQuartermasterCards()
         {
             if (selectedUnit == null || selectedUnit.equipment == null) return;
             
@@ -468,13 +468,13 @@ namespace TacticalGame.Managers
             
             var eq = selectedUnit.equipment;
             
-
             if (selectedUnit.defaultWeaponRelic != null)
             {
                 eq.EquipWeaponRelic(0, selectedUnit.defaultWeaponRelic);
             }
             
-            var captainEffects = TacticalGame.Equipment.RelicEffectsDatabase.Instance.GetEffectsByRole(UnitRole.Captain);
+            // Fetch Quartermaster effects
+            var qmEffects = TacticalGame.Equipment.RelicEffectsDatabase.Instance.GetEffectsByRole(UnitRole.Quartermaster);
             int effectIndex = 0;
 
             foreach (var pUnit in playerUnits)
@@ -483,19 +483,19 @@ namespace TacticalGame.Managers
 
                 for (int slot = 0; slot < 6; slot++)
                 {
-                    if (effectIndex >= captainEffects.Count) break;
+                    if (effectIndex >= qmEffects.Count) break;
                     
-                    var currentEffect = captainEffects[effectIndex];
+                    var currentEffect = qmEffects[effectIndex];
                     pUnit.equipment.EquipCategoryRelic(slot, new EquippedRelic(currentEffect));
                     effectIndex++;
                 }
 
-                if (effectIndex >= captainEffects.Count) break;
+                if (effectIndex >= qmEffects.Count) break;
             }
             
             UpdateRelicSlots();
             RefreshRelicPool();
-            Debug.Log($"Auto-equipped Captain relics to {selectedUnit.unitName}");
+            Debug.Log($"Auto-equipped Quartermaster relics to {selectedUnit.unitName}");
         }
     }
 

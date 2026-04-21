@@ -19,9 +19,6 @@ namespace TacticalGame.Equipment
     {
         #region Main Execute Method
         
-        /// <summary>
-        /// Execute a relic effect from an EquippedRelic.
-        /// </summary>
         public static void Execute(EquippedRelic relic, UnitStatus caster, UnitStatus target = null, GridCell targetCell = null, BattleCard card = null)
         {
             if (relic == null || caster == null)
@@ -40,9 +37,6 @@ namespace TacticalGame.Equipment
             ExecuteByEffectType(effectData.effectType, effectData, caster, target, targetCell, card);
         }
         
-        /// <summary>
-        /// Execute a relic effect directly from RelicEffectData.
-        /// </summary>
         public static void Execute(RelicEffectData effectData, UnitStatus caster, UnitStatus target = null, GridCell targetCell = null, BattleCard card = null)
         {
             if (effectData == null || caster == null)
@@ -54,15 +48,11 @@ namespace TacticalGame.Equipment
             ExecuteByEffectType(effectData.effectType, effectData, caster, target, targetCell, card);
         }
         
-        /// <summary>
-        /// Main execution switch based on effect type.
-        /// </summary>
         private static void ExecuteByEffectType(RelicEffectType effectType, RelicEffectData effect, 
             UnitStatus caster, UnitStatus target, GridCell targetCell, BattleCard card = null)
         {
             Debug.Log($"<color=cyan>Executing {effectType} by {caster.UnitName}</color>");
             
-            // Auto-select target if needed
             if (target == null)
             {
                 target = GetClosestEnemy(caster);
@@ -95,7 +85,6 @@ namespace TacticalGame.Equipment
                     
                 case RelicEffectType.Boots_FreeIfGrog:
                     ExecuteMove(caster, targetCell, (int)effect.value1);
-                    // Free if grog - handled by card cost system
                     break;
                     
                 case RelicEffectType.Boots_MoveReduceDamage:
@@ -134,7 +123,6 @@ namespace TacticalGame.Equipment
                     if (target != null)
                     {
                         ExecuteAttack(caster, target);
-                        // Only apply debuff if they survived the attack
                         if (target != null && target.CurrentHP > 0 && !target.HasSurrendered)
                             ApplyReduceCardDraw(target, (int)effect.value2, effect.duration);
                     }
@@ -144,7 +132,6 @@ namespace TacticalGame.Equipment
                     if (target != null)
                     {
                         ExecuteAttack(caster, target);
-                        // Only apply debuff if they survived the attack
                         if (target != null && target.CurrentHP > 0 && !target.HasSurrendered)
                             ApplyIncreaseCost(target, (int)effect.value2, effect.duration);
                     }
@@ -153,9 +140,9 @@ namespace TacticalGame.Equipment
                 case RelicEffectType.Gloves_AttackBonusByMissingMorale:
                     if (target != null)
                     {
+                        // FIXED: Converts missing morale into a percentage damage multiplier
                         float missingMorale = 1f - target.MoralePercent;
-                        int bonusDamage = Mathf.RoundToInt(missingMorale * 100);
-                        ExecuteAttackWithBonus(caster, target, bonusDamage);
+                        ExecuteAttackWithPercentBonus(caster, target, missingMorale);
                     }
                     break;
                     
@@ -220,7 +207,6 @@ namespace TacticalGame.Equipment
                 case RelicEffectType.Gloves_AttackBonusPerCardPlayed:
                     if (target != null)
                     {
-                        // Bonus per card played this round - would need CardDeckManager tracking
                         ExecuteAttack(caster, target);
                     }
                     break;
@@ -228,7 +214,6 @@ namespace TacticalGame.Equipment
                 case RelicEffectType.Gloves_AttackBonusPerGunnerRelic:
                     if (target != null)
                     {
-                        // Bonus per gunner relic used - would need tracking
                         ExecuteAttack(caster, target);
                     }
                     break;
@@ -297,7 +282,13 @@ namespace TacticalGame.Equipment
                     break;
                     
                 case RelicEffectType.Coat_ReduceMoraleDamage:
-                    ApplyMoraleDamageReductionNearby(caster, effect.value2, effect.duration, effect.tileRange);
+                    // FIXED: Quartermaster Coat V1 is a GLOBAL team buff, so we loop all allies
+                    foreach (var ally in GetAllAllies(caster))
+                    {
+                        var effects = GetStatusEffects(ally);
+                        effects?.ApplyEffect(StatusEffect.CreateMoraleDamageReduction(effect.duration, effect.value2, null));
+                    }
+                    Debug.Log($"All allies take {effect.value2*100}% less morale damage for {effect.duration} turns");
                     break;
                     
                 case RelicEffectType.Coat_PreventSurrender:
@@ -359,7 +350,6 @@ namespace TacticalGame.Equipment
                     var gridManager = ServiceLocator.Get<GridManager>();
                     if (hazardManager != null && gridManager != null)
                     {
-                        // 1. Gather ALL valid empty tiles on the player side
                         System.Collections.Generic.List<GridCell> validCells = new System.Collections.Generic.List<GridCell>();
                         for (int x = 0; x < gridManager.GetMiddleColumnIndex(); x++)
                         {
@@ -373,12 +363,10 @@ namespace TacticalGame.Equipment
                             }
                         }
 
-                        // 2. Pick one truly at random
                         if (validCells.Count > 0)
                         {
                             GridCell randomCell = validCells[UnityEngine.Random.Range(0, validCells.Count)];
                             
-                            // 3. Get actual base damage depending on weapon type
                             int weaponDamage = 0;
                             if (caster.WeaponType == TacticalGame.Enums.WeaponType.Melee)
                             {
@@ -389,13 +377,11 @@ namespace TacticalGame.Equipment
                                 weaponDamage = TacticalGame.Combat.DamageCalculator.GetRangedBaseDamage(caster);
                             }
 
-                            // 4. Use your existing HazardManager method directly!
                             hazardManager.CreateCannonObstacle(randomCell, (int)effect.value1, weaponDamage);
                         }
                         else
                         {
                             Debug.Log("No empty tiles on player side to spawn cannon!");
-                            // Removed refund! Just cancel.
                         }
                     }
                     break;
@@ -416,7 +402,6 @@ namespace TacticalGame.Equipment
                     break;
                     
                 case RelicEffectType.Totem_EnemyDeathMoraleSwing:
-                    // Passive - handled elsewhere
                     Debug.Log($"<color=gray>Passive totem {effectType} - handled by PassiveRelicManager</color>");
                     break;
                     
@@ -546,7 +531,6 @@ namespace TacticalGame.Equipment
                     break;
                 case RelicEffectType.Boots_V2_MoveAllyGainShield:
                     ExecuteMoveAlly(caster, target, (int)effect.value1, card);
-                    // Shield would be applied via StatusEffectManager
                     break;
                 case RelicEffectType.Boots_V2_MoveGainMoraleOnKill:
                     ExecuteMove(caster, targetCell, (int)effect.value1);
@@ -579,7 +563,6 @@ namespace TacticalGame.Equipment
                     break;
                 case RelicEffectType.Boots_V2_MovePoisonTile:
                     {
-                        // Get current position before moving
                         var gridManager = ServiceLocator.Get<GridManager>();
                         GridCell previousCell = null;
                         if (gridManager != null)
@@ -588,10 +571,8 @@ namespace TacticalGame.Equipment
                             previousCell = gridManager.GetCell(coords.x, coords.y);
                         }
                         
-                        // Move
                         ExecuteMove(caster, targetCell, (int)effect.value1);
                         
-                        // Create poison hazard on previous position
                         if (previousCell != null)
                         {
                             CreatePoisonTile(previousCell, (int)effect.value2, effect.duration);
@@ -660,7 +641,6 @@ namespace TacticalGame.Equipment
                     if (target != null)
                     {
                         ExecuteAttack(caster, target);
-                        // Hull gain on kill would be tracked by event system
                     }
                     break;
                 case RelicEffectType.Gloves_V2_AttackSlowEnemy:
@@ -862,16 +842,13 @@ namespace TacticalGame.Equipment
                     ShieldAllAllies(caster, (int)effect.value1);
                     break;
                 case RelicEffectType.Ultimate_V2_Teleport:
-                    // Use RelicTargetSelector to select ally then destination
                     RelicTargetSelector.Instance.SelectAllyThenTile(
                         "Select ally to teleport",
                         (ally, destinationCell) => {
-                            // NEW: Consume right before teleporting!
                             if (card != null) BattleDeckManager.Instance.ConsumeCard(card);
                             TeleportUnit(ally, destinationCell);
                         },
                         () => {
-                            // NEW: Removed refund! Just cancel.
                             Debug.Log("Teleport cancelled");
                         }
                     );
@@ -910,7 +887,6 @@ namespace TacticalGame.Equipment
                 case RelicEffectType.Boots_MoveRestoreHealth:
                     ExecuteMove(caster, targetCell, (int)effect.value1);
                     caster.Heal(Mathf.RoundToInt(caster.MaxHP * effect.value2));
-                    Debug.Log($"{caster.UnitName} moved and restored {effect.value2 * 100}% health");
                     break;
                 case RelicEffectType.Boots_V2_SwapLowestHealthAlly:
                     {
@@ -927,25 +903,20 @@ namespace TacticalGame.Equipment
                         if (lowestAlly2 != null)
                         {
                             lowestAlly2.Heal((int)effect.value2);
-                            Debug.Log($"Healed {lowestAlly2.UnitName} for {(int)effect.value2} HP");
                         }
                     }
                     break;
                 case RelicEffectType.Gloves_V2_AttackHealedEnemy:
-                    // Passive - handled by PassiveRelicManager
                     Debug.Log($"<color=gray>Passive effect {effectType} - handled by PassiveRelicManager</color>");
                     break;
                 case RelicEffectType.Hat_DrawTrinketReduceCost:
                     DrawCards(caster, 1);
                     ApplyReduceAllCosts(caster, 1, 1);
-                    Debug.Log($"{caster.UnitName} drew trinket card with reduced cost");
                     break;
                 case RelicEffectType.Hat_V2_HealOnCaptainDamage:
                     {
-                        // Apply buff: allies that damage captain get healed
                         var effects1 = GetStatusEffects(caster);
                         effects1?.ApplyEffect(StatusEffect.CreateHealOnCardPlay(effect.duration, effect.value1, null));
-                        Debug.Log($"Allies healing on captain damage for {effect.duration} turns");
                     }
                     break;
                 case RelicEffectType.Coat_DoubleAllyStats:
@@ -953,28 +924,22 @@ namespace TacticalGame.Equipment
                     {
                         var effects2 = GetStatusEffects(target);
                         effects2?.ApplyEffect(StatusEffect.CreateDamageBoost(effect.duration, effect.value1, null));
-                        Debug.Log($"{target.UnitName} stats boosted by {effect.value1 * 100}% for {effect.duration} turn(s)");
                     }
                     break;
                 case RelicEffectType.Coat_V2_KnockbackOnAllyDeath:
-                    // Passive - handled by PassiveRelicManager
                     Debug.Log($"<color=gray>Passive effect {effectType} - handled by PassiveRelicManager</color>");
                     break;
                 case RelicEffectType.Trinket_BlockEnemyRowMovement:
-                    // Passive - handled by PassiveRelicManager
                     Debug.Log($"<color=gray>Passive effect {effectType} - handled by PassiveRelicManager</color>");
                     break;
                 case RelicEffectType.Trinket_V2_GlobalRadius:
-                    // Passive - handled by PassiveRelicManager
                     Debug.Log($"<color=gray>Passive effect {effectType} - handled by PassiveRelicManager</color>");
                     break;
                 case RelicEffectType.Totem_StunHealedEnemy:
-                    // Passive - handled by PassiveRelicManager
                     Debug.Log($"<color=gray>Passive effect {effectType} - handled by PassiveRelicManager</color>");
                     break;
                 case RelicEffectType.Totem_V2_SummonHealingPotions:
                     {
-                        // Heal 3 random allies
                         var allies = GetAllAllies(caster);
                         int healed = 0;
                         while (healed < 3 && allies.Count > 0)
@@ -983,29 +948,24 @@ namespace TacticalGame.Equipment
                             ally.Heal((int)effect.value1);
                             healed++;
                         }
-                        Debug.Log($"Summoned healing potions, healed {healed} allies for {(int)effect.value1} HP each");
                     }
                     break;
                 case RelicEffectType.Ultimate_PreventDeath:
                     if (target != null)
                     {
                         ApplyDeathPrevention(target, effect.duration);
-                        Debug.Log($"{target.UnitName} cannot die or surrender for {effect.duration} turns");
                     }
                     break;
                 case RelicEffectType.Ultimate_V2_FullHealthRestore:
                     if (target != null)
                     {
                         target.Heal(target.MaxHP);
-                        Debug.Log($"{target.UnitName} fully restored to {target.MaxHP} HP");
                     }
                     break;
                 case RelicEffectType.PassiveUnique_HealingAura:
-                    // Passive - handled by PassiveRelicManager
                     Debug.Log($"<color=gray>Passive effect {effectType} - handled by PassiveRelicManager</color>");
                     break;
                 case RelicEffectType.PassiveUnique_V2_TeamHealOnKill:
-                    // Passive - handled by PassiveRelicManager
                     Debug.Log($"<color=gray>Passive effect {effectType} - handled by PassiveRelicManager</color>");
                     break;
 
@@ -1013,7 +973,6 @@ namespace TacticalGame.Equipment
                 case RelicEffectType.Boots_MoveDrawCard:
                     ExecuteMove(caster, targetCell, (int)effect.value1);
                     DrawCards(caster, 1);
-                    Debug.Log($"{caster.UnitName} moved and drew a card");
                     break;
                 case RelicEffectType.Boots_V2_MoveBoostProficiency:
                     ExecuteMove(caster, targetCell, (int)effect.value1);
@@ -1021,14 +980,12 @@ namespace TacticalGame.Equipment
                         var effects3 = GetStatusEffects(caster);
                         effects3?.ApplyEffect(StatusEffect.CreateDamageBoost(1, effect.value2, null));
                     }
-                    Debug.Log($"{caster.UnitName} moved with +{effect.value2 * 100}% proficiency this turn");
                     break;
                 case RelicEffectType.Gloves_AttackDetonateBuff:
                     if (target != null)
                     {
                         ExecuteAttack(caster, target);
                         ApplyPoison(target, (int)effect.value2, effect.duration);
-                        Debug.Log($"{target.UnitName} marked for detonation, {(int)effect.value2} dmg/turn for {effect.duration} turns");
                     }
                     break;
                 case RelicEffectType.Gloves_V2_StasisClosest:
@@ -1037,7 +994,6 @@ namespace TacticalGame.Equipment
                         if (closest != null)
                         {
                             ApplyStun(closest, effect.duration);
-                            Debug.Log($"{closest.UnitName} put in stasis for {effect.duration} turn(s)");
                         }
                     }
                     break;
@@ -1047,26 +1003,22 @@ namespace TacticalGame.Equipment
                         if (lowestAlly3 != null)
                         {
                             ApplyReduceAllCosts(lowestAlly3, (int)effect.value1, effect.duration);
-                            Debug.Log($"Reduced {lowestAlly3.UnitName}'s card costs by {(int)effect.value1}");
                         }
                     }
                     break;
                 case RelicEffectType.Hat_V2_MoveForwardHeal:
                     if (target != null && target.Team == caster.Team)
                     {
-                        PushUnit(caster, target, -1); // negative = forward
+                        PushUnit(caster, target, -1); 
                         target.Heal(Mathf.RoundToInt(target.MaxHP * effect.value1));
-                        Debug.Log($"Moved {target.UnitName} forward and healed {effect.value1 * 100}%");
                     }
                     break;
                 case RelicEffectType.Coat_StunOnAllyAttacked:
                     {
-                        // Buff closest ally with counter-stun
                         var closestAlly = GetAlliesInRange(caster, 1).FirstOrDefault();
                         if (closestAlly != null)
                         {
                             ApplyCounterOnAllyHit(closestAlly, effect.duration);
-                            Debug.Log($"{closestAlly.UnitName} will stun attacker if hit");
                         }
                     }
                     break;
@@ -1078,30 +1030,24 @@ namespace TacticalGame.Equipment
                             var effects4 = GetStatusEffects(ally);
                             effects4?.ClearDebuffs();
                         }
-                        Debug.Log($"Cleared debuffs from {nearbyAllies.Count} nearby allies");
                     }
                     break;
                 case RelicEffectType.Trinket_HazardSizeIncrease:
-                    // Passive - handled by PassiveRelicManager
                     Debug.Log($"<color=gray>Passive effect {effectType} - handled by PassiveRelicManager</color>");
                     break;
                 case RelicEffectType.Trinket_V2_DrawExtraBelow50:
-                    // Passive - handled by PassiveRelicManager
                     Debug.Log($"<color=gray>Passive effect {effectType} - handled by PassiveRelicManager</color>");
                     break;
                 case RelicEffectType.Totem_HealLowestOnDamage:
-                    // Passive - handled by PassiveRelicManager
                     Debug.Log($"<color=gray>Passive effect {effectType} - handled by PassiveRelicManager</color>");
                     break;
                 case RelicEffectType.Totem_V2_SummonStatDebuffObstacle:
                     {
-                        // Debuff nearby enemies' stats
                         var nearbyEnemies = GetEnemiesInRange(caster, effect.tileRange);
                         foreach (var enemy in nearbyEnemies)
                         {
                             ApplyWeaknessCurse(enemy, effect.value1, effect.duration);
                         }
-                        Debug.Log($"Debuffed {nearbyEnemies.Count} nearby enemies by -{effect.value1 * 100}% stats");
                     }
                     break;
                 case RelicEffectType.Ultimate_SwapHealthClosest:
@@ -1112,11 +1058,8 @@ namespace TacticalGame.Equipment
                             int casterHP = caster.CurrentHP;
                             int enemyHP = closestEnemy.CurrentHP;
                             
-                            // Use SetHP to directly swap, bypassing damage modifications (hull, armor, cover)
                             caster.SetHP(enemyHP);
                             closestEnemy.SetHP(casterHP);
-                            
-                            Debug.Log($"Swapped HP: {caster.UnitName}({casterHP}->{caster.CurrentHP}) <-> {closestEnemy.UnitName}({enemyHP}->{closestEnemy.CurrentHP})");
                         }
                     }
                     break;
@@ -1130,13 +1073,11 @@ namespace TacticalGame.Equipment
                             if (gridManager != null)
                             {
                                 var pos = gridManager.WorldToGridPosition(closestEnemy2.transform.position);
-                                // Fire the whole column
-                                for (int row = 0; row < 8; row++) // iterate all rows
+                                for (int row = 0; row < 8; row++)
                                 {
                                     var cell = gridManager.GetCell(pos.x, row);
                                     if (cell == null) continue;
 
-                                    // Deal fire damage to occupants
                                     if (cell.IsOccupied && cell.OccupyingUnit != null)
                                     {
                                         var unit = cell.OccupyingUnit.GetComponent<UnitStatus>();
@@ -1144,28 +1085,23 @@ namespace TacticalGame.Equipment
                                             unit.TakeDamage((int)effect.value1, caster.gameObject, false);
                                     }
 
-                                    // Create fire hazard
                                     if (hazardManager != null)
                                         hazardManager.CreateFireTile(cell, (int)effect.value2, effect.duration);
                                 }
-                                Debug.Log($"Set fire to {closestEnemy2.UnitName}'s column! {effect.value1} dmg + fire for {effect.duration} turns");
                             }
                         }
                     }
                     break;
                 case RelicEffectType.PassiveUnique_DisplaceOnWeaponUse:
-                    // Passive - handled by PassiveRelicManager
                     Debug.Log($"<color=gray>Passive effect {effectType} - handled by PassiveRelicManager</color>");
                     break;
                 case RelicEffectType.PassiveUnique_V2_RelicsNotConsumed:
-                    // Passive - handled by PassiveRelicManager
                     Debug.Log($"<color=gray>Passive effect {effectType} - handled by PassiveRelicManager</color>");
                     break;
 
                 // ==================== SWASHBUCKLER SPECIFIC ====================
                 case RelicEffectType.Boots_MoveBySpeed:
                     {
-                        // If highest speed, move 4; else move 2
                         bool isHighestSpeed = true;
                         foreach (var unit in GetAllUnits())
                         {
@@ -1177,11 +1113,9 @@ namespace TacticalGame.Equipment
                         }
                         int moveRange = isHighestSpeed ? (int)effect.value2 : (int)effect.value1;
                         ExecuteMove(caster, targetCell, moveRange);
-                        Debug.Log($"{caster.UnitName} moved {moveRange} tiles (highest speed: {isHighestSpeed})");
                     }
                     break;
                 case RelicEffectType.Boots_V2_MoveRowOnly:
-                    // Move any tile in same row, 1 tile on column
                     ExecuteMove(caster, targetCell, (int)effect.value1);
                     break;
                 case RelicEffectType.Gloves_AttackTwice:
@@ -1189,36 +1123,29 @@ namespace TacticalGame.Equipment
                     {
                         ExecuteAttack(caster, target);
                         ExecuteAttack(caster, target);
-                        Debug.Log($"{caster.UnitName} attacked {target.UnitName} twice!");
                     }
                     break;
                 case RelicEffectType.Gloves_V2_AttackStunOnMove:
                     if (target != null)
                     {
                         ExecuteAttack(caster, target);
-                        // Apply debuff: if target moves in 2 turns, stun 1 turn
                         ApplyStun(target, effect.duration);
-                        Debug.Log($"{target.UnitName} will be stunned if they move");
                     }
                     break;
                 case RelicEffectType.Hat_DrawWeaponReduceCost:
                     DrawWeaponRelicCard(caster);
                     ApplyReduceAllCosts(caster, 1, 1);
-                    Debug.Log($"{caster.UnitName} drew weapon card with reduced cost");
                     break;
                 case RelicEffectType.Hat_V2_StealEnemyCard:
                     DrawCards(caster, 1);
-                    Debug.Log($"{caster.UnitName} stole an enemy card");
                     break;
                 case RelicEffectType.Coat_NearbyAllyDamageReduction:
                     {
-                        // Passive - nearby allies -15% damage if attacker has lower speed
                         var nearbyAllies2 = GetAlliesInRange(caster, effect.tileRange);
                         foreach (var ally in nearbyAllies2)
                         {
                             ApplyDamageReduction(ally, effect.value1, effect.duration);
                         }
-                        Debug.Log($"Nearby allies gain {effect.value1 * 100}% damage reduction");
                     }
                     break;
                 case RelicEffectType.Coat_V2_CurseEmptyTile:
@@ -1227,15 +1154,12 @@ namespace TacticalGame.Equipment
                         var hazardManager2 = ServiceLocator.Get<HazardManager>();
                         if (hazardManager2 != null)
                             hazardManager2.CreateTrap(targetCell, effect.duration);
-                        Debug.Log($"Cursed tile - enemy trapped and takes {effect.value1 * 100}% more damage");
                     }
                     break;
                 case RelicEffectType.Trinket_BonusDamageIfAlone:
-                    // Passive - handled by PassiveRelicManager
                     Debug.Log($"<color=gray>Passive effect {effectType} - handled by PassiveRelicManager</color>");
                     break;
                 case RelicEffectType.Trinket_V2_EnemySpeedReduction:
-                    // Passive - handled by PassiveRelicManager
                     Debug.Log($"<color=gray>Passive effect {effectType} - handled by PassiveRelicManager</color>");
                     break;
                 case RelicEffectType.Totem_SummonInvisibleTraps:
@@ -1256,7 +1180,6 @@ namespace TacticalGame.Equipment
                                     placed++;
                                 }
                             }
-                            Debug.Log($"Placed {placed} invisible traps");
                         }
                     }
                     break;
@@ -1265,9 +1188,8 @@ namespace TacticalGame.Equipment
                         var enemies = GetEnemies(caster);
                         foreach (var enemy in enemies)
                         {
-                            ApplyStun(enemy, 0); // Light disable - prevents passive triggers
+                            ApplyStun(enemy, 0); 
                         }
-                        Debug.Log($"Enemy passives disabled next turn");
                     }
                     break;
                 case RelicEffectType.Ultimate_ForceLowestAndCaptainFight:
@@ -1279,20 +1201,16 @@ namespace TacticalGame.Equipment
                         {
                             ExecuteAttack(lowestHP, enemyCaptain);
                             ExecuteAttack(enemyCaptain, lowestHP);
-                            Debug.Log($"Forced {lowestHP.UnitName} and {enemyCaptain.UnitName} to fight!");
                         }
                     }
                     break;
                 case RelicEffectType.Ultimate_V2_SurrenderOn4Weapons:
-                    // Passive - handled by PassiveRelicManager
                     Debug.Log($"<color=gray>Passive effect {effectType} - handled by PassiveRelicManager</color>");
                     break;
                 case RelicEffectType.PassiveUnique_EnemyDiscardOnBoot:
-                    // Passive - handled by PassiveRelicManager
                     Debug.Log($"<color=gray>Passive effect {effectType} - handled by PassiveRelicManager</color>");
                     break;
                 case RelicEffectType.PassiveUnique_V2_EnemyBootsLimit:
-                    // Passive - handled by PassiveRelicManager
                     Debug.Log($"<color=gray>Passive effect {effectType} - handled by PassiveRelicManager</color>");
                     break;
 
@@ -1303,7 +1221,6 @@ namespace TacticalGame.Equipment
                 case RelicEffectType.Boots_V2_MoveRestoreHull:
                     ExecuteMove(caster, targetCell, (int)effect.value1);
                     caster.RestoreHull((int)effect.value2);
-                    Debug.Log($"{caster.UnitName} moved and restored {(int)effect.value2} hull");
                     break;
                 case RelicEffectType.Gloves_AttackDrawOnHullDestroyed:
                     if (target != null)
@@ -1313,7 +1230,6 @@ namespace TacticalGame.Equipment
                         if (target.CurrentHullPool <= 0 && hullBefore > 0)
                         {
                             DrawCards(caster, 1);
-                            Debug.Log($"Hull destroyed! {caster.UnitName} drew a card");
                         }
                     }
                     break;
@@ -1324,10 +1240,8 @@ namespace TacticalGame.Equipment
                         ExecuteAttack(caster, target);
                         if (target.CurrentHullPool <= 0 && hullBefore2 > 0)
                         {
-                            // Refund 1 energy by spending -1
                             var energyMgr = ServiceLocator.Get<EnergyManager>();
                             energyMgr?.TrySpendEnergy(-1);
-                            Debug.Log($"Hull destroyed! {caster.UnitName} gained 1 energy");
                         }
                     }
                     break;
@@ -1338,19 +1252,15 @@ namespace TacticalGame.Equipment
                         {
                             ally.RestoreHull(Mathf.RoundToInt(ally.MaxHullPool * effect.value1));
                         }
-                        Debug.Log($"Nearby allies gained {effect.value1 * 100}% hull shield");
                     }
                     break;
                 case RelicEffectType.Hat_V2_DestroyObstaclesGainHull:
                     {
-                        // Gain hull bonus (obstacles destruction is placeholder)
                         caster.RestoreHull(Mathf.RoundToInt(caster.MaxHullPool * effect.value1));
-                        Debug.Log($"{caster.UnitName} destroyed obstacles and gained hull");
                     }
                     break;
                 case RelicEffectType.Coat_HullBonusDamage:
                     {
-                        // Buff self and nearby allies with hull-based damage bonus
                         float hullBonus = caster.CurrentHullPool * effect.value1;
                         var nearbyAllies4 = GetAlliesInRange(caster, effect.tileRange);
                         nearbyAllies4.Add(caster);
@@ -1359,13 +1269,11 @@ namespace TacticalGame.Equipment
                             var effects5 = GetStatusEffects(ally);
                             effects5?.ApplyEffect(StatusEffect.CreateDamageBoost(effect.duration, hullBonus / 100f, null));
                         }
-                        Debug.Log($"Hull bonus damage: +{hullBonus} to nearby allies");
                     }
                     break;
                 case RelicEffectType.Coat_V2_BuffTileDamageExchange:
                     if (targetCell != null)
                     {
-                        // Units on tile take and deal more damage
                         if (targetCell.IsOccupied && targetCell.OccupyingUnit != null)
                         {
                             var unit = targetCell.OccupyingUnit.GetComponent<UnitStatus>();
@@ -1376,15 +1284,12 @@ namespace TacticalGame.Equipment
                                 effects6?.ApplyEffect(StatusEffect.CreateDamageBoost(effect.duration, effect.value1, null));
                             }
                         }
-                        Debug.Log($"Tile buffed: units take {effect.value1 * 100}% more damage and deal {effect.value1 * 100}% more");
                     }
                     break;
                 case RelicEffectType.Trinket_HullFullRegen:
-                    // Passive - handled by PassiveRelicManager
                     Debug.Log($"<color=gray>Passive effect {effectType} - handled by PassiveRelicManager</color>");
                     break;
                 case RelicEffectType.Trinket_V2_HullDiscardOnSurvive:
-                    // Passive - handled by PassiveRelicManager
                     Debug.Log($"<color=gray>Passive effect {effectType} - handled by PassiveRelicManager</color>");
                     break;
                 case RelicEffectType.Totem_CreateSoftObstacles:
@@ -1400,11 +1305,9 @@ namespace TacticalGame.Equipment
                                 var cell = gridManager3.GetCell(x, y);
                                 if (cell != null && !cell.IsOccupied)
                                 {
-                                    // Soft obstacle = placeholder
                                     placed2++;
                                 }
                             }
-                            Debug.Log($"Created {placed2} soft obstacles (placeholder)");
                         }
                     }
                     break;
@@ -1415,7 +1318,6 @@ namespace TacticalGame.Equipment
                         {
                             PullUnit(caster, enemy, 1);
                         }
-                        Debug.Log($"Pulled {nearbyEnemies2.Count} nearby enemies to same row");
                     }
                     break;
                 case RelicEffectType.Ultimate_MassiveHullBuff:
@@ -1423,7 +1325,6 @@ namespace TacticalGame.Equipment
                     {
                         int hullAmount = Mathf.RoundToInt(target.MaxHullPool * effect.value1);
                         target.RestoreHull(hullAmount);
-                        Debug.Log($"{target.UnitName} gained {effect.value1 * 100}% hull for {effect.duration} turns");
                     }
                     break;
                 case RelicEffectType.Ultimate_V2_ClearHazardsPlayerSide:
@@ -1445,41 +1346,32 @@ namespace TacticalGame.Equipment
                                 }
                             }
                         }
-                        Debug.Log($"Cleared all hazards on player side");
                     }
                     break;
                 case RelicEffectType.PassiveUnique_HullDestroyedRestoreHealth:
-                    // Passive - handled by PassiveRelicManager
                     Debug.Log($"<color=gray>Passive effect {effectType} - handled by PassiveRelicManager</color>");
                     break;
                 case RelicEffectType.PassiveUnique_V2_HullDestroyedDamageBonus:
-                    // Passive - handled by PassiveRelicManager
                     Debug.Log($"<color=gray>Passive effect {effectType} - handled by PassiveRelicManager</color>");
                     break;
 
                 // ==================== NAVIGATOR SPECIFIC ====================
                 case RelicEffectType.Boots_MoveFarDistance:
                     ExecuteMove(caster, targetCell, (int)effect.value1);
-                    Debug.Log($"{caster.UnitName} moved up to {(int)effect.value1} tiles");
                     break;
                 case RelicEffectType.Boots_V2_MoveFree:
                     ExecuteMove(caster, targetCell, (int)effect.value1);
-                    // 0 energy cost is handled by the card's energyCost field
-                    Debug.Log($"{caster.UnitName} moved free");
                     break;
                 case RelicEffectType.Gloves_DisableWeaponEffect:
                     if (target != null)
                     {
-                        // Disable enemy weapon role effect
                         var effects7 = GetStatusEffects(target);
                         effects7?.ApplyEffect(StatusEffect.CreateWeakness(effect.duration, 0.5f, null));
-                        Debug.Log($"Disabled {target.UnitName}'s weapon effect for {effect.duration} turn(s)");
                     }
                     break;
                 case RelicEffectType.Gloves_V2_AttackBonusPerBootsCard:
                     if (target != null)
                     {
-                        // Count boots cards in deck
                         int bootsCount = 0;
                         if (BattleDeckManager.Instance != null)
                         {
@@ -1488,7 +1380,6 @@ namespace TacticalGame.Equipment
                         }
                         float bonus = bootsCount * effect.value1;
                         ExecuteAttackWithPercentBonus(caster, target, bonus);
-                        Debug.Log($"{caster.UnitName} attacked with +{bonus * 100}% bonus ({bootsCount} boots cards)");
                     }
                     break;
                 case RelicEffectType.Hat_DisableEnemyUltimates:
@@ -1496,37 +1387,30 @@ namespace TacticalGame.Equipment
                         var enemies3 = GetEnemies(caster);
                         foreach (var enemy in enemies3)
                         {
-                            ApplyIncreaseCost(enemy, 99, effect.duration); // Make ultimates unplayable
+                            ApplyIncreaseCost(enemy, 99, effect.duration); 
                         }
-                        Debug.Log($"Enemy ultimates disabled for {effect.duration} turn(s)");
                     }
                     break;
                 case RelicEffectType.Hat_V2_DrawBootsCard:
                     DrawBootsCard(caster);
-                    Debug.Log($"{caster.UnitName} drew a boots card");
                     break;
                 case RelicEffectType.Coat_HealthDamageImmunity:
                     ApplyDamageReduction(caster, 1f, effect.duration);
-                    Debug.Log($"{caster.UnitName} immune to health damage for {effect.duration} turns");
                     break;
                 case RelicEffectType.Coat_V2_DodgeFirstAttack:
                     {
-                        // First ally attacked dodges
                         var allAllies = GetAllAllies(caster);
                         foreach (var ally in allAllies)
                         {
-                            ApplyDodgeChance(ally, 1f, 1); // 100% dodge for 1 attack
-                            break; // Only first ally
+                            ApplyDodgeChance(ally, 1f, 1); 
+                            break; 
                         }
-                        Debug.Log($"First ally attacked will dodge");
                     }
                     break;
                 case RelicEffectType.Trinket_NearbyTacticsBoost:
-                    // Passive - handled by PassiveRelicManager
                     Debug.Log($"<color=gray>Passive effect {effectType} - handled by PassiveRelicManager</color>");
                     break;
                 case RelicEffectType.Trinket_V2_IgnoreSoftObstacles:
-                    // Passive - handled by PassiveRelicManager
                     Debug.Log($"<color=gray>Passive effect {effectType} - handled by PassiveRelicManager</color>");
                     break;
                 case RelicEffectType.Totem_DisableEnemyMovement:
@@ -1534,9 +1418,8 @@ namespace TacticalGame.Equipment
                         var enemies4 = GetEnemies(caster);
                         foreach (var enemy in enemies4)
                         {
-                            ApplySlow(enemy, 99, effect.duration); // Effectively disable movement
+                            ApplySlow(enemy, 99, effect.duration); 
                         }
-                        Debug.Log($"All enemy movement disabled for {effect.duration} turn(s)");
                     }
                     break;
                 case RelicEffectType.Totem_V2_DisableNonWeaponRelics:
@@ -1546,19 +1429,16 @@ namespace TacticalGame.Equipment
                         {
                             ApplyIncreaseCost(enemy, 99, effect.duration);
                         }
-                        Debug.Log($"Enemy non-weapon relics disabled for {effect.duration} turn(s)");
                     }
                     break;
                 case RelicEffectType.Ultimate_MarkReflectToCaptain:
                     if (target != null)
                     {
-                        // Mark target - damage reflects to their captain
                         ExecuteAttack(caster, target);
                         var enemyCaptain2 = GetEnemies(caster).FirstOrDefault(e => e.IsCaptain);
                         if (enemyCaptain2 != null)
                         {
                             ApplyVulnerable(target, effect.value1, effect.duration);
-                            Debug.Log($"Marked {target.UnitName} - damage reflects to captain");
                         }
                     }
                     break;
@@ -1572,16 +1452,13 @@ namespace TacticalGame.Equipment
                             var closest2 = sorted.First();
                             var furthest = sorted.Last();
                             ExecuteSwapWithUnit(closest2, furthest, card);
-                            Debug.Log($"Swapped {closest2.UnitName} and {furthest.UnitName} positions");
                         }
                     }
                     break;
                 case RelicEffectType.PassiveUnique_FreeMovement:
-                    // Passive - handled by PassiveRelicManager
                     Debug.Log($"<color=gray>Passive effect {effectType} - handled by PassiveRelicManager</color>");
                     break;
                 case RelicEffectType.PassiveUnique_V2_AllyMovementBoost:
-                    // Passive - handled by PassiveRelicManager
                     Debug.Log($"<color=gray>Passive effect {effectType} - handled by PassiveRelicManager</color>");
                     break;
 
@@ -1592,11 +1469,9 @@ namespace TacticalGame.Equipment
                         var effects8 = GetStatusEffects(caster);
                         effects8?.ApplyEffect(StatusEffect.CreateDamageBoost(1, effect.value2, null));
                     }
-                    Debug.Log($"{caster.UnitName} moved, next weapon +{effect.value2 * 100}% damage");
                     break;
                 case RelicEffectType.Boots_V2_MoveDestroyObstacle:
                     ExecuteMove(caster, targetCell, (int)effect.value1);
-                    Debug.Log($"{caster.UnitName} moved and destroyed obstacle (placeholder)");
                     break;
                 case RelicEffectType.Gloves_AttackBonusPerNearbyAlly:
                     if (target != null)
@@ -1604,7 +1479,6 @@ namespace TacticalGame.Equipment
                         int nearbyCount = GetAlliesInRange(caster, effect.tileRange).Count;
                         float allyBonus = nearbyCount * effect.value1;
                         ExecuteAttackWithPercentBonus(caster, target, allyBonus);
-                        Debug.Log($"{caster.UnitName} attacked with +{allyBonus * 100}% ({nearbyCount} nearby allies)");
                     }
                     break;
                 case RelicEffectType.Gloves_V2_AttackBonusPerRelicInHand:
@@ -1618,12 +1492,10 @@ namespace TacticalGame.Equipment
                         }
                         float relicBonus = relicCount * effect.value1;
                         ExecuteAttackWithPercentBonus(caster, target, relicBonus);
-                        Debug.Log($"{caster.UnitName} attacked with +{relicBonus * 100}% ({relicCount} MaA cards in hand)");
                     }
                     break;
                 case RelicEffectType.Hat_ReduceUltimateCost:
                     ApplyReduceAllCosts(caster, (int)effect.value1, effect.duration);
-                    Debug.Log($"{caster.UnitName}'s next ultimate cost reduced by {(int)effect.value1}");
                     break;
                 case RelicEffectType.Hat_V2_IncreaseEnemyWeaponCost:
                     {
@@ -1631,7 +1503,6 @@ namespace TacticalGame.Equipment
                         if (closestEnemy3 != null)
                         {
                             ApplyIncreaseCost(closestEnemy3, (int)effect.value1, effect.duration);
-                            Debug.Log($"{closestEnemy3.UnitName}'s weapon cost +{(int)effect.value1}");
                         }
                     }
                     break;
@@ -1643,7 +1514,6 @@ namespace TacticalGame.Equipment
                             var effects9 = GetStatusEffects(ally);
                             effects9?.ApplyEffect(StatusEffect.CreateDamageBoost(effect.duration, effect.value1, null));
                         }
-                        Debug.Log($"Nearby allies gain +{effect.value1 * 100}% damage for {effect.duration} turns");
                     }
                     break;
                 case RelicEffectType.Coat_V2_ReduceEnemyPower:
@@ -1653,15 +1523,12 @@ namespace TacticalGame.Equipment
                         {
                             ApplyWeaknessCurse(enemy, effect.value1, effect.duration);
                         }
-                        Debug.Log($"All enemies -{effect.value1 * 100}% Power for {effect.duration} turns");
                     }
                     break;
                 case RelicEffectType.Trinket_CounterAttackOnHit:
-                    // Passive - handled by PassiveRelicManager
                     Debug.Log($"<color=gray>Passive effect {effectType} - handled by PassiveRelicManager</color>");
                     break;
                 case RelicEffectType.Trinket_V2_NearbyPowerBoost:
-                    // Passive - handled by PassiveRelicManager
                     Debug.Log($"<color=gray>Passive effect {effectType} - handled by PassiveRelicManager</color>");
                     break;
                 case RelicEffectType.Totem_DisableEnemyWeapons:
@@ -1669,9 +1536,8 @@ namespace TacticalGame.Equipment
                         var enemies8 = GetEnemies(caster);
                         foreach (var enemy in enemies8)
                         {
-                            ApplyWeaknessCurse(enemy, 1f, effect.duration); // -100% weapon damage
+                            ApplyWeaknessCurse(enemy, 1f, effect.duration); 
                         }
-                        Debug.Log($"Enemy weapons disabled for {effect.duration} turn(s)");
                     }
                     break;
                 case RelicEffectType.Totem_V2_EarthquakeHazard:
@@ -1688,7 +1554,6 @@ namespace TacticalGame.Equipment
                                 var cell = gridManager5.GetCell(x, y);
                                 if (cell != null)
                                 {
-                                    // Earthquake = damage hazard on tile
                                     if (cell.IsOccupied && cell.OccupyingUnit != null)
                                     {
                                         var unit = cell.OccupyingUnit.GetComponent<UnitStatus>();
@@ -1698,7 +1563,6 @@ namespace TacticalGame.Equipment
                                     placed3++;
                                 }
                             }
-                            Debug.Log($"Earthquake on {placed3} tiles for {(int)effect.value2} damage each");
                         }
                     }
                     break;
@@ -1709,14 +1573,12 @@ namespace TacticalGame.Equipment
                         {
                             ExecuteAttack(caster, enemy);
                         }
-                        Debug.Log($"{caster.UnitName} attacked all {allEnemies.Count} enemies!");
                     }
                     break;
                 case RelicEffectType.Ultimate_V2_AttackRowDamage:
                     if (target != null)
                     {
                         ExecuteAttack(caster, target);
-                        // Damage all enemies in same row
                         var gridManager6 = ServiceLocator.Get<GridManager>();
                         if (gridManager6 != null)
                         {
@@ -1730,16 +1592,13 @@ namespace TacticalGame.Equipment
                             {
                                 enemy.TakeDamage((int)effect.value2, caster.gameObject, false);
                             }
-                            Debug.Log($"Row damage: {(int)effect.value2} to {rowEnemies.Count} additional enemies");
                         }
                     }
                     break;
                 case RelicEffectType.PassiveUnique_WeaponRelicOnKill:
-                    // Passive - handled by PassiveRelicManager
                     Debug.Log($"<color=gray>Passive effect {effectType} - handled by PassiveRelicManager</color>");
                     break;
                 case RelicEffectType.PassiveUnique_V2_HealOnKill:
-                    // Passive - handled by PassiveRelicManager
                     Debug.Log($"<color=gray>Passive effect {effectType} - handled by PassiveRelicManager</color>");
                     break;
 
@@ -1781,16 +1640,13 @@ namespace TacticalGame.Equipment
                 {
                     if (ally == null || ally == caster) 
                     {
-                        // NEW: Removed refund! Just cancel.
                         Debug.Log("Invalid swap target. Cancelled.");
                         return;
                     }
-                    // NEW: Consume right before swapping!
                     if (card != null) BattleDeckManager.Instance.ConsumeCard(card);
                     SwapUnitsOnGrid(caster, ally);
                 },
                 () => {
-                    // NEW: Removed refund! Just cancel.
                     Debug.Log("Swap cancelled");
                 }
             );
@@ -1808,7 +1664,6 @@ namespace TacticalGame.Equipment
 
             if (aCell == null || bCell == null) return;
 
-            // Clear both cells, then re-place at the swapped positions so occupancy tracks.
             aCell.RemoveUnit();
             bCell.RemoveUnit();
 
@@ -1829,7 +1684,6 @@ namespace TacticalGame.Equipment
             if (caster == null) return;
             UnitStatus allyToMove = target ?? caster;
             
-            // Start the recursive step-by-step movement loop
             ExecuteMoveAllyStep(allyToMove, tiles, card, true);
         }
 
@@ -1839,7 +1693,6 @@ namespace TacticalGame.Equipment
 
             bool isPlayerAlly = allyToMove.Team == Team.Player;
 
-            // SAFETY CHECK: If they box themselves in on step 1, end the movement early so they don't get soft-locked!
             if (!HasValidAdjacentTile(allyToMove, isPlayerAlly))
             {
                 Debug.Log($"{allyToMove.UnitName} has no valid adjacent tiles left. Movement ends.");
@@ -1857,26 +1710,19 @@ namespace TacticalGame.Equipment
 
                     Vector2Int allyPos = gridManager.WorldToGridPosition(allyToMove.transform.position);
                     
-                    // FIXED: 8-way distance check
                     int distance = Mathf.Max(Mathf.Abs(destinationCell.XPosition - allyPos.x), Mathf.Abs(destinationCell.YPosition - allyPos.y));
 
                     if (distance == 1 && (!isPlayerAlly || destinationCell.IsPlayerSide))
                     {
-                        // NEW: Consume the card ONLY on the very first step!
                         if (isFirstStep && card != null) BattleDeckManager.Instance.ConsumeCard(card);
 
-                        // 1. Instantly update the Grid occupancy
                         GridCell oldCell = gridManager.GetCell(allyPos.x, allyPos.y);
                         if (oldCell != null) oldCell.RemoveUnit();
                         destinationCell.PlaceUnit(allyToMove.gameObject);
 
-                        // 2. Instantly move the physical unit
                         allyToMove.transform.position = destinationCell.GetWorldPosition();
                         GameEvents.TriggerUnitMoved(allyToMove.gameObject, oldCell, destinationCell);
 
-                        Debug.Log($"{allyToMove.UnitName} stepped to ({destinationCell.XPosition}, {destinationCell.YPosition})");
-
-                        // 3. Trigger the next step (isFirstStep is now FALSE)
                         ExecuteMoveAllyStep(allyToMove, remainingSteps - 1, card, false);
                     }
                     else
@@ -1888,20 +1734,18 @@ namespace TacticalGame.Equipment
                 () => {
                     if (isFirstStep)
                     {
-                        // NEW: Removed refund! Just cancel.
                         Debug.Log("Movement cancelled.");
                     }
                     else
                     {
-                        // Mid-way cancel is BLOCKED!
                         Debug.Log("Cannot cancel mid-movement! You must finish taking your steps.");
                         ExecuteMoveAllyStep(allyToMove, remainingSteps, card, false);
                     }
                 },
-                true, // onlyEmpty
-                1,    // maxRange = 1
-                allyToMove, // centerUnit
-                isPlayerAlly, // playerSideOnly
+                true, 
+                1,    
+                allyToMove, 
+                isPlayerAlly,
                 isFirstStep
             );
         }
@@ -1912,7 +1756,6 @@ namespace TacticalGame.Equipment
             if (gridManager == null) return false;
             
             Vector2Int pos = gridManager.WorldToGridPosition(unit.transform.position);
-            // FIXED: All 8 directions
             Vector2Int[] dirs = { 
                 new Vector2Int(0, 1), new Vector2Int(0, -1), new Vector2Int(1, 0), new Vector2Int(-1, 0),
                 new Vector2Int(1, 1), new Vector2Int(1, -1), new Vector2Int(-1, 1), new Vector2Int(-1, -1)
@@ -1938,9 +1781,6 @@ namespace TacticalGame.Equipment
             }
         }
         
-        /// <summary>
-        /// Instantly teleport a unit to a destination cell (no range limit).
-        /// </summary>
         private static void TeleportUnit(UnitStatus unit, GridCell destination)
         {
             if (unit == null || destination == null) return;
@@ -1948,7 +1788,6 @@ namespace TacticalGame.Equipment
             var gridManager = ServiceLocator.Get<GridManager>();
             if (gridManager == null) return;
             
-            // Get current cell and clear it
             var coords = gridManager.WorldToGridPosition(unit.transform.position);
             GridCell currentCell = gridManager.GetCell(coords.x, coords.y);
             if (currentCell != null)
@@ -1956,14 +1795,10 @@ namespace TacticalGame.Equipment
                 currentCell.RemoveUnit();
             }
             
-            // Place at destination
             destination.PlaceUnit(unit.gameObject);
             unit.transform.position = destination.GetWorldPosition();
             
-            // Trigger move event
             GameEvents.TriggerUnitMoved(unit.gameObject, currentCell, destination);
-            
-            Debug.Log($"{unit.UnitName} teleported to ({destination.XPosition}, {destination.YPosition})");
         }
         
         private static void PushUnit(UnitStatus target, UnitStatus source, int tiles)
@@ -1971,11 +1806,7 @@ namespace TacticalGame.Equipment
             if (target == null || source == null) return;
             
             var effects = target.GetComponent<StatusEffectManager>();
-            if (effects != null && !effects.CanBeKnockedBack())
-            {
-                Debug.Log($"{target.UnitName} cannot be knocked back!");
-                return;
-            }
+            if (effects != null && !effects.CanBeKnockedBack()) return;
             
             var gridManager = ServiceLocator.Get<GridManager>();
             if (gridManager == null) return;
@@ -1993,7 +1824,6 @@ namespace TacticalGame.Equipment
             if (newCell != null && newCell.CanPlaceUnit())
             {
                 target.transform.position = newCell.GetWorldPosition();
-                Debug.Log($"Pushed {target.UnitName} by {tiles} tiles");
             }
         }
         
@@ -2011,7 +1841,6 @@ namespace TacticalGame.Equipment
             if (newCell != null && newCell.CanPlaceUnit())
             {
                 target.transform.position = newCell.GetWorldPosition();
-                Debug.Log($"Knocked {target.UnitName} to last column");
             }
         }
         
@@ -2032,7 +1861,6 @@ namespace TacticalGame.Equipment
                     : DamageCalculator.GetRangedBaseDamage(attacker);
                 
                 target.TakeDamage(damage, attacker.gameObject, isMelee);
-                Debug.Log($"{attacker.UnitName} dealt {damage} damage to {target.UnitName}");
             }
         }
         
@@ -2047,7 +1875,6 @@ namespace TacticalGame.Equipment
             
             int totalDamage = baseDamage + flatBonus;
             target.TakeDamage(totalDamage, attacker.gameObject, isMelee);
-            Debug.Log($"{attacker.UnitName} dealt {totalDamage} damage to {target.UnitName} (+{flatBonus} bonus)");
         }
         
         private static void ExecuteAttackWithPercentBonus(UnitStatus attacker, UnitStatus target, float percentBonus)
@@ -2061,7 +1888,6 @@ namespace TacticalGame.Equipment
             
             int totalDamage = Mathf.RoundToInt(baseDamage * (1f + percentBonus));
             target.TakeDamage(totalDamage, attacker.gameObject, isMelee);
-            Debug.Log($"{attacker.UnitName} dealt {totalDamage} damage to {target.UnitName} (+{percentBonus*100}%)");
         }
         
         #endregion
@@ -2077,183 +1903,156 @@ namespace TacticalGame.Equipment
         {
             var effects = GetStatusEffects(unit);
             effects?.ApplyEffect(StatusEffect.CreateDamageReduction(duration, percent, null));
-            Debug.Log($"{unit.UnitName} gains {percent*100}% damage reduction for {duration} turns");
         }
         
         private static void ApplyGritBoost(UnitStatus unit, float percent, int duration)
         {
             var effects = GetStatusEffects(unit);
             effects?.ApplyEffect(StatusEffect.CreateGritBoost(duration, percent, null));
-            Debug.Log($"{unit.UnitName} gains {percent*100}% Grit boost for {duration} turns");
         }
         
         private static void ApplyAimBoost(UnitStatus unit, float percent, int duration)
         {
             var effects = GetStatusEffects(unit);
             effects?.ApplyEffect(StatusEffect.CreateAimBoost(duration, percent, null));
-            Debug.Log($"{unit.UnitName} gains {percent*100}% Aim boost for {duration} turns");
         }
         
         private static void ApplyVulnerable(UnitStatus unit, float percent, int duration)
         {
             var effects = GetStatusEffects(unit);
             effects?.ApplyEffect(StatusEffect.CreateVulnerable(duration, percent, null));
-            Debug.Log($"{unit.UnitName} is vulnerable for {duration} turns");
         }
         
         private static void ApplyStun(UnitStatus unit, int duration)
         {
             var effects = GetStatusEffects(unit);
             effects?.ApplyEffect(StatusEffect.CreateStun(duration, null));
-            Debug.Log($"{unit.UnitName} is stunned for {duration} turns");
         }
         
         private static void ApplyMoraleFocus(UnitStatus unit, int duration)
         {
             var effects = GetStatusEffects(unit);
             effects?.ApplyEffect(StatusEffect.CreateMoraleFocus(duration, null));
-            Debug.Log($"{unit.UnitName} is marked for morale focus for {duration} turns");
         }
         
         private static void ApplyReduceCardDraw(UnitStatus unit, int reduction, int duration)
         {
             var effects = GetStatusEffects(unit);
             effects?.ApplyEffect(StatusEffect.CreateReduceCardDraw(duration, reduction, null));
-            Debug.Log($"{unit.UnitName} draws {reduction} fewer cards for {duration} turns");
         }
         
         private static void ApplyIncreaseCost(UnitStatus unit, int increase, int duration)
         {
             var effects = GetStatusEffects(unit);
             effects?.ApplyEffect(StatusEffect.CreateIncreaseCost(duration, increase, null));
-            Debug.Log($"{unit.UnitName} card costs +{increase} for {duration} turns");
         }
         
         private static void ApplyPreventBuzzReduction(UnitStatus unit, int duration)
         {
             var effects = GetStatusEffects(unit);
             effects?.ApplyEffect(StatusEffect.CreatePreventBuzzReduction(duration, null));
-            Debug.Log($"{unit.UnitName} buzz cannot be reduced for {duration} turns");
         }
         
         private static void ApplyHealthStatReduction(UnitStatus unit, float percent, int duration)
         {
             var effects = GetStatusEffects(unit);
             effects?.ApplyEffect(StatusEffect.CreateHealthStatBoost(duration, -percent, null));
-            Debug.Log($"{unit.UnitName} health stat reduced by {percent*100}% for {duration} turns");
         }
         
         private static void ApplyHealthStatBoost(UnitStatus unit, float percent, int duration)
         {
             var effects = GetStatusEffects(unit);
             effects?.ApplyEffect(StatusEffect.CreateHealthStatBoost(duration, percent, null));
-            Debug.Log($"{unit.UnitName} health stat boosted by {percent*100}% for {duration} turns");
         }
         
         private static void ApplyForceTargetClosest(UnitStatus unit, int duration)
         {
             var effects = GetStatusEffects(unit);
             effects?.ApplyEffect(StatusEffect.CreateForceTargetClosest(duration, null));
-            Debug.Log($"{unit.UnitName} forced to target closest for {duration} turns");
         }
         
         private static void ApplyReduceRangedCost(UnitStatus unit, int reduction)
         {
             var effects = GetStatusEffects(unit);
             effects?.ApplyEffect(StatusEffect.CreateReduceNextRangedCost(1, reduction, null));
-            Debug.Log($"{unit.UnitName} next ranged cost reduced by {reduction}");
         }
         
         private static void ApplyFreeMove(UnitStatus unit)
         {
             var effects = GetStatusEffects(unit);
             effects?.ApplyEffect(StatusEffect.CreateFreeMove(1, null));
-            Debug.Log($"{unit.UnitName} has a free move");
         }
         
         private static void ApplyReturnDamage(UnitStatus unit, int instances, int duration)
         {
             var effects = GetStatusEffects(unit);
             effects?.ApplyEffect(StatusEffect.CreateReturnDamage(duration, instances, null));
-            Debug.Log($"{unit.UnitName} returns {instances} damage instances for {duration} turns");
         }
         
         private static void ApplyEnergyOnKnockback(UnitStatus unit, int energy, int duration)
         {
             var effects = GetStatusEffects(unit);
             effects?.ApplyEffect(StatusEffect.CreateEnergyOnKnockback(duration, energy, null));
-            Debug.Log($"{unit.UnitName} gains {energy} energy if knocked back for {duration} turns");
         }
         
         private static void ApplyWeaponUseTwice(UnitStatus unit, int duration)
         {
             var effects = GetStatusEffects(unit);
             effects?.ApplyEffect(StatusEffect.CreateWeaponUseTwice(duration, null));
-            Debug.Log($"{unit.UnitName} can use weapon twice for {duration} turns");
         }
         
         private static void ApplyDrawOnEnemyAttack(UnitStatus unit, int duration)
         {
             var effects = GetStatusEffects(unit);
-            // 3 max triggers (val1), 1 discard per trigger (val2)
             effects?.ApplyEffect(StatusEffect.CreateDrawOnEnemyAttack(duration, 3, 1, null));
-            Debug.Log($"{unit.UnitName} draws a card and forces attacker discard for next 3 attacks ({duration} turns)");
         }
         
         private static void ApplyPreventSurrender(UnitStatus unit, float moraleRestore, int duration)
         {
             var effects = GetStatusEffects(unit);
             effects?.ApplyEffect(StatusEffect.CreatePreventSurrender(duration, moraleRestore, null));
-            Debug.Log($"{unit.UnitName} cannot surrender for {duration} turns");
         }
         
         private static void ApplyRowCantBeTargeted(UnitStatus unit, int duration)
         {
             var effects = GetStatusEffects(unit);
             effects?.ApplyEffect(StatusEffect.CreateRowCantBeTargeted(duration, null));
-            Debug.Log($"{unit.UnitName}'s row protected for {duration} turns");
         }
         
         private static void ApplyFreeStows(UnitStatus unit, int count)
         {
             var effects = GetStatusEffects(unit);
             effects?.ApplyEffect(StatusEffect.CreateFreeStows(99, count, null));
-            Debug.Log($"{unit.UnitName} has {count} free stows");
         }
         
         private static void ApplyFreeRumUsage(UnitStatus unit, int count)
         {
             var effects = GetStatusEffects(unit);
             effects?.ApplyEffect(StatusEffect.CreateFreeRumUsage(99, count, null));
-            Debug.Log($"{unit.UnitName} has {count} free rum uses");
         }
         
         private static void ApplyStunOnKnockback(UnitStatus unit, int duration)
         {
             var effects = GetStatusEffects(unit);
             effects?.ApplyEffect(StatusEffect.CreateStunOnKnockback(duration, null));
-            Debug.Log($"{unit.UnitName} will stun attacker if knocked back for {duration} turns");
         }
         
         private static void ApplyFullBuzz(UnitStatus unit, int duration)
         {
             var effects = GetStatusEffects(unit);
             effects?.ApplyEffect(StatusEffect.CreateBuzzFilled(duration, null));
-            Debug.Log($"{unit.UnitName} buzz forced to full for {duration} turns");
         }
         
         private static void ApplyCaptainDamageReflect(UnitStatus unit, int duration)
         {
             var effects = GetStatusEffects(unit);
             effects?.ApplyEffect(StatusEffect.CreateCaptainDamageReflect(duration, null));
-            Debug.Log($"Captain damage reflects for {duration} turns");
         }
         
         private static void ApplyReflectMoraleDamage(UnitStatus unit, int duration)
         {
             var effects = GetStatusEffects(unit);
             effects?.ApplyEffect(StatusEffect.CreateReflectMoraleDamage(duration, null));
-            Debug.Log($"Morale damage reflects to enemies for {duration} turns");
         }
         
         #endregion
@@ -2266,7 +2065,6 @@ namespace TacticalGame.Equipment
             {
                 ally.RestoreMorale(Mathf.RoundToInt(ally.MaxMorale * percent));
             }
-            Debug.Log($"Restored {percent*100}% morale to nearby allies");
         }
         
         private static void BuffNearbyAlliesAimPower(UnitStatus caster, float percent, int duration, int range)
@@ -2277,7 +2075,6 @@ namespace TacticalGame.Equipment
                 var effects = GetStatusEffects(ally);
                 effects?.ApplyEffect(StatusEffect.CreatePowerBoost(duration, percent, null));
             }
-            Debug.Log($"Buffed nearby allies +{percent*100}% Aim/Power for {duration} turns");
         }
         
         private static void ApplyMoraleDamageReductionNearby(UnitStatus caster, float percent, int duration, int range)
@@ -2287,7 +2084,6 @@ namespace TacticalGame.Equipment
                 var effects = GetStatusEffects(ally);
                 effects?.ApplyEffect(StatusEffect.CreateMoraleDamageReduction(duration, percent, null));
             }
-            Debug.Log($"Nearby allies take {percent*100}% less morale damage for {duration} turns");
         }
         
         private static void ApplyReducedRumEffectNearby(UnitStatus caster, float reduction, int range)
@@ -2297,14 +2093,12 @@ namespace TacticalGame.Equipment
                 var effects = GetStatusEffects(ally);
                 effects?.ApplyEffect(StatusEffect.CreateReducedRumEffect(99, reduction, null));
             }
-            Debug.Log($"Nearby allies have reduced rum effects");
         }
         
         private static void ApplyEnemyBuzzOnDamage(UnitStatus caster, int duration)
         {
             var effects = GetStatusEffects(caster);
             effects?.ApplyEffect(StatusEffect.CreateEnemyBuzzOnDamage(duration, null));
-            Debug.Log($"Enemies gain buzz when dealing damage for {duration} turns");
         }
         
         private static void ApplyPreventDisplacementNearby(UnitStatus caster, int duration, int range)
@@ -2314,7 +2108,6 @@ namespace TacticalGame.Equipment
                 var effects = GetStatusEffects(ally);
                 effects?.ApplyEffect(StatusEffect.CreatePreventDisplacement(duration, null));
             }
-            Debug.Log($"Nearby allies can't be displaced for {duration} turns");
         }
         
         private static void ApplyOnlyLowerHPCanTargetLowest(UnitStatus caster, int duration)
@@ -2324,7 +2117,6 @@ namespace TacticalGame.Equipment
             {
                 var effects = GetStatusEffects(lowestHP);
                 effects?.ApplyEffect(StatusEffect.CreateOnlyLowerHPCanTarget(duration, null));
-                Debug.Log($"{lowestHP.UnitName} can only be targeted by lower HP for {duration} turns");
             }
         }
         
@@ -2335,7 +2127,6 @@ namespace TacticalGame.Equipment
                 var effects = GetStatusEffects(ally);
                 effects?.ApplyEffect(StatusEffect.CreateDamageBoost(duration, percent, null));
             }
-            Debug.Log($"Column allies deal +{percent*100}% damage for {duration} turns");
         }
         
         private static void ApplyRowRangedProtection(UnitStatus caster, float reduction, int duration)
@@ -2345,7 +2136,6 @@ namespace TacticalGame.Equipment
                 var effects = GetStatusEffects(ally);
                 effects?.ApplyEffect(StatusEffect.CreateRangedDamageReduction(duration, reduction, null));
             }
-            Debug.Log($"Row takes {reduction*100}% less ranged damage for {duration} turns");
         }
         
         private static void ApplyNoMoraleDamageNearby(UnitStatus caster, int duration, int range)
@@ -2355,7 +2145,6 @@ namespace TacticalGame.Equipment
                 var effects = GetStatusEffects(ally);
                 effects?.ApplyEffect(StatusEffect.CreateMoraleDamageReduction(duration, 1f, null));
             }
-            Debug.Log($"Nearby allies take no morale damage for {duration} turns");
         }
         
         private static void StunNearbyEnemies(UnitStatus center, int duration, int range)
@@ -2372,7 +2161,6 @@ namespace TacticalGame.Equipment
             {
                 PushUnit(enemy, caster, tiles);
             }
-            Debug.Log($"Knocked back nearby enemies {tiles} tiles");
         }
         
         private static void CurseEnemyRangedWeapons(UnitStatus caster, float reduction, int duration)
@@ -2385,7 +2173,6 @@ namespace TacticalGame.Equipment
                     effects?.ApplyEffect(StatusEffect.CreateDamageReduction(duration, reduction, null));
                 }
             }
-            Debug.Log($"Enemy ranged weapons deal {reduction*100}% less damage for {duration} turns");
         }
         
         #endregion
@@ -2396,7 +2183,6 @@ namespace TacticalGame.Equipment
         {
             var energyManager = ServiceLocator.Get<EnergyManager>();
             energyManager?.AddGrog(amount);
-            Debug.Log($"Generated {amount} grog");
         }
         
         private static void ConvertGrogToEnergy(int grogAmount)
@@ -2404,8 +2190,6 @@ namespace TacticalGame.Equipment
             var energyManager = ServiceLocator.Get<EnergyManager>();
             if (energyManager != null && energyManager.TrySpendGrog(grogAmount))
             {
-                // Energy is granted at turn start, so this would need special handling
-                Debug.Log($"Converted {grogAmount} grog to energy");
             }
         }
         
@@ -2418,11 +2202,6 @@ namespace TacticalGame.Equipment
                 {
                     deckManager.DrawOneCard();
                 }
-                Debug.Log($"{unit.UnitName} drew {count} cards");
-            }
-            else
-            {
-                Debug.Log($"{unit.UnitName} tried to draw {count} cards but no deck manager");
             }
         }
         
@@ -2433,10 +2212,6 @@ namespace TacticalGame.Equipment
             {
                 deckManager.DrawCardByCategory(unit, RelicCategory.Ultimate);
             }
-            else
-            {
-                Debug.Log($"{unit.UnitName} tried to draw ultimate but no deck manager");
-            }
         }
         
         private static void DrawWeaponRelicCard(UnitStatus unit)
@@ -2445,10 +2220,6 @@ namespace TacticalGame.Equipment
             if (deckManager != null)
             {
                 deckManager.DrawCardByCategory(unit, RelicCategory.Weapon);
-            }
-            else
-            {
-                Debug.Log($"{unit.UnitName} tried to draw weapon but no deck manager");
             }
         }
         
@@ -2459,15 +2230,10 @@ namespace TacticalGame.Equipment
             {
                 deckManager.DrawCardByCategory(unit, RelicCategory.Boots);
             }
-            else
-            {
-                Debug.Log($"{unit.UnitName} tried to draw boots but no deck manager");
-            }
         }
         
         private static void AddHighQualityRum(UnitStatus unit, int count)
         {
-            Debug.Log($"Added {count} high quality rum (placeholder)");
         }
         
         #endregion
@@ -2477,9 +2243,8 @@ namespace TacticalGame.Equipment
         private static void SummonCannon(UnitStatus caster, GridCell cell, int hp)
         {
             var hazardManager = ServiceLocator.Get<HazardManager>();
-            if (hazardManager == null) { Debug.LogWarning("No HazardManager found!"); return; }
+            if (hazardManager == null) return;
 
-            // Place cannon as a soft obstacle (destructible) at target cell or near caster
             GridCell spawnCell = cell;
             if (spawnCell == null || spawnCell.IsOccupied || spawnCell.HasHazard)
             {
@@ -2493,14 +2258,13 @@ namespace TacticalGame.Equipment
                     : DamageCalculator.GetRangedBaseDamage(caster);
                     
                 hazardManager.CreateCannonObstacle(spawnCell, hp, baseDamage);
-                Debug.Log($"<color=green>{caster.UnitName} summoned a cannon with {hp} HP and {baseDamage} damage!</color>");
             }
         }
 
         private static void SummonAnchor(UnitStatus caster, GridCell cell, float healthBoost, int range)
         {
             var hazardManager = ServiceLocator.Get<HazardManager>();
-            if (hazardManager == null) { Debug.LogWarning("No HazardManager found!"); return; }
+            if (hazardManager == null) return;
 
             GridCell spawnCell = cell;
             if (spawnCell == null || spawnCell.IsOccupied || spawnCell.HasHazard)
@@ -2510,17 +2274,15 @@ namespace TacticalGame.Equipment
             }
             if (spawnCell != null)
             {
-                // Create healing zone around the anchor
                 int healPerTurn = Mathf.RoundToInt(healthBoost * 100);
                 hazardManager.CreateHealingZone(spawnCell, healPerTurn, 3);
-                Debug.Log($"<color=green>{caster.UnitName} summoned an anchor with +{healthBoost*100}% health buff in {range} range!</color>");
             }
         }
 
         private static void SummonTargetDummy(UnitStatus caster, GridCell cell, int hp)
         {
             var hazardManager = ServiceLocator.Get<HazardManager>();
-            if (hazardManager == null) { Debug.LogWarning("No HazardManager found!"); return; }
+            if (hazardManager == null) return;
 
             GridCell spawnCell = cell;
             if (spawnCell == null || spawnCell.IsOccupied || spawnCell.HasHazard)
@@ -2530,8 +2292,7 @@ namespace TacticalGame.Equipment
             }
             if (spawnCell != null)
             {
-                hazardManager.CreateSoftObstacle(spawnCell, hp, -1); // Permanent until destroyed
-                Debug.Log($"<color=green>{caster.UnitName} summoned a target dummy with {hp} HP!</color>");
+                hazardManager.CreateSoftObstacle(spawnCell, hp, -1); 
             }
         }
 
@@ -2543,39 +2304,33 @@ namespace TacticalGame.Equipment
 
             if (target != null)
             {
-                // Get target's current cell
                 Vector2Int pos = gridManager.WorldToGridPosition(target.transform.position);
                 var targetCell = gridManager.GetCell(pos.x, pos.y);
 
-                // Find adjacent cell for displacement
                 var adjacent = gridManager.GetCell(pos.x + 1, pos.y) ?? gridManager.GetCell(pos.x - 1, pos.y);
 
                 if (adjacent != null && adjacent.CanPlaceUnit())
                 {
-                    // Displace the unit
                     if (targetCell != null) targetCell.RemoveUnit();
                     adjacent.PlaceUnit(target.gameObject);
                     target.transform.position = adjacent.GetWorldPosition();
 
-                    // Spawn obstacle where the unit was
                     if (targetCell != null)
                     {
                         hazardManager.CreateHardObstacle(targetCell, 3);
                     }
-                    Debug.Log($"<color=green>Summoned obstacle at ({pos.x},{pos.y}) and displaced {target.UnitName}!</color>");
                 }
             }
             else if (cell != null)
             {
                 hazardManager.CreateHardObstacle(cell, 3);
-                Debug.Log($"<color=green>Summoned obstacle at ({cell.XPosition},{cell.YPosition})!</color>");
             }
         }
 
         private static void SummonExplodingBarrels(UnitStatus caster, int count, int delay)
         {
             var hazardManager = ServiceLocator.Get<HazardManager>();
-            if (hazardManager == null) { Debug.LogWarning("No HazardManager found!"); return; }
+            if (hazardManager == null) return;
 
             var emptyCells = hazardManager.FindEmptyCellsNear(caster.transform.position, count, 4);
             int placed = 0;
@@ -2585,31 +2340,20 @@ namespace TacticalGame.Equipment
                 var barrel = hazardManager.CreateExplodingBarrel(cell, 150, delay);
                 if (barrel != null) placed++;
             }
-            Debug.Log($"<color=green>{caster.UnitName} summoned {placed} exploding barrels (fuse: {delay} turns)!</color>");
         }
 
         private static void SummonHardObstacles(UnitStatus caster, int count, int duration)
         {
             var hazardManager = ServiceLocator.Get<HazardManager>();
             var gridManager = ServiceLocator.Get<GridManager>();
-            if (hazardManager == null || gridManager == null)
-            {
-                Debug.LogWarning("SummonHardObstacles: Missing HazardManager or GridManager!");
-                return;
-            }
+            if (hazardManager == null || gridManager == null) return;
 
             Vector2Int casterPos = gridManager.WorldToGridPosition(caster.transform.position);
             int middleCol = gridManager.GetMiddleColumnIndex();
             int gridHeight = gridManager.GridHeight;
 
-            Debug.Log($"<color=cyan>SummonHardObstacles: Caster at ({casterPos.x}, {casterPos.y}), " +
-                      $"scanning columns {casterPos.x + 1} to {middleCol} for {count} adjacent empty cells</color>");
-
-            // Scan each column from caster's column + 1 toward the neutral zone (middleCol)
-            // Never go past middleCol (that would be enemy zone)
             for (int col = casterPos.x + 1; col <= middleCol; col++)
             {
-                // Find all empty cells in this column
                 var emptyCellsInColumn = new System.Collections.Generic.List<GridCell>();
                 for (int row = 0; row < gridHeight; row++)
                 {
@@ -2621,15 +2365,13 @@ namespace TacticalGame.Equipment
                 }
 
                 if (emptyCellsInColumn.Count < count)
-                    continue; // Not enough empty cells in this column
+                    continue; 
 
-                // Find the best group of 'count' adjacent cells, centered on caster's Y
                 GridCell bestStartCell = null;
                 int bestDistance = int.MaxValue;
 
                 for (int startIdx = 0; startIdx <= emptyCellsInColumn.Count - count; startIdx++)
                 {
-                    // Check if 'count' cells starting from startIdx are adjacent (consecutive Y values)
                     bool adjacent = true;
                     for (int i = 1; i < count; i++)
                     {
@@ -2642,7 +2384,6 @@ namespace TacticalGame.Equipment
 
                     if (adjacent)
                     {
-                        // Calculate center of this group and distance from caster's Y
                         int groupCenterY = emptyCellsInColumn[startIdx].YPosition + (count - 1) / 2;
                         int dist = Mathf.Abs(groupCenterY - casterPos.y);
                         if (dist < bestDistance)
@@ -2655,7 +2396,6 @@ namespace TacticalGame.Equipment
 
                 if (bestStartCell != null)
                 {
-                    // Place obstacles at the best adjacent group
                     int placed = 0;
                     int startY = bestStartCell.YPosition;
                     for (int i = 0; i < count; i++)
@@ -2667,24 +2407,15 @@ namespace TacticalGame.Equipment
                             if (obstacle != null) placed++;
                         }
                     }
-
-                    Debug.Log($"<color=green>{caster.UnitName} summoned {placed} hard obstacles at column {col}, " +
-                              $"rows {startY}-{startY + count - 1} for {duration} turns!</color>");
                     return;
                 }
             }
-
-            // Fallback: no column found with enough adjacent empty cells
-            Debug.LogWarning($"{caster.UnitName} couldn't find {count} adjacent empty cells in front! " +
-                             $"(Checked columns {casterPos.x + 1} to {middleCol})");
         }
         
         #endregion
         
         #region Ultimate Helpers
         
-        // Captain Ultimate V1 — Ship Cannon balance values.
-        // (Spec only stores damage + shots; these are the fire-hazard knobs.)
         private const int SHIP_CANNON_FIRE_DPS = 25;
         private const int SHIP_CANNON_FIRE_DURATION = 2;
 
@@ -2700,7 +2431,6 @@ namespace TacticalGame.Equipment
             int width = gridManager.GridWidth;
             int height = gridManager.GridHeight;
             
-            // 1. Gather all valid tiles on the ENEMY side that DO NOT have hazards
             List<GridCell> validCells = new List<GridCell>();
             for (int x = middleCol + 1; x < width; x++)
             {
@@ -2717,21 +2447,17 @@ namespace TacticalGame.Equipment
             int hits = 0;
             int shotsFired = 0;
 
-            // 2. Fire 'shots' times, picking a random hazard-free tile each time
             for (int i = 0; i < shots; i++)
             {
-                if (validCells.Count == 0) break; // Stop if the board is completely covered in hazards!
+                if (validCells.Count == 0) break; 
 
-                // Pick a random valid cell from our list
                 int randomIndex = UnityEngine.Random.Range(0, validCells.Count);
                 GridCell targetCell = validCells[randomIndex];
                 
-                // Remove it from the list so the next shot doesn't hit the exact same tile
                 validCells.RemoveAt(randomIndex);
 
                 shotsFired++;
 
-                // Deal damage if a unit happens to be standing on this tile
                 if (targetCell.IsOccupied && targetCell.OccupyingUnit != null)
                 {
                     var unit = targetCell.OccupyingUnit.GetComponent<UnitStatus>();
@@ -2742,19 +2468,15 @@ namespace TacticalGame.Equipment
                     }
                 }
 
-                // Always create the fire hazard on the tile, regardless of whether it hit someone
                 if (hazardManager != null)
                 {
                     hazardManager.CreateFireTile(targetCell, SHIP_CANNON_FIRE_DPS, SHIP_CANNON_FIRE_DURATION);
                 }
             }
-
-            Debug.Log($"<color=orange>Ship cannon fired {shotsFired} shots at random tiles! Hit {hits} units for {damage} HP each.</color>");
         }
         
         private static void ExecuteMarkCaptainOnly(UnitStatus caster, UnitStatus target)
         {
-            // Find enemy captain
             var enemies = GetEnemies(caster);
             var captain = enemies.FirstOrDefault(e => e.IsCaptain);
             
@@ -2763,7 +2485,6 @@ namespace TacticalGame.Equipment
                 ExecuteAttack(caster, captain);
                 var effects = GetStatusEffects(captain);
                 effects?.ApplyEffect(StatusEffect.CreateOnlyTargetThisTurn(1, null));
-                Debug.Log($"Marked {captain.UnitName} as only target this turn");
             }
         }
         
@@ -2774,14 +2495,10 @@ namespace TacticalGame.Equipment
                 target.Heal(Mathf.RoundToInt(target.MaxHP * healthPercent));
                 target.RestoreMorale(Mathf.RoundToInt(target.MaxMorale * healthPercent));
                 
-                // Remove surrendered state
                 target.ClearSurrender();
-                
-                Debug.Log($"Revived exactly {target.UnitName} at {healthPercent*100}%");
                 return;
             }
 
-            // Fallback: Find first surrendered or dead ally if target isn't specified
             var allUnits = GameObject.FindGameObjectsWithTag("Untagged")
                 .Select(go => go.GetComponent<UnitStatus>())
                 .Where(u => u != null && u.HasSurrendered && u.Team == caster.Team)
@@ -2793,10 +2510,7 @@ namespace TacticalGame.Equipment
                 ally.Heal(Mathf.RoundToInt(ally.MaxHP * healthPercent));
                 ally.RestoreMorale(Mathf.RoundToInt(ally.MaxMorale * healthPercent));
                 
-                // Remove surrendered state
                 ally.ClearSurrender();
-                
-                Debug.Log($"Revived fallback {ally.UnitName} at {healthPercent*100}%");
             }
         }
         
@@ -2804,7 +2518,6 @@ namespace TacticalGame.Equipment
         {
             if (cell == null) return;
             
-            // Damage units at target
             var gridManager = ServiceLocator.Get<GridManager>();
             if (gridManager == null) return;
             
@@ -2817,8 +2530,6 @@ namespace TacticalGame.Equipment
             {
                 unit.TakeDamage(damage, caster.gameObject, false);
             }
-            
-            Debug.Log($"Rum bottle AoE dealt {damage} damage, spill lasts {duration} turns");
         }
         
         private static void ApplyIgnoreHighestHP(UnitStatus caster, int duration)
@@ -2829,7 +2540,6 @@ namespace TacticalGame.Equipment
                 var highestHP = enemies.OrderByDescending(e => e.CurrentHP).First();
                 var effects = GetStatusEffects(highestHP);
                 effects?.ApplyEffect(StatusEffect.CreateIgnoredByEnemies(duration, null));
-                Debug.Log($"{highestHP.UnitName} is ignored for {duration} turns");
             }
         }
         
@@ -2973,7 +2683,6 @@ namespace TacticalGame.Equipment
         {
             var effects = GetStatusEffects(unit);
             effects?.ApplyEffect(StatusEffect.CreateMoraleOnKill(duration, percent, null));
-            Debug.Log($"{unit.UnitName} gains morale on kill for {duration} turns");
         }
         
         private static void ApplyFreeMoveToAllAllies(UnitStatus caster)
@@ -2982,14 +2691,12 @@ namespace TacticalGame.Equipment
             {
                 ApplyFreeMove(ally);
             }
-            Debug.Log("All allies can move free this turn");
         }
         
         private static void ApplyBuzzReduction(UnitStatus unit, float percent, int duration)
         {
             var effects = GetStatusEffects(unit);
             effects?.ApplyEffect(StatusEffect.CreateBuzzGainReduction(duration, percent, null));
-            Debug.Log($"{unit.UnitName} buzz gain reduced by {percent*100}% for {duration} turns");
         }
         
         private static void HealAdjacentAllies(UnitStatus caster, float percent)
@@ -2998,14 +2705,12 @@ namespace TacticalGame.Equipment
             {
                 ally.Heal(Mathf.RoundToInt(ally.MaxHP * percent));
             }
-            Debug.Log($"Healed adjacent allies {percent*100}%");
         }
         
         private static void ApplyDodgeChance(UnitStatus unit, float percent, int duration)
         {
             var effects = GetStatusEffects(unit);
             effects?.ApplyEffect(StatusEffect.CreateDodge(duration, percent, null));
-            Debug.Log($"{unit.UnitName} gains {percent*100}% dodge for {duration} turns");
         }
         
         // === Attack V2 Helpers ===
@@ -3015,14 +2720,12 @@ namespace TacticalGame.Equipment
             var casterEffects = GetStatusEffects(caster);
             if (targetEffects != null && casterEffects != null)
             {
-                // Get a random buff from target and transfer to caster
                 var buffs = targetEffects.GetActiveBuffs();
                 if (buffs != null && buffs.Count > 0)
                 {
                     var stolenBuff = buffs[UnityEngine.Random.Range(0, buffs.Count)];
                     targetEffects.RemoveEffect(stolenBuff);
                     casterEffects.ApplyEffect(stolenBuff);
-                    Debug.Log($"{caster.UnitName} stole {stolenBuff.effectName} from {target.UnitName}");
                 }
             }
         }
@@ -3030,21 +2733,15 @@ namespace TacticalGame.Equipment
         private static void ForceDiscard(UnitStatus target, int count)
         {
             var deckManager = BattleDeckManager.Instance;
-            if (deckManager == null)
-            {
-                Debug.Log($"{target.UnitName} forced to discard {count} cards (no deck manager)");
-                return;
-            }
+            if (deckManager == null) return;
             
             int discarded = deckManager.ForceDiscardFromUnit(target, count);
-            Debug.Log($"{target.UnitName} forced to discard {discarded} cards");
         }
         
         private static void ApplySlow(UnitStatus unit, int reduction, int duration)
         {
             var effects = GetStatusEffects(unit);
             effects?.ApplyEffect(StatusEffect.CreateSlow(duration, reduction, null));
-            Debug.Log($"{unit.UnitName} slowed by {reduction} for {duration} turns");
         }
         
         private static void PullUnit(UnitStatus target, UnitStatus source, int tiles)
@@ -3052,11 +2749,7 @@ namespace TacticalGame.Equipment
             if (target == null || source == null) return;
             
             var effects = target.GetComponent<StatusEffectManager>();
-            if (effects != null && !effects.CanBeKnockedBack())
-            {
-                Debug.Log($"{target.UnitName} cannot be pulled!");
-                return;
-            }
+            if (effects != null && !effects.CanBeKnockedBack()) return;
             
             var gridManager = ServiceLocator.Get<GridManager>();
             if (gridManager == null) return;
@@ -3074,7 +2767,6 @@ namespace TacticalGame.Equipment
             if (newCell != null && newCell.CanPlaceUnit())
             {
                 target.transform.position = newCell.GetWorldPosition();
-                Debug.Log($"Pulled {target.UnitName} by {tiles} tiles");
             }
         }
         
@@ -3082,7 +2774,6 @@ namespace TacticalGame.Equipment
         {
             var effects = GetStatusEffects(unit);
             effects?.ApplyEffect(StatusEffect.CreatePoison(duration, damagePerTurn, null));
-            Debug.Log($"{unit.UnitName} poisoned for {damagePerTurn} dmg/turn for {duration} turns");
         }
         
         private static void ChainDamageToAdjacent(UnitStatus caster, UnitStatus target, float percent)
@@ -3096,7 +2787,6 @@ namespace TacticalGame.Equipment
                     : DamageCalculator.GetRangedBaseDamage(caster);
                 int chainDamage = Mathf.RoundToInt(baseDamage * percent);
                 adjacent.TakeDamage(chainDamage, caster.gameObject, isMelee);
-                Debug.Log($"Chain damage: {chainDamage} to {adjacent.UnitName}");
             }
         }
         
@@ -3104,7 +2794,6 @@ namespace TacticalGame.Equipment
         private static void ApplyShieldBuff(UnitStatus unit, int amount)
         {
             unit.RestoreHull(amount);
-            Debug.Log($"{unit.UnitName} gained {amount} shield");
         }
         
         private static void DrawBootsRelicCard(UnitStatus unit)
@@ -3114,10 +2803,6 @@ namespace TacticalGame.Equipment
             {
                 deckManager.DrawCardByCategory(unit, RelicCategory.Boots);
             }
-            else
-            {
-                Debug.Log($"{unit.UnitName} tried to draw boots but no deck manager");
-            }
         }
         
         private static void RestoreMoraleToAllAllies(UnitStatus caster, float percent)
@@ -3126,7 +2811,6 @@ namespace TacticalGame.Equipment
             {
                 ally.RestoreMorale(Mathf.RoundToInt(ally.MaxMorale * percent));
             }
-            Debug.Log($"Restored {percent*100}% morale to all allies");
         }
         
         private static void ApplyPreventMoraleLoss(UnitStatus caster, int duration)
@@ -3136,49 +2820,42 @@ namespace TacticalGame.Equipment
                 var effects = GetStatusEffects(ally);
                 effects?.ApplyEffect(StatusEffect.CreateMoraleDamageReduction(duration, 1f, null));
             }
-            Debug.Log($"Allies can't lose morale for {duration} turns");
         }
         
         private static void ApplyRumHealBoost(UnitStatus unit, float percent, int duration)
         {
             var effects = GetStatusEffects(unit);
             effects?.ApplyEffect(StatusEffect.CreateRumHealBoost(duration, percent, null));
-            Debug.Log($"{unit.UnitName} rum heals {percent*100}% more for {duration} turns");
         }
         
         private static void ApplyGrogOnKill(UnitStatus unit, int amount, int duration)
         {
             var effects = GetStatusEffects(unit);
             effects?.ApplyEffect(StatusEffect.CreateGrogOnKill(duration, amount, null));
-            Debug.Log($"{unit.UnitName} gains {amount} grog on kill for {duration} turns");
         }
         
         private static void ApplySpeedBoost(UnitStatus unit, int amount, int duration)
         {
             var effects = GetStatusEffects(unit);
             effects?.ApplyEffect(StatusEffect.CreateSpeedBoost(duration, amount, null));
-            Debug.Log($"{unit.UnitName} gains +{amount} movement for {duration} turns");
         }
         
         private static void ApplyHealOnCardPlay(UnitStatus unit, float percent, int duration)
         {
             var effects = GetStatusEffects(unit);
             effects?.ApplyEffect(StatusEffect.CreateHealOnCardPlay(duration, percent, null));
-            Debug.Log($"{unit.UnitName} heals {percent*100}% HP per card for {duration} turns");
         }
         
         private static void ApplyFoodEffectBoost(UnitStatus unit, float multiplier, int duration)
         {
             var effects = GetStatusEffects(unit);
             effects?.ApplyEffect(StatusEffect.CreateFoodEffectBoost(duration, multiplier, null));
-            Debug.Log($"{unit.UnitName} food effects x{multiplier} for {duration} turns");
         }
         
         private static void ApplyReduceAllCosts(UnitStatus unit, int reduction, int duration)
         {
             var effects = GetStatusEffects(unit);
             effects?.ApplyEffect(StatusEffect.CreateReduceAllCosts(duration, reduction, null));
-            Debug.Log($"{unit.UnitName} all card costs -{reduction} for {duration} turns");
         }
         
         // === Coat V2 Helpers ===
@@ -3188,14 +2865,12 @@ namespace TacticalGame.Equipment
             {
                 ally.RestoreHull(amount);
             }
-            Debug.Log($"Nearby allies gained {amount} shield");
         }
         
         private static void ApplyCounterOnAllyHit(UnitStatus unit, int duration)
         {
             var effects = GetStatusEffects(unit);
             effects?.ApplyEffect(StatusEffect.CreateCounterOnAllyHit(duration, null));
-            Debug.Log($"{unit.UnitName} will counter-attack when ally is hit for {duration} turns");
         }
         
         private static void ApplyMoraleShield(UnitStatus caster, int amount, int duration)
@@ -3205,7 +2880,6 @@ namespace TacticalGame.Equipment
                 var effects = GetStatusEffects(ally);
                 effects?.ApplyEffect(StatusEffect.CreateMoraleShield(duration, amount, null));
             }
-            Debug.Log($"Allies have {amount} morale shield for {duration} turns");
         }
         
         private static void ApplyDeathPrevention(UnitStatus caster, int duration)
@@ -3215,7 +2889,6 @@ namespace TacticalGame.Equipment
                 var effects = GetStatusEffects(ally);
                 effects?.ApplyEffect(StatusEffect.CreateDeathPrevention(duration, null));
             }
-            Debug.Log($"One ally death prevented for {duration} turns");
         }
         
         private static void ApplyBuzzImmunityNearby(UnitStatus caster, int duration, int range)
@@ -3225,14 +2898,12 @@ namespace TacticalGame.Equipment
                 var effects = GetStatusEffects(ally);
                 effects?.ApplyEffect(StatusEffect.CreateBuzzImmunity(duration, null));
             }
-            Debug.Log($"Nearby allies immune to buzz effects for {duration} turns");
         }
         
         private static void ApplyThorns(UnitStatus unit, int damage, int duration)
         {
             var effects = GetStatusEffects(unit);
             effects?.ApplyEffect(StatusEffect.CreateThorns(duration, damage, null));
-            Debug.Log($"{unit.UnitName} reflects {damage} damage to attackers for {duration} turns");
         }
         
         private static void ApplyDodgeAuraNearby(UnitStatus caster, float percent, int duration, int range)
@@ -3241,7 +2912,6 @@ namespace TacticalGame.Equipment
             {
                 ApplyDodgeChance(ally, percent, duration);
             }
-            Debug.Log($"Nearby allies gain {percent*100}% dodge for {duration} turns");
         }
         
         private static void ApplyHealingAuraNearby(UnitStatus caster, float percent, int duration, int range)
@@ -3251,7 +2921,6 @@ namespace TacticalGame.Equipment
                 var effects = GetStatusEffects(ally);
                 effects?.ApplyEffect(StatusEffect.CreateHealOverTime(duration, percent, null));
             }
-            Debug.Log($"Nearby allies heal {percent*100}% at turn end for {duration} turns");
         }
         
         private static void ApplyMaxHPBoostNearby(UnitStatus caster, float percent, int duration, int range)
@@ -3261,14 +2930,12 @@ namespace TacticalGame.Equipment
                 var effects = GetStatusEffects(ally);
                 effects?.ApplyEffect(StatusEffect.CreateMaxHPBoost(duration, percent, null));
             }
-            Debug.Log($"Nearby allies +{percent*100}% max HP for {duration} turns");
         }
         
         private static void ApplyRangedBlock(UnitStatus unit, int charges)
         {
             var effects = GetStatusEffects(unit);
             effects?.ApplyEffect(StatusEffect.CreateRangedBlock(99, charges, null));
-            Debug.Log($"{unit.UnitName} blocks next {charges} ranged attacks");
         }
         
         // === Totem V2 Helpers ===
@@ -3279,17 +2946,12 @@ namespace TacticalGame.Equipment
             {
                 hazardManager.CreateHealingZone(cell, healPerTurn, duration);
             }
-            else
-            {
-                Debug.Log($"Summoned healing totem: heals {healPerTurn}/turn for {duration} turns (no HazardManager)");
-            }
         }
         
         private static void ApplyWeaknessCurse(UnitStatus target, float percent, int duration)
         {
             var effects = GetStatusEffects(target);
             effects?.ApplyEffect(StatusEffect.CreateWeakness(duration, percent, null));
-            Debug.Log($"{target.UnitName} cursed with -{percent*100}% damage for {duration} turns");
         }
         
         private static void ApplyDamageBoostNearby(UnitStatus caster, float percent, int duration, int range)
@@ -3299,17 +2961,14 @@ namespace TacticalGame.Equipment
                 var effects = GetStatusEffects(ally);
                 effects?.ApplyEffect(StatusEffect.CreateDamageBoost(duration, percent, null));
             }
-            Debug.Log($"Nearby allies +{percent*100}% damage for {duration} turns");
         }
         
         private static void SummonMoraleBanner(UnitStatus caster, GridCell cell, int duration, int range)
         {
-            Debug.Log($"Summoned morale banner: prevents morale loss in {range} tiles for {duration} turns (placeholder)");
         }
         
         private static void SummonGrogBarrel(UnitStatus caster, GridCell cell, int grogAmount)
         {
-            Debug.Log($"Summoned grog barrel: gives {grogAmount} grog when destroyed (placeholder)");
         }
         
         private static void PlaceTrap(GridCell cell, int stunDuration)
@@ -3319,15 +2978,10 @@ namespace TacticalGame.Equipment
             {
                 hazardManager.CreateTrap(cell, stunDuration);
             }
-            else
-            {
-                Debug.Log($"Placed trap: stuns for {stunDuration} turns (no HazardManager)");
-            }
         }
         
         private static void SummonShieldGenerator(UnitStatus caster, GridCell cell, int shieldPerTurn, int duration)
         {
-            Debug.Log($"Summoned shield generator: gives {shieldPerTurn} shield/turn for {duration} turns (placeholder)");
         }
         
         private static void SummonSpeedBooster(UnitStatus caster, GridCell cell, int speedBonus, int duration)
@@ -3337,10 +2991,6 @@ namespace TacticalGame.Equipment
             {
                 hazardManager.CreateSpeedZone(cell, speedBonus, duration);
             }
-            else
-            {
-                Debug.Log($"Summoned speed booster: +{speedBonus} movement for {duration} turns (no HazardManager)");
-            }
         }
         
         private static void SummonHealingWell(UnitStatus caster, GridCell cell, float healPercent, int duration)
@@ -3348,13 +2998,8 @@ namespace TacticalGame.Equipment
             var hazardManager = ServiceLocator.Get<HazardManager>();
             if (hazardManager != null)
             {
-                // Convert percent to flat heal amount based on caster's max HP
                 int healAmount = Mathf.RoundToInt(caster.MaxHP * healPercent);
                 hazardManager.CreateHealingZone(cell, healAmount, duration);
-            }
-            else
-            {
-                Debug.Log($"Summoned healing well: heals {healPercent*100}%/turn for {duration} turns (no HazardManager)");
             }
         }
         
@@ -3365,10 +3010,6 @@ namespace TacticalGame.Equipment
             {
                 hazardManager.CreatePoisonCloud(cell, damagePerTurn, duration, range);
             }
-            else
-            {
-                Debug.Log($"Created poison cloud (no HazardManager): {damagePerTurn} dmg/turn for {duration} turns");
-            }
         }
         
         private static void CreatePoisonTile(GridCell cell, int damagePerTurn, int duration)
@@ -3378,15 +3019,10 @@ namespace TacticalGame.Equipment
             {
                 hazardManager.CreatePoisonTile(cell, damagePerTurn, duration);
             }
-            else
-            {
-                Debug.Log($"Created poison tile (no HazardManager)");
-            }
         }
         
         private static void SummonDecoy(UnitStatus caster, GridCell cell, int duration)
         {
-            Debug.Log($"Summoned decoy: taunts enemies for {duration} turns (placeholder)");
         }
         
         // === Ultimate V2 Helpers ===
@@ -3398,7 +3034,6 @@ namespace TacticalGame.Equipment
                 effects?.ApplyEffect(StatusEffect.CreateDamageBoost(duration, percent, null));
                 effects?.ApplyEffect(StatusEffect.CreateDamageReduction(duration, percent, null));
             }
-            Debug.Log($"All allies +{percent*100}% damage and armor for {duration} turns");
         }
         
         private static void ExecuteEnemyBelowThreshold(UnitStatus caster, UnitStatus target, float threshold)
@@ -3406,7 +3041,6 @@ namespace TacticalGame.Equipment
             if (target != null && target.HPPercent < threshold)
             {
                 target.TakeDamage(target.CurrentHP + 1, caster.gameObject, false);
-                Debug.Log($"Executed {target.UnitName} below {threshold*100}% HP");
             }
         }
         
@@ -3416,7 +3050,6 @@ namespace TacticalGame.Equipment
             {
                 ally.RestoreMorale(ally.MaxMorale);
             }
-            Debug.Log("Fully restored morale to all allies");
         }
         
         private static void MassReviveAllies(UnitStatus caster, float healthPercent)
@@ -3431,7 +3064,6 @@ namespace TacticalGame.Equipment
                 ally.Heal(Mathf.RoundToInt(ally.MaxHP * healthPercent));
                 ally.RestoreMorale(Mathf.RoundToInt(ally.MaxMorale * healthPercent));
             }
-            Debug.Log($"Revived all dead allies at {healthPercent*100}%");
         }
         
         private static void BuzzExplosionAllEnemies(UnitStatus caster)
@@ -3440,11 +3072,9 @@ namespace TacticalGame.Equipment
             {
                 int buzzDamage = enemy.CurrentBuzz;
                 enemy.TakeDamage(buzzDamage, caster.gameObject, false);
-                // Fill their buzz
                 var effects = GetStatusEffects(enemy);
                 effects?.ApplyEffect(StatusEffect.CreateBuzzFilled(1, null));
             }
-            Debug.Log("Buzz explosion: all enemies take damage equal to buzz");
         }
         
         private static void ShieldAllAllies(UnitStatus caster, int amount)
@@ -3453,7 +3083,6 @@ namespace TacticalGame.Equipment
             {
                 ally.RestoreHull(amount);
             }
-            Debug.Log($"All allies gained {amount} shield");
         }
         
         private static void MassHealAllAllies(UnitStatus caster, float percent)
@@ -3462,7 +3091,6 @@ namespace TacticalGame.Equipment
             {
                 ally.Heal(Mathf.RoundToInt(ally.MaxHP * percent));
             }
-            Debug.Log($"All allies healed {percent*100}%");
         }
         
         private static void FeastAllAllies(UnitStatus caster, float healthPercent, float moralePercent)
@@ -3472,7 +3100,6 @@ namespace TacticalGame.Equipment
                 ally.Heal(Mathf.RoundToInt(ally.MaxHP * healthPercent));
                 ally.RestoreMorale(Mathf.RoundToInt(ally.MaxMorale * moralePercent));
             }
-            Debug.Log($"Feast: all allies healed {healthPercent*100}% HP and {moralePercent*100}% morale");
         }
         
         private static void BladeStormAllEnemies(UnitStatus caster, float percent, int range)
@@ -3487,7 +3114,6 @@ namespace TacticalGame.Equipment
             {
                 enemy.TakeDamage(damage, caster.gameObject, isMelee);
             }
-            Debug.Log($"Blade storm: {damage} damage to all enemies in range");
         }
         
         private static void ExecutePerfectShot(UnitStatus caster, UnitStatus target, float critMultiplier)
@@ -3498,9 +3124,7 @@ namespace TacticalGame.Equipment
                 : DamageCalculator.GetRangedBaseDamage(caster);
             int critDamage = Mathf.RoundToInt(baseDamage * critMultiplier);
             
-            // Ignore armor - deal to HP directly
             target.TakeDamage(critDamage, caster.gameObject, isMelee);
-            Debug.Log($"Perfect shot: {critDamage} damage ignoring armor");
         }
         
         #endregion

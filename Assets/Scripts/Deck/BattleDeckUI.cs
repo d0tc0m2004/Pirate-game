@@ -28,11 +28,11 @@ namespace TacticalGame.Equipment
         #region References
         
         [Header("UI Containers")]
-        [SerializeField] private Transform handContainer;       // Bottom center - card fan
-        [SerializeField] private Transform deckPileContainer;   // Bottom left - deck
-        [SerializeField] private Transform discardPileContainer;// Bottom left - discard
-        [SerializeField] private Transform passivesButton;      // Button to show passives
-        [SerializeField] private GameObject passivesPanel;      // Panel showing passive relics
+        [SerializeField] private Transform handContainer;       
+        [SerializeField] private Transform deckPileContainer;   
+        [SerializeField] private Transform discardPileContainer;
+        [SerializeField] private Transform passivesButton;      
+        [SerializeField] private GameObject passivesPanel;      
         
         [Header("Prefabs")]
         [SerializeField] private GameObject cardUIPrefab;
@@ -47,10 +47,10 @@ namespace TacticalGame.Equipment
         
         [Header("Hand Layout Settings")]
         [SerializeField] private float cardSpacing = 80f;
-        [SerializeField] private float fanAngle = 5f;           // Angle between cards
-        [SerializeField] private float fanArcHeight = 20f;      // Arc height for fan
-        [SerializeField] private float selectedLift = 50f;      // How much selected card lifts
-        [SerializeField] private float hoverLift = 30f;         // How much hovered card lifts
+        [SerializeField] private float fanAngle = 5f;           
+        [SerializeField] private float fanArcHeight = 20f;      
+        [SerializeField] private float selectedLift = 50f;      
+        [SerializeField] private float hoverLift = 30f;         
         
         [Header("Card Colors")]
         [SerializeField] private Color playableColor = Color.white;
@@ -76,18 +76,15 @@ namespace TacticalGame.Equipment
         private bool isTargeting = false;
         private BattleCard cardAwaitingTarget;
 
-        // Multi-step movement
         private int remainingMoveSteps = 0;
         private List<GridCell> highlightedMoveCells = new List<GridCell>();
         private Dictionary<GridCell, Color> originalCellColors = new Dictionary<GridCell, Color>();
 
-        // Card hover unit highlighting
         private UnitStatus hoveredCardOwner;
         private MeshRenderer hoveredOwnerRenderer;
         private Color hoveredOwnerOriginalColor;
         private bool isOwnerHighlighted = false;
 
-        // Enemy targeting highlight
         private UnitStatus hoveredEnemyTarget;
         private MeshRenderer hoveredEnemyRenderer;
         private Color hoveredEnemyOriginalColor;
@@ -102,13 +99,11 @@ namespace TacticalGame.Equipment
         {
             _instance = this;
 
-            // Auto-generate UI if not assigned
             if (handContainer == null || deckPileContainer == null)
             {
                 AutoGenerateUI();
             }
 
-            // Hide UI initially - will show when battle starts (OnDeckBuilt)
             HideUI();
         }
 
@@ -406,8 +401,6 @@ namespace TacticalGame.Equipment
             BattleDeckManager.OnCardPlayed += OnCardPlayed;
             BattleDeckManager.OnCardStowed += OnCardStowed;
             GameEvents.OnEnergyChanged += OnEnergyChanged;
-
-            // NEW: Listen for the target selector being cancelled!
             RelicTargetSelector.OnTargetingCancelled += ForceDeselectCard;
         }
 
@@ -418,8 +411,6 @@ namespace TacticalGame.Equipment
             BattleDeckManager.OnCardPlayed -= OnCardPlayed;
             BattleDeckManager.OnCardStowed -= OnCardStowed;
             GameEvents.OnEnergyChanged -= OnEnergyChanged;
-
-            // NEW: Clean up the listener!
             RelicTargetSelector.OnTargetingCancelled -= ForceDeselectCard;
         }
 
@@ -619,7 +610,6 @@ namespace TacticalGame.Equipment
 
         public void OnCardHoverExit(CardUI cardUI)
         {
-            // NEW: If this is the currently selected card, DON'T drop it! Let it float.
             if (cardUI == selectedCardUI) return;
 
             if (cardUI != hoveredCard) return;
@@ -643,72 +633,51 @@ namespace TacticalGame.Equipment
             }
         }
 
+        /// <summary>
+        /// Paint the cells a card would target as a hover-time preview.
+        /// </summary>
         private void PreviewCardTargets(BattleCard card)
         {
             if (card == null) return;
-
             ClearTileHighlights();
 
             var targetType = card.GetTargetType();
 
-            if (card.category == RelicCategory.Coat && card.ownerUnit != null)
-            {
-                var gridManager = ServiceLocator.Get<GridManager>();
-                if (gridManager != null)
-                {
-                    Vector2Int pos = gridManager.WorldToGridPosition(card.ownerUnit.transform.position);
-                    var centerCell = gridManager.GetCell(pos.x, pos.y);
-                    if (centerCell != null)
-                    {
-                        Color aoeTint = new Color(1f, 1f, 0f, 0.4f);
-
-                        for (int dx = -1; dx <= 1; dx++)
-                        {
-                            for (int dy = -1; dy <= 1; dy++)
-                            {
-                                if (dx == 0 && dy == 0) continue;
-                                var cell = gridManager.GetCell(pos.x + dx, pos.y + dy);
-                                if (cell != null) PaintCell(cell, aoeTint);
-                            }
-                        }
-                    }
-                }
-                return;
-            }
-            
+            // === AUTO-TARGETING CARDS (No click required) ===
             if (targetType == CardTargetType.None)
             {
+                // 1. Weapons & Gloves -> Highlight Nearest Enemy in Yellow
                 if ((card.IsWeaponCard || card.category == RelicCategory.Gloves) && card.ownerUnit != null)
                 {
                     UnitStatus closest = TacticalGame.Combat.TargetFinder.FindNearestEnemy(card.ownerUnit);
-                    
-                    if (closest != null)
-                    {
-                        var gridManager = ServiceLocator.Get<GridManager>();
-                        if (gridManager != null)
-                        {
-                            var pos = gridManager.WorldToGridPosition(closest.transform.position);
-                            var cell = gridManager.GetCell(pos.x, pos.y);
-
-                            if (cell != null)
-                            {
-                                hoveredEnemyTarget = closest;
-                                hoveredEnemyRenderer = closest.GetComponent<MeshRenderer>();
-                                if (hoveredEnemyRenderer != null)
-                                {
-                                    hoveredEnemyOriginalColor = hoveredEnemyRenderer.material.color;
-                                }
-
-                                PaintCell(cell, new Color(1f, 1f, 0f, 1f));
-                            }
-                        }
-                    }
+                    if (closest != null) HighlightTargetUnit(closest, new Color(1f, 1f, 0f, 1f));
                 }
+                // 2. Quartermaster Auto-Ally -> Highlight Lowest Morale Ally in Green
+                else if (card.effectType == RelicEffectType.Boots_AllyFreeMoveLowestMorale ||
+                         card.effectType == RelicEffectType.Hat_RestoreMoraleLowest)
+                {
+                    UnitStatus lowestMorale = GetLowestMoraleAlly(card.ownerUnit);
+                    if (lowestMorale != null) HighlightTargetUnit(lowestMorale, new Color(0.2f, 1f, 0.2f, 1f));
+                }
+                // 3. Quartermaster Radial AoE -> Highlight aura in Transparent Green
+                else if (card.effectType == RelicEffectType.Hat_RestoreMoraleNearby ||
+                         card.effectType == RelicEffectType.Totem_RallyNoMoraleDamage)
+                {
+                    int radius = card.sourceRelic?.effectData != null ? card.sourceRelic.effectData.tileRange : 1;
+                    HighlightAoE(card.ownerUnit, radius, new Color(0.2f, 1f, 0.2f, 0.4f));
+                }
+                // 4. Quartermaster Global Buffs -> Highlight ALL Allies in Transparent Green
+                else if (card.effectType == RelicEffectType.Coat_ReduceMoraleDamage ||
+                         card.effectType == RelicEffectType.Ultimate_ReflectMoraleDamage)
+                {
+                    HighlightAllAllies(card.ownerUnit, new Color(0.2f, 1f, 0.2f, 0.4f));
+                }
+                
                 return;
             }
 
+            // === TARGETED CARDS (Click required) ===
             bool isMovementCard = (targetType == CardTargetType.Tile && card.category == RelicCategory.Boots);
-
             if (isMovementCard)
             {
                 HighlightAdjacentTiles(card.ownerUnit);
@@ -717,6 +686,64 @@ namespace TacticalGame.Equipment
             {
                 HighlightValidTargets(card);
             }
+        }
+
+        // --- PREVIEW HELPERS ---
+        private void HighlightTargetUnit(UnitStatus target, Color color)
+        {
+            var gridManager = ServiceLocator.Get<GridManager>();
+            if (gridManager == null || target == null) return;
+            
+            var pos = gridManager.WorldToGridPosition(target.transform.position);
+            var cell = gridManager.GetCell(pos.x, pos.y);
+            if (cell != null) PaintCell(cell, color);
+
+            hoveredEnemyTarget = target; 
+            hoveredEnemyRenderer = target.GetComponent<MeshRenderer>();
+            if (hoveredEnemyRenderer != null) hoveredEnemyOriginalColor = hoveredEnemyRenderer.material.color;
+        }
+
+        private void HighlightAoE(UnitStatus centerUnit, int radius, Color color)
+        {
+            var gridManager = ServiceLocator.Get<GridManager>();
+            if (gridManager == null || centerUnit == null) return;
+            
+            Vector2Int center = gridManager.WorldToGridPosition(centerUnit.transform.position);
+            for (int dx = -radius; dx <= radius; dx++)
+            {
+                for (int dy = -radius; dy <= radius; dy++)
+                {
+                    if (Mathf.Abs(dx) + Mathf.Abs(dy) > radius) continue;
+                    var cell = gridManager.GetCell(center.x + dx, center.y + dy);
+                    if (cell != null) PaintCell(cell, color);
+                }
+            }
+        }
+
+        private void HighlightAllAllies(UnitStatus owner, Color color)
+        {
+            var gridManager = ServiceLocator.Get<GridManager>();
+            if (gridManager == null || owner == null) return;
+            
+            var units = Object.FindObjectsByType<UnitStatus>(FindObjectsSortMode.None);
+            foreach(var u in units)
+            {
+                if (u != null && u.Team == owner.Team && !u.HasSurrendered)
+                {
+                    var pos = gridManager.WorldToGridPosition(u.transform.position);
+                    var cell = gridManager.GetCell(pos.x, pos.y);
+                    if (cell != null) PaintCell(cell, color);
+                }
+            }
+        }
+
+        private UnitStatus GetLowestMoraleAlly(UnitStatus owner)
+        {
+            if (owner == null) return null;
+            return Object.FindObjectsByType<UnitStatus>(FindObjectsSortMode.None)
+                .Where(u => u != null && u.Team == owner.Team && u != owner && !u.HasSurrendered)
+                .OrderBy(u => u.MoralePercent)
+                .FirstOrDefault();
         }
         
         public void OnCardClicked(CardUI cardUI)
@@ -790,13 +817,10 @@ namespace TacticalGame.Equipment
         
         private void DeselectCard()
         {
-            // THE GATEKEEPER: If the Target Selector is actively aiming, DO NOT drop the card!
             if (RelicTargetSelector.Instance != null && RelicTargetSelector.Instance.IsSelecting) return;
-
             ForceDeselectCard();
         }
         
-        // NEW: This forces the card to drop back into the hand when explicitly told to
         private void ForceDeselectCard()
         {
             if (selectedCardUI != null)
@@ -906,7 +930,6 @@ namespace TacticalGame.Equipment
                 targetingOverlay.SetActive(true);
 
             var targetType = card.GetTargetType();
-
             bool isMovementCard = (targetType == CardTargetType.Tile && card.category == RelicCategory.Boots);
 
             if (isMovementCard)
@@ -948,18 +971,13 @@ namespace TacticalGame.Equipment
             var targetType = card.GetTargetType();
             switch (targetType)
             {
-                case CardTargetType.Tile:
-                    return "Select an adjacent tile to move to";
-                case CardTargetType.Ally:
-                    return "Select an ally";
+                case CardTargetType.Tile: return "Select an adjacent tile to move to";
+                case CardTargetType.Ally: return "Select an ally";
                 case CardTargetType.Enemy:
                 case CardTargetType.AdjacentEnemy:
-                case CardTargetType.RangedEnemy:
-                    return "Select an enemy to target";
-                case CardTargetType.AnyUnit:
-                    return "Select a unit";
-                default:
-                    return "Select a target";
+                case CardTargetType.RangedEnemy: return "Select an enemy to target";
+                case CardTargetType.AnyUnit: return "Select a unit";
+                default: return "Select a target";
             }
         }
 
@@ -982,7 +1000,6 @@ namespace TacticalGame.Equipment
             if (gridManager == null || unit == null) return;
 
             Vector2Int pos = gridManager.WorldToGridPosition(unit.transform.position);
-
             Vector2Int[] directions = {
                 new Vector2Int(1, 0), new Vector2Int(-1, 0),
                 new Vector2Int(0, 1), new Vector2Int(0, -1)
@@ -994,7 +1011,6 @@ namespace TacticalGame.Equipment
                 if (cell != null && cell.CanPlaceUnit() && !cell.IsMiddleColumn)
                 {
                     highlightedMoveCells.Add(cell);
-
                     var renderer = cell.GetComponent<Renderer>();
                     if (renderer != null)
                     {
@@ -1085,7 +1101,6 @@ namespace TacticalGame.Equipment
                     AddCellsForUnits(result, gridManager, card.ownerUnit, wantSameTeam: false, includeSelf: false, targetOnlyDead: false);
                     break;
             }
-
             return result;
         }
 
@@ -1177,45 +1192,35 @@ namespace TacticalGame.Equipment
         {
             if (!isTargeting || cardAwaitingTarget == null) return;
 
-            // Ignore clicks that didn't hit anything useful
             if (target == null && cell == null) return;
 
             var targetType = cardAwaitingTarget.GetTargetType();
 
-            // Multi-step tile movement
             if (targetType == CardTargetType.Tile && remainingMoveSteps > 0)
             {
                 HandleMovementStep(cell);
                 return;
             }
 
-            // Standard targeting (enemy, ally, etc.)
             bool valid = ValidateTarget(targetType, target, cell);
 
             if (valid)
             {
-                // 1. Cache the card
                 var playedCard = cardAwaitingTarget;
                 
-                // 2. Clean up BattleDeckUI's targeting state FIRST! 
-                // This prevents our old highlights from overwriting the new ones.
                 isTargeting = false;
                 cardAwaitingTarget = null;
                 if (targetingOverlay != null) targetingOverlay.SetActive(false);
                 ClearTileHighlights();
 
-                // 3. Play the card (This will trigger RelicTargetSelector for Boots!)
                 BattleDeckManager.Instance.PlayCard(playedCard, target, cell);
                 
-                // 4. Check for the Handoff!
                 if (RelicTargetSelector.Instance != null && RelicTargetSelector.Instance.IsSelecting)
                 {
-                    // A secondary targeting phase has opened (like Captain Boots selecting a tile).
-                    // We leave the card beautifully floating in the air!
+                    // Target selector running. Do not force deselect.
                 }
                 else
                 {
-                    // The card effect resolved instantly without a handoff. Safe to drop.
                     ForceDeselectCard();
                 }
             }

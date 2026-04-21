@@ -594,12 +594,12 @@ namespace TacticalGame.Managers
             unequipButton.onClick.AddListener(OnUnequipAll);
             unequipButton.GetComponent<Image>().color = new Color(0.5f, 0.2f, 0.2f);
             
-            Button equipCaptainButton = CreateButton(equipmentPanel.transform, "EquipCaptainButton", "Equip Captain", new Vector2(150, 45));
-            RectTransform capRt = equipCaptainButton.GetComponent<RectTransform>();
+            Button equipQMButton = CreateButton(equipmentPanel.transform, "EquipQMButton", "Equip QM", new Vector2(150, 45));
+            RectTransform capRt = equipQMButton.GetComponent<RectTransform>();
             capRt.anchorMin = new Vector2(0.5f, 0); capRt.anchorMax = new Vector2(0.5f, 0);
             capRt.pivot = new Vector2(0.5f, 0); capRt.anchoredPosition = new Vector2(-200, 70);
-            equipCaptainButton.onClick.AddListener(OnEquipCaptain);
-            equipCaptainButton.GetComponent<Image>().color = new Color(0.6f, 0.4f, 0.1f);
+            equipQMButton.onClick.AddListener(OnEquipQuartermaster);
+            equipQMButton.GetComponent<Image>().color = new Color(0.6f, 0.4f, 0.1f);
             
             Button autoEquipPlayersButton = CreateButton(equipmentPanel.transform, "AutoEquipPlayersButton", "Auto Equip Players", new Vector2(180, 45));
             RectTransform autoEquipPlayerRt = autoEquipPlayersButton.GetComponent<RectTransform>();
@@ -1221,7 +1221,7 @@ namespace TacticalGame.Managers
             RefreshSlots(unit); UpdateJewelBudget(unit); UpdateInfoPanel();
         }
 
-        private void OnEquipCaptain()
+        private void OnEquipQuartermaster()
         {
             // Fully wipe all player units to guarantee no other units' gear pollutes the deck
             foreach (var pUnit in playerUnits)
@@ -1233,7 +1233,8 @@ namespace TacticalGame.Managers
                 }
             }
 
-            var captainEffects = TacticalGame.Equipment.RelicEffectsDatabase.Instance.GetEffectsByRole(UnitRole.Captain);
+            // Fetch Quartermaster effects instead of Captain
+            var qmEffects = TacticalGame.Equipment.RelicEffectsDatabase.Instance.GetEffectsByRole(UnitRole.Quartermaster);
             int effectIndex = 0;
 
             foreach (var pUnit in playerUnits)
@@ -1241,17 +1242,17 @@ namespace TacticalGame.Managers
                 // Each unit has 7 category slots
                 for (int slot = 0; slot < 7; slot++)
                 {
-                    if (effectIndex >= captainEffects.Count)
+                    if (effectIndex >= qmEffects.Count)
                     {
                         break;
                     }
-                    var currentEffect = captainEffects[effectIndex];
+                    var currentEffect = qmEffects[effectIndex];
                     // Create an equipped relic specifically mapped dynamically
                     pUnit.EquipCategoryRelic(slot, new EquippedRelic(currentEffect));
                     effectIndex++;
                 }
 
-                if (effectIndex >= captainEffects.Count)
+                if (effectIndex >= qmEffects.Count)
                 {
                     break;
                 }
