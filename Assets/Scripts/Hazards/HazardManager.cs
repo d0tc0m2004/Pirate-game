@@ -156,6 +156,48 @@ namespace TacticalGame.Hazards
             Debug.Log($"Created poison cloud: {hazards.Count} tiles");
             return hazards;
         }
+
+        // ==================== NEW: RUM PUDDLES FOR HELMSMAN V2 ====================
+        public RuntimeHazard CreateRumPuddleTile(GridCell cell, int buzzAmount, int duration)
+        {
+            if (cell == null || cell.HasHazard) return null;
+            
+            var hazard = CreateRuntimeHazard(cell, RuntimeHazardType.RumPuddle, buzzAmount, duration);
+            if (hazard != null)
+            {
+                hazard.SetColor(new Color(0.8f, 0.4f, 0.1f, 0.6f)); // Amber/Rum color
+                Debug.Log($"Created rum puddle at ({cell.XPosition}, {cell.YPosition}): +{buzzAmount} buzz for {duration} turns");
+            }
+            return hazard;
+        }
+
+        public List<RuntimeHazard> CreateRumPuddleCloud(GridCell centerCell, int buzzAmount, int duration, int range)
+        {
+            if (centerCell == null) return new List<RuntimeHazard>();
+            
+            EnsureGridManager();
+            var hazards = new List<RuntimeHazard>();
+            
+            for (int dx = -range; dx <= range; dx++)
+            {
+                for (int dy = -range; dy <= range; dy++)
+                {
+                    if (Mathf.Abs(dx) + Mathf.Abs(dy) <= range) // Diamond shape
+                    {
+                        var cell = gridManager.GetCell(centerCell.XPosition + dx, centerCell.YPosition + dy);
+                        if (cell != null && !cell.IsMiddleColumn && !cell.HasHazard)
+                        {
+                            var hazard = CreateRumPuddleTile(cell, buzzAmount, duration);
+                            if (hazard != null) hazards.Add(hazard);
+                        }
+                    }
+                }
+            }
+            
+            Debug.Log($"Created Rum Puddle cloud: {hazards.Count} tiles");
+            return hazards;
+        }
+        // ==========================================================================
         
         /// <summary>
         /// Create a fire tile at a specific cell using the ORIGINAL fire hazard system.
@@ -388,7 +430,7 @@ namespace TacticalGame.Hazards
             }
             else
             {
-                // Flat quad for ground hazards (poison, fire, traps, etc.)
+                // Flat quad for ground hazards (poison, fire, traps, rum puddles etc.)
                 visual = GameObject.CreatePrimitive(PrimitiveType.Quad);
                 visual.transform.position = cell.GetWorldPosition() + Vector3.up * 0.02f;
                 visual.transform.rotation = Quaternion.Euler(90, 0, 0);
@@ -501,7 +543,6 @@ namespace TacticalGame.Hazards
                 case RuntimeHazardType.Trap:
                     unit.ApplyStun(hazard.Value);
                     Debug.Log($"{unit.UnitName} triggered trap! Stunned for {hazard.Value} turns!");
-                    // Trap is consumed
                     hazard.Duration = 0;
                     break;
                     
@@ -517,9 +558,13 @@ namespace TacticalGame.Hazards
                     break;
 
                 case RuntimeHazardType.ExplodingBarrel:
-                    // Barrel explodes when its timer runs out (handled below) or when a unit stands on it
                     unit.TakeEnvironmentalDamage(hazard.Value, "ExplodingBarrel");
-                    hazard.Duration = 0; // Consumed
+                    hazard.Duration = 0; 
+                    break;
+
+                case RuntimeHazardType.RumPuddle:
+                    unit.AddBuzz(hazard.Value);
+                    Debug.Log($"{unit.UnitName} stepped in rum puddle! Gained {hazard.Value} buzz.");
                     break;
 
                 case RuntimeHazardType.HardObstacle:
@@ -782,7 +827,8 @@ namespace TacticalGame.Hazards
         HardObstacle,
         SoftObstacle,
         ExplodingBarrel,
-        CannonObstacle
+        CannonObstacle,
+        RumPuddle // <--- NEW FOR HELMSMAN V2
     }
     
     /// <summary>

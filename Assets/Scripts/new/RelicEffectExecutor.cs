@@ -89,8 +89,20 @@ namespace TacticalGame.Equipment
                     break;
                     
                 case RelicEffectType.Boots_FreeIfGrog:
+                {
+                    // FIXED: Refund the energy cost if grog is available and spent!
+                    var em = ServiceLocator.Get<EnergyManager>();
+                    if (em != null && em.GrogTokens > 0)
+                    {
+                        if (em.TrySpendGrog(1))
+                        {
+                            if (card != null) em.AddEnergy(card.energyCost);
+                            Debug.Log("Spent 1 Grog to make move free!");
+                        }
+                    }
                     ExecuteMove(caster, targetCell, (int)effect.value1);
                     break;
+                }
                     
                 case RelicEffectType.Boots_MoveReduceDamage:
                     ExecuteMove(caster, targetCell, (int)effect.value1);
@@ -2117,8 +2129,12 @@ namespace TacticalGame.Equipment
         
         private static void ApplyEnemyBuzzOnDamage(UnitStatus caster, int duration)
         {
-            var effects = GetStatusEffects(caster);
-            effects?.ApplyEffect(StatusEffect.CreateEnemyBuzzOnDamage(duration, null));
+            // FIXED: Apply Enemy Buzz on Damage to ALL Enemies, not the Helmsman!
+            foreach (var enemy in GetEnemies(caster))
+            {
+                var effects = GetStatusEffects(enemy);
+                effects?.ApplyEffect(StatusEffect.CreateEnemyBuzzOnDamage(duration, null));
+            }
         }
         
         private static void ApplyPreventDisplacementNearby(UnitStatus caster, int duration, int range)
@@ -2210,6 +2226,9 @@ namespace TacticalGame.Equipment
             var energyManager = ServiceLocator.Get<EnergyManager>();
             if (energyManager != null && energyManager.TrySpendGrog(grogAmount))
             {
+                // FIXED: Actually gives the energy back after spending the grog!
+                energyManager.AddEnergy(1);
+                Debug.Log($"Converted {grogAmount} grog into 1 energy!");
             }
         }
         
@@ -2549,18 +2568,26 @@ namespace TacticalGame.Equipment
         private static void ExecuteRumBottleAoE(UnitStatus caster, GridCell cell, int damage, int duration)
         {
             if (cell == null) return;
-            
             var gridManager = ServiceLocator.Get<GridManager>();
+            var hazardManager = ServiceLocator.Get<HazardManager>();
             if (gridManager == null) return;
-            
-            var unitsAtCell = GetAllUnits().Where(u => {
+
+            // FIXED: Hit all units in a 1-tile radius instead of just the clicked cell
+            var unitsInRadius = GetAllUnits().Where(u => {
                 Vector2Int pos = gridManager.WorldToGridPosition(u.transform.position);
-                return pos.x == cell.XPosition && pos.y == cell.YPosition;
-            });
-            
-            foreach (var unit in unitsAtCell)
+                int dist = Mathf.Max(Mathf.Abs(pos.x - cell.XPosition), Mathf.Abs(pos.y - cell.YPosition));
+                return dist <= 1;
+            }).ToList();
+
+            foreach (var unit in unitsInRadius)
             {
                 unit.TakeDamage(damage, caster.gameObject, false);
+            }
+
+            // FIXED: Spawn the actual Rum Puddle hazards in a 1-tile radius!
+            if (hazardManager != null)
+            {
+                hazardManager.CreateRumPuddleCloud(cell, 20, duration, 1); // 20 buzz default
             }
         }
         
