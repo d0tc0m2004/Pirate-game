@@ -156,6 +156,63 @@ namespace TacticalGame.Equipment
                         return "Requires an Enemy Captain";
                     return "";
 
+                // ==================== QUARTERMASTER ====================
+
+                // --- BOOTS ---
+                case RelicEffectType.Boots_MoveRestoreMorale:
+                    return ""; // Moves and restores morale, always playable
+
+                case RelicEffectType.Boots_AllyFreeMoveLowestMorale:
+                    if (!HasAnyOtherLivingAlly(card.ownerUnit))
+                        return "No other allies available to move";
+                    return "";
+
+                // --- GLOVES ---
+                case RelicEffectType.Gloves_AttackBonusByMissingMorale: // V1
+                    if (!HasAnyLivingEnemy(card.ownerUnit))
+                        return "No enemies remaining";
+                    return "";
+                    
+                case RelicEffectType.Gloves_AttackMarkMoraleFocus: // V2
+                    if (!HasAnyLivingEnemy(card.ownerUnit))
+                        return "No enemies remaining";
+                    return "";
+
+                // --- HAT ---
+                case RelicEffectType.Hat_RestoreMoraleLowest:
+                    if (!HasAnyOtherLivingAlly(card.ownerUnit))
+                        return "No other allies to rally";
+                    return "";
+
+                case RelicEffectType.Hat_RestoreMoraleNearby:
+                    return ""; // Always playable
+
+                // --- COAT ---
+                case RelicEffectType.Coat_ReduceMoraleDamage:
+                    return ""; // Global buff, always playable
+
+                case RelicEffectType.Coat_PreventSurrender:
+                    return ""; // Always playable
+
+                // --- TOTEM ---
+                case RelicEffectType.Totem_RallyNoMoraleDamage: // V1
+                    if (!HasLivingQuartermaster(card.ownerUnit))
+                        return "Requires a living Quartermaster";
+                    return "";
+
+                case RelicEffectType.Totem_SummonHighQualityRum: // V2
+                    return ""; // Always playable
+
+                // --- ULTIMATE ---
+                case RelicEffectType.Ultimate_ReflectMoraleDamage:
+                    return ""; // Global buff, always playable
+
+                case RelicEffectType.Ultimate_ReviveAlly:
+                    if (!HasAnyDeadOrSurrenderedAlly(card.ownerUnit))
+                        return "No dead or surrendered allies to revive";
+                    return "";
+
+
                 // ==================== OTHER ROLES ====================
                 // Will be added in subsequent batches. Default to playable so
                 // untested cards don't silently lock themselves out.
@@ -269,6 +326,45 @@ namespace TacticalGame.Equipment
                 var c = cards[i];
                 if (c != null && c.category == RelicCategory.Ultimate)
                     return true;
+            }
+            return false;
+        }
+
+        /// <summary>
+        /// Is there a living Quartermaster on the same team?
+        /// Used for Quartermaster Totem checks.
+        /// </summary>
+        private static bool HasLivingQuartermaster(UnitStatus self)
+        {
+            if (self == null) return false;
+            if (self.Role == UnitRole.Quartermaster) return true; // Caster is the Quartermaster
+
+            var units = Object.FindObjectsByType<UnitStatus>(FindObjectsSortMode.None);
+            foreach (var u in units)
+            {
+                if (u == null || u.Team != self.Team) continue;
+                if (u.HasSurrendered || u.CurrentHP <= 0) continue;
+                if (u.Role == UnitRole.Quartermaster) return true;
+            }
+            return false;
+        }
+
+        /// <summary>
+        /// Is there at least one allied unit that is dead or surrendered?
+        /// Used for the Quartermaster Ultimate Revive ability.
+        /// </summary>
+        private static bool HasAnyDeadOrSurrenderedAlly(UnitStatus self)
+        {
+            if (self == null) return false;
+
+            var units = Object.FindObjectsByType<UnitStatus>(FindObjectsSortMode.None);
+            foreach (var u in units)
+            {
+                if (u == null) continue;
+                if (u.Team == self.Team && (u.HasSurrendered || u.CurrentHP <= 0))
+                {
+                    return true;
+                }
             }
             return false;
         }

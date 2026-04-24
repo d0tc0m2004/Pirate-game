@@ -75,7 +75,12 @@ namespace TacticalGame.Equipment
                     break;
                     
                 case RelicEffectType.Boots_AllyFreeMoveLowestMorale:
-                    ApplyFreeMoveToLowestMoraleAlly(caster);
+                    var freeMoveAlly = GetLowestMoraleAlly(caster);
+                    if (freeMoveAlly != null)
+                    {
+                        int steps = effect.value1 > 0 ? (int)effect.value1 : 1;
+                        ExecuteMoveAllyStep(freeMoveAlly, steps, card, true);
+                    }
                     break;
                     
                 case RelicEffectType.Boots_MoveClearBuzz:
@@ -229,10 +234,10 @@ namespace TacticalGame.Equipment
                     break;
                     
                 case RelicEffectType.Hat_RestoreMoraleLowest:
-                    var lowestMoraleAlly = GetLowestMoraleAlly(caster);
-                    if (lowestMoraleAlly != null)
+                    var rallyAlly = GetLowestMoraleAlly(caster);
+                    if (rallyAlly != null)
                     {
-                        lowestMoraleAlly.RestoreMorale(Mathf.RoundToInt(lowestMoraleAlly.MaxMorale * effect.value2));
+                        rallyAlly.RestoreMorale(Mathf.RoundToInt(rallyAlly.MaxMorale * effect.value2));
                     }
                     break;
                     
@@ -398,7 +403,18 @@ namespace TacticalGame.Equipment
                     break;
                     
                 case RelicEffectType.Totem_RallyNoMoraleDamage:
-                    ApplyNoMoraleDamageNearby(caster, effect.duration, effect.tileRange);
+                    var qm = GetAllAllies(caster).FirstOrDefault(u => u.Role == UnitRole.Quartermaster);
+                    if (qm != null)
+                    {
+                        var targets = GetAlliesInRange(qm, effect.tileRange);
+                        targets.Add(qm); 
+                        foreach (var unit in targets)
+                        {
+                            var effects = GetStatusEffects(unit);
+                            // 1-ROUND DELAY is passed here at the end!
+                            effects?.ApplyEffect(StatusEffect.CreateMoraleDamageReduction(effect.duration, 1f, null, 1));
+                        }
+                    }
                     break;
                     
                 case RelicEffectType.Totem_EnemyDeathMoraleSwing:
@@ -2049,10 +2065,14 @@ namespace TacticalGame.Equipment
             effects?.ApplyEffect(StatusEffect.CreateCaptainDamageReflect(duration, null));
         }
         
-        private static void ApplyReflectMoraleDamage(UnitStatus unit, int duration)
+        private static void ApplyReflectMoraleDamage(UnitStatus caster, int duration)
         {
-            var effects = GetStatusEffects(unit);
-            effects?.ApplyEffect(StatusEffect.CreateReflectMoraleDamage(duration, null));
+            // FIXED: Now loops through the entire team and gives everyone the reflect buff!
+            foreach (var ally in GetAllAllies(caster))
+            {
+                var effects = GetStatusEffects(ally);
+                effects?.ApplyEffect(StatusEffect.CreateReflectMoraleDamage(duration, null));
+            }
         }
         
         #endregion
@@ -2234,6 +2254,15 @@ namespace TacticalGame.Equipment
         
         private static void AddHighQualityRum(UnitStatus unit, int count)
         {
+            // Assuming your EnergyManager or Inventory handles rum items
+            var energyManager = ServiceLocator.Get<EnergyManager>();
+            if (energyManager != null)
+            {
+                // If you have a specific method for High Quality Rum, use it here. 
+                // Otherwise, giving standard Grog/Rum:
+                energyManager.AddGrog(count); 
+                Debug.Log($"{unit.UnitName} summoned {count} High Quality Rum!");
+            }
         }
         
         #endregion
@@ -2490,7 +2519,8 @@ namespace TacticalGame.Equipment
         
         private static void ReviveAlly(UnitStatus caster, UnitStatus target, float healthPercent)
         {
-            if (target != null && target.HasSurrendered && target.Team == caster.Team)
+            // 1. If the player specifically targeted an ally who is dead OR surrendered
+            if (target != null && target.Team == caster.Team && (target.HasSurrendered || target.CurrentHP <= 0))
             {
                 target.Heal(Mathf.RoundToInt(target.MaxHP * healthPercent));
                 target.RestoreMorale(Mathf.RoundToInt(target.MaxMorale * healthPercent));
@@ -2499,18 +2529,20 @@ namespace TacticalGame.Equipment
                 return;
             }
 
-            var allUnits = GameObject.FindGameObjectsWithTag("Untagged")
-                .Select(go => go.GetComponent<UnitStatus>())
-                .Where(u => u != null && u.HasSurrendered && u.Team == caster.Team)
-                .ToList();
+            // 2. Otherwise, auto-find the first dead or surrendered ally safely
+            var allUnits = UnityEngine.Object.FindObjectsByType<UnitStatus>(UnityEngine.FindObjectsSortMode.None);
+            var deadAlly = allUnits.FirstOrDefault(u => u != null && u.Team == caster.Team && (u.HasSurrendered || u.CurrentHP <= 0));
             
-            if (allUnits.Count > 0)
+            if (deadAlly != null)
             {
-                var ally = allUnits[0];
-                ally.Heal(Mathf.RoundToInt(ally.MaxHP * healthPercent));
-                ally.RestoreMorale(Mathf.RoundToInt(ally.MaxMorale * healthPercent));
+                deadAlly.Heal(Mathf.RoundToInt(deadAlly.MaxHP * healthPercent));
+                deadAlly.RestoreMorale(Mathf.RoundToInt(deadAlly.MaxMorale * healthPercent));
                 
-                ally.ClearSurrender();
+                deadAlly.ClearSurrender();
+            }
+            else
+            {
+                Debug.Log("Revive failed: No dead or surrendered allies found.");
             }
         }
         
@@ -2572,10 +2604,13 @@ namespace TacticalGame.Equipment
         
         private static UnitStatus GetLowestMoraleAlly(UnitStatus caster)
         {
-            return GetAllAllies(caster)
-                .Where(a => a != caster)
-                .OrderBy(a => a.MoralePercent)
-                .FirstOrDefault();
+            var validAllies = GetAllAllies(caster).Where(a => a != caster).ToList();
+            if (validAllies.Count == 0) return null;
+
+            float lowestMoralePercent = validAllies.Min(a => a.MoralePercent);
+            var tiedAllies = validAllies.Where(a => Mathf.Approximately(a.MoralePercent, lowestMoralePercent)).ToList();
+            
+            return tiedAllies[UnityEngine.Random.Range(0, tiedAllies.Count)];
         }
         
         private static UnitStatus GetLowestHPAlly(UnitStatus caster)

@@ -659,12 +659,19 @@ namespace TacticalGame.Equipment
                     UnitStatus lowestMorale = GetLowestMoraleAlly(card.ownerUnit);
                     if (lowestMorale != null) HighlightTargetUnit(lowestMorale, new Color(0.2f, 1f, 0.2f, 1f));
                 }
-                // 3. Quartermaster Radial AoE -> Highlight aura in Transparent Green
-                else if (card.effectType == RelicEffectType.Hat_RestoreMoraleNearby ||
-                         card.effectType == RelicEffectType.Totem_RallyNoMoraleDamage)
+                // 3. Quartermaster Hat AoE -> Highlight aura around the caster
+                else if (card.effectType == RelicEffectType.Hat_RestoreMoraleNearby)
                 {
                     int radius = card.sourceRelic?.effectData != null ? card.sourceRelic.effectData.tileRange : 1;
                     HighlightAoE(card.ownerUnit, radius, new Color(0.2f, 1f, 0.2f, 0.4f));
+                }
+                // 4. Quartermaster Totem AoE -> Highlight aura around the Quartermaster
+                else if (card.effectType == RelicEffectType.Totem_RallyNoMoraleDamage)
+                {
+                    int radius = card.sourceRelic?.effectData != null ? card.sourceRelic.effectData.tileRange : 1;
+                    var qm = Object.FindObjectsByType<UnitStatus>(FindObjectsSortMode.None)
+                                .FirstOrDefault(u => u != null && u.Team == card.ownerUnit.Team && !u.HasSurrendered && u.Role == UnitRole.Quartermaster);
+                    if (qm != null) HighlightAoE(qm, radius, new Color(0.2f, 1f, 0.2f, 0.4f));
                 }
                 // 4. Quartermaster Global Buffs -> Highlight ALL Allies in Transparent Green
                 else if (card.effectType == RelicEffectType.Coat_ReduceMoraleDamage ||

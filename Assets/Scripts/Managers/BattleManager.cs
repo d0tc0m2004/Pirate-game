@@ -25,8 +25,6 @@ namespace TacticalGame.Managers
 
         [Header("Selection Visuals")]
         [SerializeField] private Color moveRangeColor = Color.blue;
-        [SerializeField] private Color attackTargetColor = Color.yellow;
-        [SerializeField] private float pulseSpeed = 3f;
 
         #endregion
 

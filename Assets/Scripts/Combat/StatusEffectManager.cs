@@ -436,7 +436,12 @@ namespace TacticalGame.Combat
         public float GetMoraleDamageReduction()
         {
             StatusEffect effect = GetEffect(StatusEffectType.MoraleDamageReduction);
-            return effect?.value1 ?? 0f;
+            // Only return the reduction value if the effect is NOT delayed
+            if (effect != null && effect.IsActive) 
+            {
+                return effect.value1;
+            }
+            return 0f;
         }
 
         /// <summary>

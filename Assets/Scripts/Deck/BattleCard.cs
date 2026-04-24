@@ -152,6 +152,7 @@ namespace TacticalGame.Equipment
                     return CardTargetType.Tile;
 
                 // === Auto-cast / Random Target Effects (No UI Target Prompt) ===
+                case RelicEffectType.Totem_RallyNoMoraleDamage:
                 case RelicEffectType.Totem_CurseCaptainReflect:
                 case RelicEffectType.Ultimate_MarkCaptainOnly:
                 case RelicEffectType.Ultimate_ShipCannon:

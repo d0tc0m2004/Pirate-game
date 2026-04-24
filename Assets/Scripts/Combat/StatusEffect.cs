@@ -153,6 +153,7 @@ namespace TacticalGame.Combat
         public StatusEffectType type;
         public string effectName;
         public int remainingTurns;
+        public int delayTurns;      // Tracks turns until the effect becomes active
         public float value1;        // Primary value (damage, percentage, etc.)
         public float value2;        // Secondary value (optional)
         public int stacks;          // For stackable effects
@@ -160,14 +161,18 @@ namespace TacticalGame.Combat
         public bool isDebuff;       // True = debuff, False = buff
         public bool triggeredThisTurn; // For once-per-turn effects
 
+        // Helper property to easily check if the effect has woken up
+        public bool IsActive => delayTurns <= 0; 
+
         /// <summary>
-        /// Create a new status effect.
+        /// Create a new status effect. Added 'delay' parameter.
         /// </summary>
-        public StatusEffect(StatusEffectType type, string name, int duration, float val1 = 0f, float val2 = 0f, GameObject source = null)
+        public StatusEffect(StatusEffectType type, string name, int duration, float val1 = 0f, float val2 = 0f, GameObject source = null, int delay = 0)
         {
             this.type = type;
             this.effectName = name;
             this.remainingTurns = duration;
+            this.delayTurns = delay;
             this.value1 = val1;
             this.value2 = val2;
             this.stacks = 1;
@@ -182,6 +187,14 @@ namespace TacticalGame.Combat
         public bool Tick()
         {
             triggeredThisTurn = false; // Reset for new turn
+            
+            // If the effect is delayed, tick down the delay instead of the duration
+            if (delayTurns > 0)
+            {
+                delayTurns--;
+                return false; // Effect is still delayed, don't expire it yet
+            }
+
             remainingTurns--;
             return remainingTurns <= 0;
         }
@@ -303,8 +316,8 @@ namespace TacticalGame.Combat
         public static StatusEffect CreateRangedDamageReduction(int duration, float percent, GameObject source = null)
             => new StatusEffect(StatusEffectType.RangedDamageReduction, "Ranged Shield", duration, percent, 0f, source);
 
-        public static StatusEffect CreateMoraleDamageReduction(int duration, float percent, GameObject source = null)
-            => new StatusEffect(StatusEffectType.MoraleDamageReduction, "Morale Shield", duration, percent, 0f, source);
+        public static StatusEffect CreateMoraleDamageReduction(int duration, float percent, GameObject source = null, int delay = 0)
+            => new StatusEffect(StatusEffectType.MoraleDamageReduction, "Morale Shield", duration, percent, 0f, source, delay);
 
         public static StatusEffect CreateMarked(int duration, float bonusDamage, GameObject source = null)
             => new StatusEffect(StatusEffectType.Marked, "Marked", duration, bonusDamage, 0f, source);
@@ -435,8 +448,8 @@ namespace TacticalGame.Combat
         public static StatusEffect CreateShielded(int duration, float damageReduction, GameObject source = null)
             => new StatusEffect(StatusEffectType.Shielded, "Shielded", duration, damageReduction, 0f, source);
 
-        public static StatusEffect CreateNoMoraleDamage(int duration, GameObject source = null)
-            => new StatusEffect(StatusEffectType.MoraleDamageReduction, "Morale Shield", duration, 1.0f, 0f, source);
+        public static StatusEffect CreateNoMoraleDamage(int duration, GameObject source = null, int delay = 0)
+            => new StatusEffect(StatusEffectType.MoraleDamageReduction, "Morale Shield", duration, 1.0f, 0f, source, delay);
 
         // Additional factory methods for full coverage
         public static StatusEffect CreateInvincible(int duration, GameObject source = null)
