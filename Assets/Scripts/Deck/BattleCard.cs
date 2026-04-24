@@ -155,6 +155,7 @@ namespace TacticalGame.Equipment
                 case RelicEffectType.Totem_RallyNoMoraleDamage:
                 case RelicEffectType.Totem_CurseCaptainReflect:
                 case RelicEffectType.Ultimate_MarkCaptainOnly:
+                case RelicEffectType.Totem_ConvertGrogToEnergy:
                 case RelicEffectType.Ultimate_ShipCannon:
                 case RelicEffectType.Totem_SummonCannon:
                 case RelicEffectType.Boots_AllyFreeMoveLowestMorale:

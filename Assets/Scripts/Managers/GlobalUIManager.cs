@@ -342,14 +342,27 @@ namespace TacticalGame.Managers
             GameObject selected = battleManager.GetSelectedUnit();
             if (selected == null) return;
 
-            if (!energyManager.TrySpendGrog(1)) return;
-
             UnitStatus status = selected.GetComponent<UnitStatus>();
-            if (status != null)
+            if (status == null) return;
+
+            // FIXED: Check if the unit has the Free Rum buff!
+            var effects = selected.GetComponent<TacticalGame.Combat.StatusEffectManager>();
+            bool hasFreeRum = effects != null && effects.GetFreeRumUsesRemaining() > 0;
+
+            if (hasFreeRum)
             {
-                status.DrinkRum(type);
-                isDirty = true;
+                // Consume 1 free use charge instead of spending Grog
+                effects.ConsumeFreeRumUse();
+                Debug.Log($"<color=cyan>{status.UnitName} used a FREE rum! No grog spent.</color>");
             }
+            else
+            {
+                // No free uses, try to spend 1 normal Grog
+                if (!energyManager.TrySpendGrog(1)) return; 
+            }
+
+            status.DrinkRum(type);
+            isDirty = true;
         }
 
         #endregion

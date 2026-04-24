@@ -212,6 +212,13 @@ namespace TacticalGame.Equipment
                         return "No dead or surrendered allies to revive";
                     return "";
 
+                // ==================== HELMSMAN ====================
+                case RelicEffectType.Totem_ConvertGrogToEnergy:
+                    var energyManager = ServiceLocator.Get<EnergyManager>();
+                    if (energyManager == null || energyManager.GrogTokens < 2)
+                        return "Requires 2 Grog";
+                    return "";
+
 
                 // ==================== OTHER ROLES ====================
                 // Will be added in subsequent batches. Default to playable so

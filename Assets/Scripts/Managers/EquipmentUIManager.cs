@@ -62,7 +62,7 @@ namespace TacticalGame.Managers
         [SerializeField] private Button startBattleButton;
         [SerializeField] private Button backButton;
         [SerializeField] private Button unequipAllButton;
-        [SerializeField] private Button autoEquipQuartermasterButton;
+        [SerializeField] private Button autoEquipHelmsmanButton;
 
         [Header("Managers")]
         [SerializeField] private DeploymentManager deploymentManager;
@@ -89,7 +89,7 @@ namespace TacticalGame.Managers
             if (startBattleButton) startBattleButton.onClick.AddListener(OnStartBattle);
             if (backButton) backButton.onClick.AddListener(OnBack);
             if (unequipAllButton) unequipAllButton.onClick.AddListener(UnequipAll);
-            if (autoEquipQuartermasterButton) autoEquipQuartermasterButton.onClick.AddListener(AutoEquipQuartermasterCards); // Updated
+            if (autoEquipHelmsmanButton) autoEquipHelmsmanButton.onClick.AddListener(AutoEquipHelmsmanCards); // Updated
 
             SetupSlotCallbacks();
 
@@ -448,7 +448,7 @@ namespace TacticalGame.Managers
             if (creationCanvas) creationCanvas.SetActive(true);
         }
 
-        public void AutoEquipQuartermasterCards()
+        public void AutoEquipHelmsmanCards()
         {
             if (selectedUnit == null || selectedUnit.equipment == null) return;
             
@@ -473,8 +473,8 @@ namespace TacticalGame.Managers
                 eq.EquipWeaponRelic(0, selectedUnit.defaultWeaponRelic);
             }
             
-            // Fetch Quartermaster effects
-            var qmEffects = TacticalGame.Equipment.RelicEffectsDatabase.Instance.GetEffectsByRole(UnitRole.Quartermaster);
+            // Fetch Helmsman effects
+            var hmEffects = TacticalGame.Equipment.RelicEffectsDatabase.Instance.GetEffectsByRole(UnitRole.Helmsmaster);
             int effectIndex = 0;
 
             foreach (var pUnit in playerUnits)
@@ -483,19 +483,19 @@ namespace TacticalGame.Managers
 
                 for (int slot = 0; slot < 6; slot++)
                 {
-                    if (effectIndex >= qmEffects.Count) break;
+                    if (effectIndex >= hmEffects.Count) break;
                     
-                    var currentEffect = qmEffects[effectIndex];
+                    var currentEffect = hmEffects[effectIndex];
                     pUnit.equipment.EquipCategoryRelic(slot, new EquippedRelic(currentEffect));
                     effectIndex++;
                 }
 
-                if (effectIndex >= qmEffects.Count) break;
+                if (effectIndex >= hmEffects.Count) break;
             }
             
             UpdateRelicSlots();
             RefreshRelicPool();
-            Debug.Log($"Auto-equipped Quartermaster relics to {selectedUnit.unitName}");
+            Debug.Log($"Auto-equipped Helmsman relics to {selectedUnit.unitName}");
         }
     }
 

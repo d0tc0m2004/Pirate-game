@@ -594,12 +594,12 @@ namespace TacticalGame.Managers
             unequipButton.onClick.AddListener(OnUnequipAll);
             unequipButton.GetComponent<Image>().color = new Color(0.5f, 0.2f, 0.2f);
             
-            Button equipQMButton = CreateButton(equipmentPanel.transform, "EquipQMButton", "Equip QM", new Vector2(150, 45));
-            RectTransform capRt = equipQMButton.GetComponent<RectTransform>();
+            Button equipHMButton = CreateButton(equipmentPanel.transform, "EquipHMButton", "Equip HM", new Vector2(150, 45));
+            RectTransform capRt = equipHMButton.GetComponent<RectTransform>();
             capRt.anchorMin = new Vector2(0.5f, 0); capRt.anchorMax = new Vector2(0.5f, 0);
             capRt.pivot = new Vector2(0.5f, 0); capRt.anchoredPosition = new Vector2(-200, 70);
-            equipQMButton.onClick.AddListener(OnEquipQuartermaster);
-            equipQMButton.GetComponent<Image>().color = new Color(0.6f, 0.4f, 0.1f);
+            equipHMButton.onClick.AddListener(OnEquipHelmsman);
+            equipHMButton.GetComponent<Image>().color = new Color(0.6f, 0.4f, 0.1f);
             
             Button autoEquipPlayersButton = CreateButton(equipmentPanel.transform, "AutoEquipPlayersButton", "Auto Equip Players", new Vector2(180, 45));
             RectTransform autoEquipPlayerRt = autoEquipPlayersButton.GetComponent<RectTransform>();
@@ -1221,7 +1221,7 @@ namespace TacticalGame.Managers
             RefreshSlots(unit); UpdateJewelBudget(unit); UpdateInfoPanel();
         }
 
-        private void OnEquipQuartermaster()
+        private void OnEquipHelmsman()
         {
             // Fully wipe all player units to guarantee no other units' gear pollutes the deck
             foreach (var pUnit in playerUnits)
@@ -1233,8 +1233,8 @@ namespace TacticalGame.Managers
                 }
             }
 
-            // Fetch Quartermaster effects instead of Captain
-            var qmEffects = TacticalGame.Equipment.RelicEffectsDatabase.Instance.GetEffectsByRole(UnitRole.Quartermaster);
+            // Fetch Helmsman effects
+            var hmEffects = TacticalGame.Equipment.RelicEffectsDatabase.Instance.GetEffectsByRole(UnitRole.Helmsmaster);
             int effectIndex = 0;
 
             foreach (var pUnit in playerUnits)
@@ -1242,17 +1242,17 @@ namespace TacticalGame.Managers
                 // Each unit has 7 category slots
                 for (int slot = 0; slot < 7; slot++)
                 {
-                    if (effectIndex >= qmEffects.Count)
+                    if (effectIndex >= hmEffects.Count)
                     {
                         break;
                     }
-                    var currentEffect = qmEffects[effectIndex];
+                    var currentEffect = hmEffects[effectIndex];
                     // Create an equipped relic specifically mapped dynamically
                     pUnit.EquipCategoryRelic(slot, new EquippedRelic(currentEffect));
                     effectIndex++;
                 }
 
-                if (effectIndex >= qmEffects.Count)
+                if (effectIndex >= hmEffects.Count)
                 {
                     break;
                 }
