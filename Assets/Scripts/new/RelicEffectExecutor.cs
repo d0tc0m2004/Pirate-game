@@ -446,7 +446,7 @@ namespace TacticalGame.Equipment
                     break;
                     
                 case RelicEffectType.Totem_SummonAnchorHealthBuff:
-                    SummonAnchor(caster, targetCell, effect.value2, effect.tileRange);
+                    SummonAnchor(caster, targetCell, effect.value2,effect.duration, effect.tileRange);
                     break;
                     
                 case RelicEffectType.Totem_SummonTargetDummy:
@@ -2309,10 +2309,11 @@ namespace TacticalGame.Equipment
             }
         }
 
-        private static void SummonAnchor(UnitStatus caster, GridCell cell, float healthBoost, int range)
+        private static void SummonAnchor(UnitStatus caster, GridCell cell, float healthBoost, int duration, int range)
         {
             var hazardManager = ServiceLocator.Get<HazardManager>();
-            if (hazardManager == null) return;
+            var gridManager = ServiceLocator.Get<GridManager>();
+            if (hazardManager == null || gridManager == null) return;
 
             GridCell spawnCell = cell;
             if (spawnCell == null || spawnCell.IsOccupied || spawnCell.HasHazard)
@@ -2322,8 +2323,22 @@ namespace TacticalGame.Equipment
             }
             if (spawnCell != null)
             {
-                int healPerTurn = Mathf.RoundToInt(healthBoost * 100);
-                hazardManager.CreateHealingZone(spawnCell, healPerTurn, 3);
+                // Spawn the Anchor as a Hard Obstacle
+                hazardManager.CreateHardObstacle(spawnCell, duration);
+                
+                // Buff Max HP of allies in range
+                foreach (var ally in GetAllAllies(caster))
+                {
+                    Vector2Int pos = gridManager.WorldToGridPosition(ally.transform.position);
+                    int dist = Mathf.Max(Mathf.Abs(pos.x - spawnCell.XPosition), Mathf.Abs(pos.y - spawnCell.YPosition));
+                    if (dist <= range)
+                    {
+                        var effects = GetStatusEffects(ally);
+                        effects?.ApplyEffect(StatusEffect.CreateMaxHPBoost(duration, healthBoost, null));
+                        // Heal them by the same amount so they don't have an HP deficit!
+                        ally.Heal(Mathf.RoundToInt(ally.MaxHP * healthBoost)); 
+                    }
+                }
             }
         }
 
@@ -2396,66 +2411,22 @@ namespace TacticalGame.Equipment
             var gridManager = ServiceLocator.Get<GridManager>();
             if (hazardManager == null || gridManager == null) return;
 
-            Vector2Int casterPos = gridManager.WorldToGridPosition(caster.transform.position);
             int middleCol = gridManager.GetMiddleColumnIndex();
-            int gridHeight = gridManager.GridHeight;
-
-            for (int col = casterPos.x + 1; col <= middleCol; col++)
+            int placed = 0;
+            
+            // Smarter logic: Try to place in the empty tiles closest to the front line!
+            for (int col = middleCol; col >= 0; col--)
             {
-                var emptyCellsInColumn = new System.Collections.Generic.List<GridCell>();
-                for (int row = 0; row < gridHeight; row++)
+                for (int row = 0; row < gridManager.GridHeight; row++)
                 {
+                    if (placed >= count) return;
+                    
                     var cell = gridManager.GetCell(col, row);
                     if (cell != null && !cell.IsOccupied && !cell.IsBlocked && !cell.HasHazard && !cell.IsMiddleColumn)
                     {
-                        emptyCellsInColumn.Add(cell);
+                        hazardManager.CreateHardObstacle(cell, duration);
+                        placed++;
                     }
-                }
-
-                if (emptyCellsInColumn.Count < count)
-                    continue; 
-
-                GridCell bestStartCell = null;
-                int bestDistance = int.MaxValue;
-
-                for (int startIdx = 0; startIdx <= emptyCellsInColumn.Count - count; startIdx++)
-                {
-                    bool adjacent = true;
-                    for (int i = 1; i < count; i++)
-                    {
-                        if (emptyCellsInColumn[startIdx + i].YPosition != emptyCellsInColumn[startIdx + i - 1].YPosition + 1)
-                        {
-                            adjacent = false;
-                            break;
-                        }
-                    }
-
-                    if (adjacent)
-                    {
-                        int groupCenterY = emptyCellsInColumn[startIdx].YPosition + (count - 1) / 2;
-                        int dist = Mathf.Abs(groupCenterY - casterPos.y);
-                        if (dist < bestDistance)
-                        {
-                            bestDistance = dist;
-                            bestStartCell = emptyCellsInColumn[startIdx];
-                        }
-                    }
-                }
-
-                if (bestStartCell != null)
-                {
-                    int placed = 0;
-                    int startY = bestStartCell.YPosition;
-                    for (int i = 0; i < count; i++)
-                    {
-                        var cell = gridManager.GetCell(col, startY + i);
-                        if (cell != null)
-                        {
-                            var obstacle = hazardManager.CreateHardObstacle(cell, duration);
-                            if (obstacle != null) placed++;
-                        }
-                    }
-                    return;
                 }
             }
         }

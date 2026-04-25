@@ -219,6 +219,25 @@ namespace TacticalGame.Equipment
                         return "Requires 2 Grog";
                     return "";
 
+                // ==================== BOATSWAIN ====================
+                case RelicEffectType.Gloves_AttackBonusIfMoreHP: // V1
+                case RelicEffectType.Gloves_AttackLowerEnemyHealth: // V2
+                case RelicEffectType.Ultimate_IgnoreHighestHP: // V2
+                    if (!HasAnyLivingEnemy(card.ownerUnit))
+                        return "No enemies remaining";
+                    return "";
+
+                case RelicEffectType.Coat_ProtectLowHP: // V2
+                    if (!HasAnyOtherLivingAlly(card.ownerUnit))
+                        return "No other allies to protect";
+                    return "";
+
+                case RelicEffectType.Totem_SummonAnchorHealthBuff: // V2
+                case RelicEffectType.Ultimate_SummonHardObstacles: // V1
+                    if (!HasAnyEmptyTileOnPlayerSide())
+                        return "No empty tiles available";
+                    return "";
+
 
                 // ==================== OTHER ROLES ====================
                 // Will be added in subsequent batches. Default to playable so

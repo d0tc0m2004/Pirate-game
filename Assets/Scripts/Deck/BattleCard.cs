@@ -162,6 +162,16 @@ namespace TacticalGame.Equipment
                 case RelicEffectType.Totem_SummonHighQualityRum:
                     return CardTargetType.None;
 
+                // BOATSWAIN AUTO-CASTS
+                case RelicEffectType.Hat_ReturnDamage:
+                case RelicEffectType.Hat_IncreaseHealthStat:
+                case RelicEffectType.Coat_PreventDisplacement:
+                case RelicEffectType.Coat_ProtectLowHP:
+                case RelicEffectType.Totem_StunOnKnockback:
+                case RelicEffectType.Ultimate_SummonHardObstacles:
+                case RelicEffectType.Ultimate_IgnoreHighestHP:
+                    return CardTargetType.None;
+
                 // === Ultimates that target allies ===
                 case RelicEffectType.Ultimate_ReviveAlly:
                 case RelicEffectType.Ultimate_V2_MassRevive:
