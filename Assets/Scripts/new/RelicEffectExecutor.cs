@@ -90,16 +90,7 @@ namespace TacticalGame.Equipment
                     
                 case RelicEffectType.Boots_FreeIfGrog:
                 {
-                    // FIXED: Refund the energy cost if grog is available and spent!
-                    var em = ServiceLocator.Get<EnergyManager>();
-                    if (em != null && em.GrogTokens > 0)
-                    {
-                        if (em.TrySpendGrog(1))
-                        {
-                            if (card != null) em.AddEnergy(card.energyCost);
-                            Debug.Log("Spent 1 Grog to make move free!");
-                        }
-                    }
+                    // Energy and Grog logic is now entirely handled by BattleDeckUI during movement
                     ExecuteMove(caster, targetCell, (int)effect.value1);
                     break;
                 }

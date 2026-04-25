@@ -54,6 +54,10 @@ namespace TacticalGame.Equipment
             var energyManager = ServiceLocator.Get<EnergyManager>();
             bool hasEnergy = energyManager != null && energyManager.HasEnergy(card.energyCost);
 
+            if (card.effectType == RelicEffectType.Boots_FreeIfGrog && energyManager != null && energyManager.GrogTokens > 0)
+            {
+                hasEnergy = true;
+            }
             // Per-effect conditions
             string effectReason = CheckEffectCondition(card);
             if (!string.IsNullOrEmpty(effectReason))

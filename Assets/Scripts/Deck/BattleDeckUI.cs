@@ -1274,14 +1274,13 @@ namespace TacticalGame.Equipment
 
                 if (energyManager != null)
                 {
-                    // FIXED: Check for Helmsman "Free If Grog" before spending energy!
                     bool isFree = false;
                     if (cachedCard != null && cachedCard.effectType == RelicEffectType.Boots_FreeIfGrog)
                     {
-                        if (energyManager.GrogTokens > 0 && energyManager.TrySpendGrog(1))
+                        if (energyManager.GrogTokens > 0)
                         {
                             isFree = true;
-                            Debug.Log("Spent 1 Grog to make Helmsman move free!");
+                            Debug.Log("Grog is available! Helmsman move is free (no grog spent)!");
                         }
                     }
 
