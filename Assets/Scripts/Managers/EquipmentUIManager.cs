@@ -62,6 +62,7 @@ namespace TacticalGame.Managers
         [SerializeField] private Button startBattleButton;
         [SerializeField] private Button backButton;
         [SerializeField] private Button unequipAllButton;
+        [SerializeField] private Button autoEquipQuartermasterButton;
         [SerializeField] private Button autoEquipHelmsmanButton;
 
         [Header("Managers")]
@@ -89,7 +90,8 @@ namespace TacticalGame.Managers
             if (startBattleButton) startBattleButton.onClick.AddListener(OnStartBattle);
             if (backButton) backButton.onClick.AddListener(OnBack);
             if (unequipAllButton) unequipAllButton.onClick.AddListener(UnequipAll);
-            if (autoEquipHelmsmanButton) autoEquipHelmsmanButton.onClick.AddListener(AutoEquipHelmsmanCards); // Updated
+            if (autoEquipQuartermasterButton) autoEquipQuartermasterButton.onClick.AddListener(AutoEquipQuartermasterCards);
+            if (autoEquipHelmsmanButton) autoEquipHelmsmanButton.onClick.AddListener(AutoEquipHelmsmanCards);
 
             SetupSlotCallbacks();
 
@@ -496,6 +498,56 @@ namespace TacticalGame.Managers
             UpdateRelicSlots();
             RefreshRelicPool();
             Debug.Log($"Auto-equipped Helmsman relics to {selectedUnit.unitName}");
+        }
+
+        public void AutoEquipQuartermasterCards()
+        {
+            if (selectedUnit == null || selectedUnit.equipment == null) return;
+            
+            // Wipe all player units completely to ensure no other units' gear pollutes the deck
+            foreach (var pUnit in playerUnits)
+            {
+                if (pUnit != null && pUnit.equipment != null)
+                {
+                    for (int i = 0; i < 6; i++)
+                    {
+                        pUnit.equipment.UnequipCategoryRelic(i);
+                    }
+                    pUnit.equipment.UnequipWeaponRelic(0);
+                    pUnit.equipment.UnequipWeaponRelic(1);
+                }
+            }
+            
+            var eq = selectedUnit.equipment;
+            
+            if (selectedUnit.defaultWeaponRelic != null)
+            {
+                eq.EquipWeaponRelic(0, selectedUnit.defaultWeaponRelic);
+            }
+            
+            // Fetch Quartermaster effects
+            var qmEffects = TacticalGame.Equipment.RelicEffectsDatabase.Instance.GetEffectsByRole(UnitRole.Quartermaster);
+            int effectIndex = 0;
+
+            foreach (var pUnit in playerUnits)
+            {
+                if (pUnit == null || pUnit.equipment == null) continue;
+
+                for (int slot = 0; slot < 6; slot++)
+                {
+                    if (effectIndex >= qmEffects.Count) break;
+                    
+                    var currentEffect = qmEffects[effectIndex];
+                    pUnit.equipment.EquipCategoryRelic(slot, new EquippedRelic(currentEffect));
+                    effectIndex++;
+                }
+
+                if (effectIndex >= qmEffects.Count) break;
+            }
+            
+            UpdateRelicSlots();
+            RefreshRelicPool();
+            Debug.Log($"Auto-equipped Quartermaster relics to {selectedUnit.unitName}");
         }
     }
 

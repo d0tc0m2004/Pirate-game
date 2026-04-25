@@ -1007,9 +1007,13 @@ namespace TacticalGame.Equipment
             if (gridManager == null || unit == null) return;
 
             Vector2Int pos = gridManager.WorldToGridPosition(unit.transform.position);
+            
+            // FIXED: Now includes all 8 directions (Up, Down, Left, Right, and Diagonals)
             Vector2Int[] directions = {
                 new Vector2Int(1, 0), new Vector2Int(-1, 0),
-                new Vector2Int(0, 1), new Vector2Int(0, -1)
+                new Vector2Int(0, 1), new Vector2Int(0, -1),
+                new Vector2Int(1, 1), new Vector2Int(-1, 1),
+                new Vector2Int(1, -1), new Vector2Int(-1, -1)
             };
 
             foreach (var dir in directions)
@@ -1266,10 +1270,26 @@ namespace TacticalGame.Equipment
             {
                 var manager = BattleDeckManager.Instance;
                 var energyManager = ServiceLocator.Get<EnergyManager>();
-                if (energyManager != null)
-                    energyManager.TrySpendEnergy(cardAwaitingTarget.energyCost);
-
                 var cachedCard = cardAwaitingTarget;
+
+                if (energyManager != null)
+                {
+                    // FIXED: Check for Helmsman "Free If Grog" before spending energy!
+                    bool isFree = false;
+                    if (cachedCard != null && cachedCard.effectType == RelicEffectType.Boots_FreeIfGrog)
+                    {
+                        if (energyManager.GrogTokens > 0 && energyManager.TrySpendGrog(1))
+                        {
+                            isFree = true;
+                            Debug.Log("Spent 1 Grog to make Helmsman move free!");
+                        }
+                    }
+
+                    if (!isFree && cachedCard != null)
+                    {
+                        energyManager.TrySpendEnergy(cachedCard.energyCost);
+                    }
+                }
 
                 if (cachedCard != null && cachedCard.sourceRelic != null)
                 {

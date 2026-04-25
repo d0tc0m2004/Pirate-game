@@ -159,6 +159,7 @@ namespace TacticalGame.Equipment
                 case RelicEffectType.Ultimate_ShipCannon:
                 case RelicEffectType.Totem_SummonCannon:
                 case RelicEffectType.Boots_AllyFreeMoveLowestMorale:
+                case RelicEffectType.Totem_SummonHighQualityRum:
                     return CardTargetType.None;
 
                 // === Ultimates that target allies ===
