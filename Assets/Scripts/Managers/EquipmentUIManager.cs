@@ -64,6 +64,7 @@ namespace TacticalGame.Managers
         [SerializeField] private Button unequipAllButton;
         [SerializeField] private Button autoEquipQuartermasterButton;
         [SerializeField] private Button autoEquipHelmsmanButton;
+        [SerializeField] private Button autoEquipBoatswainButton;
 
         [Header("Managers")]
         [SerializeField] private DeploymentManager deploymentManager;
@@ -91,7 +92,9 @@ namespace TacticalGame.Managers
             if (backButton) backButton.onClick.AddListener(OnBack);
             if (unequipAllButton) unequipAllButton.onClick.AddListener(UnequipAll);
             if (autoEquipQuartermasterButton) autoEquipQuartermasterButton.onClick.AddListener(AutoEquipQuartermasterCards);
-            if (autoEquipHelmsmanButton) autoEquipHelmsmanButton.onClick.AddListener(AutoEquipHelmsmanCards);
+            
+            // NEW LISTENER
+            if (autoEquipBoatswainButton) autoEquipBoatswainButton.onClick.AddListener(AutoEquipBoatswainCards); 
 
             SetupSlotCallbacks();
 
@@ -548,6 +551,56 @@ namespace TacticalGame.Managers
             UpdateRelicSlots();
             RefreshRelicPool();
             Debug.Log($"Auto-equipped Quartermaster relics to {selectedUnit.unitName}");
+        }
+
+        public void AutoEquipBoatswainCards()
+        {
+            if (selectedUnit == null || selectedUnit.equipment == null) return;
+            
+            // Wipe all player units completely
+            foreach (var pUnit in playerUnits)
+            {
+                if (pUnit != null && pUnit.equipment != null)
+                {
+                    for (int i = 0; i < 6; i++)
+                    {
+                        pUnit.equipment.UnequipCategoryRelic(i);
+                    }
+                    pUnit.equipment.UnequipWeaponRelic(0);
+                    pUnit.equipment.UnequipWeaponRelic(1);
+                }
+            }
+            
+            var eq = selectedUnit.equipment;
+            
+            if (selectedUnit.defaultWeaponRelic != null)
+            {
+                eq.EquipWeaponRelic(0, selectedUnit.defaultWeaponRelic);
+            }
+            
+            // Fetch Boatswain effects
+            var bwEffects = TacticalGame.Equipment.RelicEffectsDatabase.Instance.GetEffectsByRole(UnitRole.Boatswain);
+            int effectIndex = 0;
+
+            foreach (var pUnit in playerUnits)
+            {
+                if (pUnit == null || pUnit.equipment == null) continue;
+
+                for (int slot = 0; slot < 6; slot++)
+                {
+                    if (effectIndex >= bwEffects.Count) break;
+                    
+                    var currentEffect = bwEffects[effectIndex];
+                    pUnit.equipment.EquipCategoryRelic(slot, new EquippedRelic(currentEffect));
+                    effectIndex++;
+                }
+
+                if (effectIndex >= bwEffects.Count) break;
+            }
+            
+            UpdateRelicSlots();
+            RefreshRelicPool();
+            Debug.Log($"Auto-equipped Boatswain relics to {selectedUnit.unitName}");
         }
     }
 

@@ -437,7 +437,7 @@ namespace TacticalGame.Equipment
                     break;
                     
                 case RelicEffectType.Totem_SummonAnchorHealthBuff:
-                    SummonAnchor(caster, targetCell, effect.value2,effect.duration, effect.tileRange);
+                    SummonAnchor(caster, targetCell, effect.value2, effect.tileRange, effect.duration);
                     break;
                     
                 case RelicEffectType.Totem_SummonTargetDummy:
@@ -2300,7 +2300,7 @@ namespace TacticalGame.Equipment
             }
         }
 
-        private static void SummonAnchor(UnitStatus caster, GridCell cell, float healthBoost, int duration, int range)
+        private static void SummonAnchor(UnitStatus caster, GridCell cell, float healthBoost, int range, int duration)
         {
             var hazardManager = ServiceLocator.Get<HazardManager>();
             var gridManager = ServiceLocator.Get<GridManager>();
@@ -2312,24 +2312,32 @@ namespace TacticalGame.Equipment
                 var cells = hazardManager.FindEmptyCellsNear(caster.transform.position, 1);
                 spawnCell = cells.Count > 0 ? cells[0] : null;
             }
+            
             if (spawnCell != null)
             {
-                // Spawn the Anchor as a Hard Obstacle
+                // 1. Create the physical anchor obstacle (Disappears after 'duration' turns)
                 hazardManager.CreateHardObstacle(spawnCell, duration);
                 
-                // Buff Max HP of allies in range
-                foreach (var ally in GetAllAllies(caster))
+                // 2. Find all allies to see who is within the anchor's aura range
+                var allies = GetAllAllies(caster);
+                allies.Add(caster); 
+                
+                foreach (var ally in allies)
                 {
-                    Vector2Int pos = gridManager.WorldToGridPosition(ally.transform.position);
+                    var pos = gridManager.WorldToGridPosition(ally.transform.position);
                     int dist = Mathf.Max(Mathf.Abs(pos.x - spawnCell.XPosition), Mathf.Abs(pos.y - spawnCell.YPosition));
+                    
                     if (dist <= range)
                     {
-                        var effects = GetStatusEffects(ally);
+                        var effects = ally.GetComponent<StatusEffectManager>();
+                        // Apply the Max HP Boost buff
                         effects?.ApplyEffect(StatusEffect.CreateMaxHPBoost(duration, healthBoost, null));
-                        // Heal them by the same amount so they don't have an HP deficit!
-                        ally.Heal(Mathf.RoundToInt(ally.MaxHP * healthBoost)); 
+                        // Physically heal them for the new amount so their bar fills up
+                        ally.Heal(Mathf.RoundToInt(ally.MaxHP * healthBoost));
                     }
                 }
+                
+                Debug.Log($"<color=green>{caster.UnitName} summoned Anchor: +{healthBoost*100}% Max HP for {duration} turns in {range} tile range!</color>");
             }
         }
 

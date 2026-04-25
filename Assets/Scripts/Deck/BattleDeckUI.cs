@@ -976,6 +976,11 @@ namespace TacticalGame.Equipment
         private string GetTargetingPrompt(BattleCard card)
         {
             var targetType = card.GetTargetType();
+            if (card.category == RelicCategory.Totem && targetType == CardTargetType.Tile)
+            {
+                return "Select a tile to place your totem/hazard";
+            }
+            
             switch (targetType)
             {
                 case CardTargetType.Tile: return "Select an adjacent tile to move to";
@@ -990,6 +995,24 @@ namespace TacticalGame.Equipment
 
         private int GetCardMoveRange(BattleCard card)
         {
+            // NEW: Boatswain V2 Dynamic Move Range
+            if (card.effectType == RelicEffectType.Boots_MoveAnyIfHighestHP && card.ownerUnit != null)
+            {
+                var allies = GameObject.FindGameObjectsWithTag("Unit")
+                    .Select(go => go.GetComponent<UnitStatus>())
+                    .Where(u => u != null && u.Team == card.ownerUnit.Team && !u.HasSurrendered)
+                    .ToList();
+                
+                bool isHighest = true;
+                foreach (var a in allies) {
+                    if (a != card.ownerUnit && a.CurrentHP > card.ownerUnit.CurrentHP) {
+                        isHighest = false; break;
+                    }
+                }
+                if (isHighest) return 99; // Move anywhere!
+            }
+
+            // Normal Range Fetching
             if (card.sourceRelic?.effectData != null)
             {
                 int range = (int)card.sourceRelic.effectData.value1;

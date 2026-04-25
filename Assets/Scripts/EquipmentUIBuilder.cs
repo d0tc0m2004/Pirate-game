@@ -609,6 +609,16 @@ namespace TacticalGame.Managers
             hmRt.pivot = new Vector2(0.5f, 0); hmRt.anchoredPosition = new Vector2(-130, 70); // Positioned right next to QM
             equipHMButton.onClick.AddListener(OnEquipHelmsman);
             equipHMButton.GetComponent<Image>().color = new Color(0.6f, 0.4f, 0.1f); // Amber
+
+            // Create the Boatswain Button
+            Button equipBoatswainButton = CreateButton(equipmentPanel.transform, "EquipBoatswainButton", "Equip Boatswain", new Vector2(150, 45));
+            RectTransform bwRt = equipBoatswainButton.GetComponent<RectTransform>();
+            bwRt.anchorMin = new Vector2(0.5f, 0); bwRt.anchorMax = new Vector2(0.5f, 0);
+            bwRt.pivot = new Vector2(0.5f, 0); 
+            // Positioned at X=0 so it sits to the right of the QM button (which is at -200)
+            bwRt.anchoredPosition = new Vector2(0, 70); 
+            equipBoatswainButton.onClick.AddListener(OnEquipBoatswain);
+            equipBoatswainButton.GetComponent<Image>().color = new Color(0.2f, 0.4f, 0.6f); // A nice blueish color
             
             Button autoEquipPlayersButton = CreateButton(equipmentPanel.transform, "AutoEquipPlayersButton", "Auto Equip Players", new Vector2(180, 45));
             RectTransform autoEquipPlayerRt = autoEquipPlayersButton.GetComponent<RectTransform>();
@@ -1232,31 +1242,53 @@ namespace TacticalGame.Managers
 
         private void OnEquipQuartermaster()
         {
+            EquipRoleDeck(UnitRole.Quartermaster);
+        }
+
+        private void OnEquipBoatswain()
+        {
+            EquipRoleDeck(UnitRole.Boatswain);
+        }
+
+        // NEW: Smart Auto-Equipper that maps V2 cards to their exact correct slots!
+        private void EquipRoleDeck(UnitRole role)
+        {
+            // Wipe all player units
             foreach (var pUnit in playerUnits)
             {
                 pUnit.ClearAllEquipment();
-                if (pUnit.defaultWeaponRelic != null) pUnit.EquipWeaponRelic(0, pUnit.defaultWeaponRelic);
+                if (pUnit.defaultWeaponRelic != null)
+                    pUnit.EquipWeaponRelic(0, pUnit.defaultWeaponRelic);
             }
 
-            var qmEffects = TacticalGame.Equipment.RelicEffectsDatabase.Instance.GetEffectsByRole(UnitRole.Quartermaster);
-            int effectIndex = 0;
-
+            var effects = TacticalGame.Equipment.RelicEffectsDatabase.Instance.GetEffectsByRole(role);
+            
             foreach (var pUnit in playerUnits)
             {
-                for (int slot = 0; slot < 7; slot++)
-                {
-                    if (effectIndex >= qmEffects.Count) break;
-                    pUnit.EquipCategoryRelic(slot, new EquippedRelic(qmEffects[effectIndex]));
-                    effectIndex++;
-                }
-                if (effectIndex >= qmEffects.Count) break;
+                // Grab the V2 cards (LastOrDefault) for each specific category
+                var boots = effects.LastOrDefault(e => e.category == RelicCategory.Boots);
+                var gloves = effects.LastOrDefault(e => e.category == RelicCategory.Gloves);
+                var hat = effects.LastOrDefault(e => e.category == RelicCategory.Hat);
+                var coat = effects.LastOrDefault(e => e.category == RelicCategory.Coat);
+                var trinket = effects.LastOrDefault(e => e.category == RelicCategory.Trinket);
+                var totem = effects.LastOrDefault(e => e.category == RelicCategory.Totem);
+
+                // Equip them to their strict corresponding slots
+                if (boots != null) pUnit.EquipCategoryRelic(0, new EquippedRelic(boots));
+                if (gloves != null) pUnit.EquipCategoryRelic(1, new EquippedRelic(gloves));
+                if (hat != null) pUnit.EquipCategoryRelic(2, new EquippedRelic(hat));
+                if (coat != null) pUnit.EquipCategoryRelic(3, new EquippedRelic(coat));
+                if (trinket != null) pUnit.EquipCategoryRelic(4, new EquippedRelic(trinket));
+                if (totem != null) pUnit.EquipCategoryRelic(5, new EquippedRelic(totem));
             }
 
             UnitData unit = GetUnitByIndex(selectedUnitIndex);
-            if (unit == null) return;
-            RefreshSlots(unit); 
-            UpdateJewelBudget(unit); 
-            UpdateInfoPanel();
+            if (unit != null)
+            {
+                RefreshSlots(unit); 
+                UpdateJewelBudget(unit); 
+                UpdateInfoPanel();
+            }
         }
 
         private void OnEquipHelmsman()
