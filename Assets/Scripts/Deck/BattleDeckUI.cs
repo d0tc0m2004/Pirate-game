@@ -720,7 +720,9 @@ namespace TacticalGame.Equipment
             {
                 for (int dy = -radius; dy <= radius; dy++)
                 {
-                    if (Mathf.Abs(dx) + Mathf.Abs(dy) > radius) continue;
+                    // FIXED: Now uses Chebyshev distance to include all 8 diagonal directions perfectly!
+                    if (Mathf.Max(Mathf.Abs(dx), Mathf.Abs(dy)) > radius) continue;
+                    
                     var cell = gridManager.GetCell(center.x + dx, center.y + dy);
                     if (cell != null) PaintCell(cell, color);
                 }
@@ -1087,7 +1089,9 @@ namespace TacticalGame.Equipment
                         for (int dy = -aoeRadius; dy <= aoeRadius; dy++)
                         {
                             if (dx == 0 && dy == 0) continue;
-                            if (Mathf.Abs(dx) + Mathf.Abs(dy) > aoeRadius) continue;
+                            
+                            // FIXED: Now uses Chebyshev distance to include the diagonals in the purple highlight
+                            if (Mathf.Max(Mathf.Abs(dx), Mathf.Abs(dy)) > aoeRadius) continue;
 
                             var aoeCell = gridManager.GetCell(center.XPosition + dx, center.YPosition + dy);
                             if (aoeCell == null) continue;
