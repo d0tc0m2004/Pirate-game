@@ -1240,48 +1240,68 @@ namespace TacticalGame.Managers
             RefreshSlots(unit); UpdateJewelBudget(unit); UpdateInfoPanel();
         }
 
-        private void OnEquipQuartermaster()
-        {
-            EquipRoleDeck(UnitRole.Quartermaster);
-        }
+        // Your three button listeners just pass the role into the smart equipper!
+        private void OnEquipQuartermaster() => EquipRoleDeck(UnitRole.Quartermaster);
+        private void OnEquipHelmsman() => EquipRoleDeck(UnitRole.Helmsmaster);
+        private void OnEquipBoatswain() => EquipRoleDeck(UnitRole.Boatswain);
 
-        private void OnEquipBoatswain()
-        {
-            EquipRoleDeck(UnitRole.Boatswain);
-        }
-
-        // NEW: Smart Auto-Equipper that maps V2 cards to their exact correct slots!
+        // The Smart Equipper handles V1 and V2 splitting
         private void EquipRoleDeck(UnitRole role)
         {
-            // Wipe all player units
+            // 1. Wipe ALL units so old test cards don't pollute your deck
             foreach (var pUnit in playerUnits)
             {
                 pUnit.ClearAllEquipment();
                 if (pUnit.defaultWeaponRelic != null)
+                {
                     pUnit.EquipWeaponRelic(0, pUnit.defaultWeaponRelic);
+                }
             }
 
+            // Fetch all 12 effects for this role
             var effects = TacticalGame.Equipment.RelicEffectsDatabase.Instance.GetEffectsByRole(role);
             
-            foreach (var pUnit in playerUnits)
+            // 2. Give UNIT 1 the V1 Set (Using FirstOrDefault)
+            if (playerUnits.Count > 0)
             {
-                // Grab the V2 cards (LastOrDefault) for each specific category
-                var boots = effects.LastOrDefault(e => e.category == RelicCategory.Boots);
-                var gloves = effects.LastOrDefault(e => e.category == RelicCategory.Gloves);
-                var hat = effects.LastOrDefault(e => e.category == RelicCategory.Hat);
-                var coat = effects.LastOrDefault(e => e.category == RelicCategory.Coat);
-                var trinket = effects.LastOrDefault(e => e.category == RelicCategory.Trinket);
-                var totem = effects.LastOrDefault(e => e.category == RelicCategory.Totem);
+                var unit1 = playerUnits[0];
+                var bootsV1 = effects.FirstOrDefault(e => e.category == RelicCategory.Boots);
+                var glovesV1 = effects.FirstOrDefault(e => e.category == RelicCategory.Gloves);
+                var hatV1 = effects.FirstOrDefault(e => e.category == RelicCategory.Hat);
+                var coatV1 = effects.FirstOrDefault(e => e.category == RelicCategory.Coat);
+                var trinketV1 = effects.FirstOrDefault(e => e.category == RelicCategory.Trinket);
+                var totemV1 = effects.FirstOrDefault(e => e.category == RelicCategory.Totem);
 
-                // Equip them to their strict corresponding slots
-                if (boots != null) pUnit.EquipCategoryRelic(0, new EquippedRelic(boots));
-                if (gloves != null) pUnit.EquipCategoryRelic(1, new EquippedRelic(gloves));
-                if (hat != null) pUnit.EquipCategoryRelic(2, new EquippedRelic(hat));
-                if (coat != null) pUnit.EquipCategoryRelic(3, new EquippedRelic(coat));
-                if (trinket != null) pUnit.EquipCategoryRelic(4, new EquippedRelic(trinket));
-                if (totem != null) pUnit.EquipCategoryRelic(5, new EquippedRelic(totem));
+                if (bootsV1 != null) unit1.EquipCategoryRelic(0, new EquippedRelic(bootsV1));
+                if (glovesV1 != null) unit1.EquipCategoryRelic(1, new EquippedRelic(glovesV1));
+                if (hatV1 != null) unit1.EquipCategoryRelic(2, new EquippedRelic(hatV1));
+                if (coatV1 != null) unit1.EquipCategoryRelic(3, new EquippedRelic(coatV1));
+                if (trinketV1 != null) unit1.EquipCategoryRelic(4, new EquippedRelic(trinketV1));
+                if (totemV1 != null) unit1.EquipCategoryRelic(5, new EquippedRelic(totemV1));
             }
 
+            // 3. Give UNIT 2 the V2 Set (Using LastOrDefault)
+            if (playerUnits.Count > 1)
+            {
+                var unit2 = playerUnits[1];
+                var bootsV2 = effects.LastOrDefault(e => e.category == RelicCategory.Boots);
+                var glovesV2 = effects.LastOrDefault(e => e.category == RelicCategory.Gloves);
+                var hatV2 = effects.LastOrDefault(e => e.category == RelicCategory.Hat);
+                var coatV2 = effects.LastOrDefault(e => e.category == RelicCategory.Coat);
+                var trinketV2 = effects.LastOrDefault(e => e.category == RelicCategory.Trinket);
+                var totemV2 = effects.LastOrDefault(e => e.category == RelicCategory.Totem);
+
+                if (bootsV2 != null) unit2.EquipCategoryRelic(0, new EquippedRelic(bootsV2));
+                if (glovesV2 != null) unit2.EquipCategoryRelic(1, new EquippedRelic(glovesV2));
+                if (hatV2 != null) unit2.EquipCategoryRelic(2, new EquippedRelic(hatV2));
+                if (coatV2 != null) unit2.EquipCategoryRelic(3, new EquippedRelic(coatV2));
+                if (trinketV2 != null) unit2.EquipCategoryRelic(4, new EquippedRelic(trinketV2));
+                if (totemV2 != null) unit2.EquipCategoryRelic(5, new EquippedRelic(totemV2));
+            }
+
+            // Any 3rd or 4th units remain completely empty!
+
+            // Refresh UI
             UnitData unit = GetUnitByIndex(selectedUnitIndex);
             if (unit != null)
             {
@@ -1289,35 +1309,6 @@ namespace TacticalGame.Managers
                 UpdateJewelBudget(unit); 
                 UpdateInfoPanel();
             }
-        }
-
-        private void OnEquipHelmsman()
-        {
-            foreach (var pUnit in playerUnits)
-            {
-                pUnit.ClearAllEquipment();
-                if (pUnit.defaultWeaponRelic != null) pUnit.EquipWeaponRelic(0, pUnit.defaultWeaponRelic);
-            }
-
-            var hmEffects = TacticalGame.Equipment.RelicEffectsDatabase.Instance.GetEffectsByRole(UnitRole.Helmsmaster);
-            int effectIndex = 0;
-
-            foreach (var pUnit in playerUnits)
-            {
-                for (int slot = 0; slot < 7; slot++)
-                {
-                    if (effectIndex >= hmEffects.Count) break;
-                    pUnit.EquipCategoryRelic(slot, new EquippedRelic(hmEffects[effectIndex]));
-                    effectIndex++;
-                }
-                if (effectIndex >= hmEffects.Count) break;
-            }
-
-            UnitData unit = GetUnitByIndex(selectedUnitIndex);
-            if (unit == null) return;
-            RefreshSlots(unit); 
-            UpdateJewelBudget(unit); 
-            UpdateInfoPanel();
         }
         
         private void OnAutoEquipEnemies()
