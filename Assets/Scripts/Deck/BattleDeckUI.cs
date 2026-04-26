@@ -635,6 +635,7 @@ namespace TacticalGame.Equipment
 
         /// <summary>
         /// Paint the cells a card would target as a hover-time preview.
+        /// Upgraded to highlight Shipwright Row buffs and Fortress buffs!
         /// </summary>
         private void PreviewCardTargets(BattleCard card)
         {
@@ -652,32 +653,33 @@ namespace TacticalGame.Equipment
                     UnitStatus closest = TacticalGame.Combat.TargetFinder.FindNearestEnemy(card.ownerUnit);
                     if (closest != null) HighlightTargetUnit(closest, new Color(1f, 1f, 0f, 1f));
                 }
-                // 2. Quartermaster Auto-Ally -> Highlight Lowest Morale Ally in Green
+                // 2. Auto-Ally -> Highlight Lowest Morale Ally in Green
                 else if (card.effectType == RelicEffectType.Boots_AllyFreeMoveLowestMorale ||
                          card.effectType == RelicEffectType.Hat_RestoreMoraleLowest)
                 {
                     UnitStatus lowestMorale = GetLowestMoraleAlly(card.ownerUnit);
                     if (lowestMorale != null) HighlightTargetUnit(lowestMorale, new Color(0.2f, 1f, 0.2f, 1f));
                 }
-                // 3. Quartermaster Hat AoE -> Highlight aura around the caster
-                else if (card.effectType == RelicEffectType.Hat_RestoreMoraleNearby)
+                // 3. Radial AoE -> Highlight aura in Transparent Green (ADDED SHIPWRIGHT COAT V2)
+                else if (card.effectType == RelicEffectType.Hat_RestoreMoraleNearby ||
+                         card.effectType == RelicEffectType.Totem_RallyNoMoraleDamage ||
+                         card.effectType == RelicEffectType.Coat_V2_WellFed) 
                 {
                     int radius = card.sourceRelic?.effectData != null ? card.sourceRelic.effectData.tileRange : 1;
                     HighlightAoE(card.ownerUnit, radius, new Color(0.2f, 1f, 0.2f, 0.4f));
                 }
-                // 4. Quartermaster Totem AoE -> Highlight aura around the Quartermaster
-                else if (card.effectType == RelicEffectType.Totem_RallyNoMoraleDamage)
-                {
-                    int radius = card.sourceRelic?.effectData != null ? card.sourceRelic.effectData.tileRange : 1;
-                    var qm = Object.FindObjectsByType<UnitStatus>(FindObjectsSortMode.None)
-                                .FirstOrDefault(u => u != null && u.Team == card.ownerUnit.Team && !u.HasSurrendered && u.Role == UnitRole.Quartermaster);
-                    if (qm != null) HighlightAoE(qm, radius, new Color(0.2f, 1f, 0.2f, 0.4f));
-                }
-                // 4. Quartermaster Global Buffs -> Highlight ALL Allies in Transparent Green
+                // 4. Global Buffs -> Highlight ALL Allies in Transparent Green (ADDED SHIPWRIGHT ULT V2)
                 else if (card.effectType == RelicEffectType.Coat_ReduceMoraleDamage ||
-                         card.effectType == RelicEffectType.Ultimate_ReflectMoraleDamage)
+                         card.effectType == RelicEffectType.Ultimate_ReflectMoraleDamage ||
+                         card.effectType == RelicEffectType.Ultimate_V2_Fortress) 
                 {
                     HighlightAllAllies(card.ownerUnit, new Color(0.2f, 1f, 0.2f, 0.4f));
+                }
+                // 5. ROW Buffs -> Highlight the entire Player-side Row (ADDED SHIPWRIGHT COAT V1)
+                else if (card.effectType == RelicEffectType.Coat_RowCantBeTargeted ||
+                         card.effectType == RelicEffectType.Coat_RowRangedProtection)
+                {
+                    HighlightRow(card.ownerUnit, new Color(0.2f, 1f, 0.2f, 0.4f));
                 }
                 
                 return;
@@ -692,6 +694,23 @@ namespace TacticalGame.Equipment
             else
             {
                 HighlightValidTargets(card);
+            }
+        }
+
+        // --- NEW PREVIEW HELPER FOR ROWS ---
+        private void HighlightRow(UnitStatus owner, Color color)
+        {
+            var gridManager = ServiceLocator.Get<GridManager>();
+            if (gridManager == null || owner == null) return;
+            
+            var pos = gridManager.WorldToGridPosition(owner.transform.position);
+            int middleCol = gridManager.GetMiddleColumnIndex();
+            
+            // Loop through all tiles in the player's half of the specific row
+            for (int x = 0; x < middleCol; x++)
+            {
+                var cell = gridManager.GetCell(x, pos.y);
+                if (cell != null && !cell.IsMiddleColumn) PaintCell(cell, color);
             }
         }
 

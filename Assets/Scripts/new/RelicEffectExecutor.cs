@@ -75,13 +75,14 @@ namespace TacticalGame.Equipment
                     break;
                     
                 case RelicEffectType.Boots_AllyFreeMoveLowestMorale:
-                    var freeMoveAlly = GetLowestMoraleAlly(caster);
-                    if (freeMoveAlly != null)
+                {
+                    UnitStatus moveTarget = target ?? GetLowestMoraleAlly(caster);
+                    if (moveTarget != null)
                     {
-                        int steps = effect.value1 > 0 ? (int)effect.value1 : 1;
-                        ExecuteMoveAllyStep(freeMoveAlly, steps, card, true);
+                        ExecuteMoveAlly(caster, moveTarget, (int)effect.value1, card);
                     }
                     break;
+                }
                     
                 case RelicEffectType.Boots_MoveClearBuzz:
                     ExecuteMove(caster, targetCell, (int)effect.value1);
@@ -89,11 +90,8 @@ namespace TacticalGame.Equipment
                     break;
                     
                 case RelicEffectType.Boots_FreeIfGrog:
-                {
-                    // Energy and Grog logic is now entirely handled by BattleDeckUI during movement
                     ExecuteMove(caster, targetCell, (int)effect.value1);
                     break;
-                }
                     
                 case RelicEffectType.Boots_MoveReduceDamage:
                     ExecuteMove(caster, targetCell, (int)effect.value1);
@@ -148,7 +146,6 @@ namespace TacticalGame.Equipment
                 case RelicEffectType.Gloves_AttackBonusByMissingMorale:
                     if (target != null)
                     {
-                        // FIXED: Converts missing morale into a percentage damage multiplier
                         float missingMorale = 1f - target.MoralePercent;
                         ExecuteAttackWithPercentBonus(caster, target, missingMorale);
                     }
@@ -237,10 +234,10 @@ namespace TacticalGame.Equipment
                     break;
                     
                 case RelicEffectType.Hat_RestoreMoraleLowest:
-                    var rallyAlly = GetLowestMoraleAlly(caster);
-                    if (rallyAlly != null)
+                    var lowestMoraleAlly = GetLowestMoraleAlly(caster);
+                    if (lowestMoraleAlly != null)
                     {
-                        rallyAlly.RestoreMorale(Mathf.RoundToInt(rallyAlly.MaxMorale * effect.value2));
+                        lowestMoraleAlly.RestoreMorale(Mathf.RoundToInt(lowestMoraleAlly.MaxMorale * effect.value2));
                     }
                     break;
                     
@@ -290,7 +287,6 @@ namespace TacticalGame.Equipment
                     break;
                     
                 case RelicEffectType.Coat_ReduceMoraleDamage:
-                    // FIXED: Quartermaster Coat V1 is a GLOBAL team buff, so we loop all allies
                     foreach (var ally in GetAllAllies(caster))
                     {
                         var effects = GetStatusEffects(ally);
@@ -320,7 +316,12 @@ namespace TacticalGame.Equipment
                     break;
                     
                 case RelicEffectType.Coat_RowCantBeTargeted:
-                    ApplyRowCantBeTargeted(caster, effect.duration);
+                    // FIXED SHIPWRIGHT V1: Now applies Stealth to the whole row
+                    foreach (var ally in GetAlliesInRow(caster))
+                    {
+                        var effects = GetStatusEffects(ally);
+                        effects?.ApplyEffect(StatusEffect.CreateRowCantBeTargeted(effect.duration, null));
+                    }
                     break;
                     
                 case RelicEffectType.Coat_ColumnDamageBoost:
@@ -406,18 +407,7 @@ namespace TacticalGame.Equipment
                     break;
                     
                 case RelicEffectType.Totem_RallyNoMoraleDamage:
-                    var qm = GetAllAllies(caster).FirstOrDefault(u => u.Role == UnitRole.Quartermaster);
-                    if (qm != null)
-                    {
-                        var targets = GetAlliesInRange(qm, effect.tileRange);
-                        targets.Add(qm); 
-                        foreach (var unit in targets)
-                        {
-                            var effects = GetStatusEffects(unit);
-                            // 1-ROUND DELAY is passed here at the end!
-                            effects?.ApplyEffect(StatusEffect.CreateMoraleDamageReduction(effect.duration, 1f, null, 1));
-                        }
-                    }
+                    ApplyNoMoraleDamageNearby(caster, effect.duration, effect.tileRange);
                     break;
                     
                 case RelicEffectType.Totem_EnemyDeathMoraleSwing:
@@ -858,7 +848,8 @@ namespace TacticalGame.Equipment
                     GenerateGrog((int)effect.value1);
                     break;
                 case RelicEffectType.Ultimate_V2_Fortress:
-                    ShieldAllAllies(caster, (int)effect.value1);
+                    // FIXED SHIPWRIGHT V2: Percentage Shield!
+                    ShieldAllAlliesPercent(caster, effect.value2);
                     break;
                 case RelicEffectType.Ultimate_V2_Teleport:
                     RelicTargetSelector.Instance.SelectAllyThenTile(
@@ -2070,7 +2061,6 @@ namespace TacticalGame.Equipment
         
         private static void ApplyReflectMoraleDamage(UnitStatus caster, int duration)
         {
-            // FIXED: Now loops through the entire team and gives everyone the reflect buff!
             foreach (var ally in GetAllAllies(caster))
             {
                 var effects = GetStatusEffects(ally);
@@ -2120,7 +2110,6 @@ namespace TacticalGame.Equipment
         
         private static void ApplyEnemyBuzzOnDamage(UnitStatus caster, int duration)
         {
-            // FIXED: Apply Enemy Buzz on Damage to ALL Enemies, not the Helmsman!
             foreach (var enemy in GetEnemies(caster))
             {
                 var effects = GetStatusEffects(enemy);
@@ -2217,7 +2206,6 @@ namespace TacticalGame.Equipment
             var energyManager = ServiceLocator.Get<EnergyManager>();
             if (energyManager != null && energyManager.TrySpendGrog(grogAmount))
             {
-                // FIXED: Actually gives the energy back after spending the grog!
                 energyManager.AddEnergy(1);
                 Debug.Log($"Converted {grogAmount} grog into 1 energy!");
             }
@@ -2264,12 +2252,9 @@ namespace TacticalGame.Equipment
         
         private static void AddHighQualityRum(UnitStatus unit, int count)
         {
-            // Assuming your EnergyManager or Inventory handles rum items
             var energyManager = ServiceLocator.Get<EnergyManager>();
             if (energyManager != null)
             {
-                // If you have a specific method for High Quality Rum, use it here. 
-                // Otherwise, giving standard Grog/Rum:
                 energyManager.AddGrog(count); 
                 Debug.Log($"{unit.UnitName} summoned {count} High Quality Rum!");
             }
@@ -2315,10 +2300,8 @@ namespace TacticalGame.Equipment
             
             if (spawnCell != null)
             {
-                // 1. Create the physical anchor obstacle (Disappears after 'duration' turns)
                 hazardManager.CreateHardObstacle(spawnCell, duration);
                 
-                // 2. Find all allies to see who is within the anchor's aura range
                 var allies = GetAllAllies(caster);
                 allies.Add(caster); 
                 
@@ -2330,9 +2313,7 @@ namespace TacticalGame.Equipment
                     if (dist <= range)
                     {
                         var effects = ally.GetComponent<StatusEffectManager>();
-                        // Apply the Max HP Boost buff
                         effects?.ApplyEffect(StatusEffect.CreateMaxHPBoost(duration, healthBoost, null));
-                        // Physically heal them for the new amount so their bar fills up
                         ally.Heal(Mathf.RoundToInt(ally.MaxHP * healthBoost));
                     }
                 }
@@ -2413,7 +2394,6 @@ namespace TacticalGame.Equipment
             int middleCol = gridManager.GetMiddleColumnIndex();
             int placed = 0;
             
-            // Smarter logic: Try to place in the empty tiles closest to the front line!
             for (int col = middleCol; col >= 0; col--)
             {
                 for (int row = 0; row < gridManager.GridHeight; row++)
@@ -2508,7 +2488,6 @@ namespace TacticalGame.Equipment
         
         private static void ReviveAlly(UnitStatus caster, UnitStatus target, float healthPercent)
         {
-            // 1. If the player specifically targeted an ally who is dead OR surrendered
             if (target != null && target.Team == caster.Team && (target.HasSurrendered || target.CurrentHP <= 0))
             {
                 target.Heal(Mathf.RoundToInt(target.MaxHP * healthPercent));
@@ -2518,7 +2497,6 @@ namespace TacticalGame.Equipment
                 return;
             }
 
-            // 2. Otherwise, auto-find the first dead or surrendered ally safely
             var allUnits = UnityEngine.Object.FindObjectsByType<UnitStatus>(UnityEngine.FindObjectsSortMode.None);
             var deadAlly = allUnits.FirstOrDefault(u => u != null && u.Team == caster.Team && (u.HasSurrendered || u.CurrentHP <= 0));
             
@@ -2542,7 +2520,6 @@ namespace TacticalGame.Equipment
             var hazardManager = ServiceLocator.Get<HazardManager>();
             if (gridManager == null) return;
 
-            // FIXED: Hit all units in a 1-tile radius instead of just the clicked cell
             var unitsInRadius = GetAllUnits().Where(u => {
                 Vector2Int pos = gridManager.WorldToGridPosition(u.transform.position);
                 int dist = Mathf.Max(Mathf.Abs(pos.x - cell.XPosition), Mathf.Abs(pos.y - cell.YPosition));
@@ -2554,10 +2531,9 @@ namespace TacticalGame.Equipment
                 unit.TakeDamage(damage, caster.gameObject, false);
             }
 
-            // FIXED: Spawn the actual Rum Puddle hazards in a 1-tile radius!
             if (hazardManager != null)
             {
-                hazardManager.CreateRumPuddleCloud(cell, 20, duration, 1); // 20 buzz default
+                hazardManager.CreateRumPuddleCloud(cell, 20, duration, 1); 
             }
         }
         
@@ -2570,6 +2546,23 @@ namespace TacticalGame.Equipment
                 var effects = GetStatusEffects(highestHP);
                 effects?.ApplyEffect(StatusEffect.CreateIgnoredByEnemies(duration, null));
             }
+        }
+
+        private static void ShieldAllAllies(UnitStatus caster, int amount)
+        {
+            foreach (var ally in GetAllAllies(caster))
+            {
+                ally.RestoreHull(amount);
+            }
+        }
+        
+        private static void ShieldAllAlliesPercent(UnitStatus caster, float percent)
+        {
+            foreach (var ally in GetAllAllies(caster))
+            {
+                ally.RestoreHull(Mathf.RoundToInt(ally.MaxHP * percent));
+            }
+            Debug.Log($"<color=green>{caster.UnitName} shielded all allies for {percent * 100}% of their Max HP!</color>");
         }
         
         #endregion
@@ -3106,14 +3099,6 @@ namespace TacticalGame.Equipment
                 enemy.TakeDamage(buzzDamage, caster.gameObject, false);
                 var effects = GetStatusEffects(enemy);
                 effects?.ApplyEffect(StatusEffect.CreateBuzzFilled(1, null));
-            }
-        }
-        
-        private static void ShieldAllAllies(UnitStatus caster, int amount)
-        {
-            foreach (var ally in GetAllAllies(caster))
-            {
-                ally.RestoreHull(amount);
             }
         }
         
