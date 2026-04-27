@@ -322,7 +322,7 @@ namespace TacticalGame.Equipment
                     break;
                     
                 case RelicEffectType.Coat_ReduceRumEffect:
-                    ApplyReducedRumEffectNearby(caster, effect.value2, effect.tileRange);
+                    ApplyReducedRumEffectNearby(caster, effect.value2, effect.duration, effect.tileRange);
                     break;
                     
                 case RelicEffectType.Coat_EnemyBuzzOnDamage:
@@ -2121,12 +2121,12 @@ namespace TacticalGame.Equipment
             }
         }
         
-        private static void ApplyReducedRumEffectNearby(UnitStatus caster, float reduction, int range)
+        private static void ApplyReducedRumEffectNearby(UnitStatus caster, float reduction, int duration, int range)
         {
             foreach (var ally in GetAlliesInRange(caster, range))
             {
                 var effects = GetStatusEffects(ally);
-                effects?.ApplyEffect(StatusEffect.CreateReducedRumEffect(99, reduction, null));
+                effects?.ApplyEffect(StatusEffect.CreateReducedRumEffect(duration, reduction, null));
             }
         }
         
@@ -2653,11 +2653,14 @@ namespace TacticalGame.Equipment
         
         private static void SwapHighestLowestGritEnemies(UnitStatus caster)
         {
-            var enemies = GetEnemies(caster);
+            var enemies = GetEnemies(caster).Where(e => !e.HasSurrendered && e.CurrentHP > 0).ToList();
             if (enemies.Count < 2) return;
             
-            var highest = enemies.OrderByDescending(e => e.Grit).First();
-            var lowest = enemies.OrderBy(e => e.Grit).Last(); 
+            // Sort ascending by Grit, then by Instance ID to guarantee tie-breaking!
+            var sortedEnemies = enemies.OrderBy(e => e.Grit).ThenBy(e => e.GetInstanceID()).ToList();
+            
+            var lowest = sortedEnemies.First(); // Truly the lowest
+            var highest = sortedEnemies.Last(); // Truly the highest
             
             if (highest != lowest)
             {

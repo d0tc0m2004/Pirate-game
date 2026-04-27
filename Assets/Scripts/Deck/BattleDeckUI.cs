@@ -673,10 +673,13 @@ namespace TacticalGame.Equipment
                         HighlightTargetUnit(lowestMorale, new Color(0.2f, 1f, 0.2f, 1f));
                     }
                 }
-                // 4. Radial AoE -> Highlight aura in Transparent Green (SHIPWRIGHT COAT V2)
+                // 4. Radial AoE -> Highlight aura in Transparent Green
+                // 4. Radial AoE -> Highlight aura in Transparent Green
                 else if (card.effectType == RelicEffectType.Hat_RestoreMoraleNearby ||
                          card.effectType == RelicEffectType.Totem_RallyNoMoraleDamage ||
-                         card.effectType == RelicEffectType.Coat_V2_WellFed) 
+                         card.effectType == RelicEffectType.Coat_V2_WellFed ||
+                         card.effectType == RelicEffectType.Coat_ReduceRumEffect ||
+                         card.effectType == RelicEffectType.Coat_PreventDisplacement)
                 {
                     int radius = card.sourceRelic?.effectData != null ? card.sourceRelic.effectData.tileRange : 1;
                     HighlightAoE(card.ownerUnit, radius, new Color(0.2f, 1f, 0.2f, 0.4f));
@@ -703,13 +706,16 @@ namespace TacticalGame.Equipment
                 else if (card.effectType == RelicEffectType.Hat_SwapEnemyByGrit)
                 {
                     var enemies = Object.FindObjectsByType<UnitStatus>(FindObjectsSortMode.None)
-                        .Where(u => u != null && u.Team != card.ownerUnit.Team && !u.HasSurrendered)
+                        .Where(u => u != null && u.Team != card.ownerUnit.Team && !u.HasSurrendered && u.CurrentHP > 0)
                         .ToList();
                         
                     if (enemies.Count >= 2)
                     {
-                        var highestGrit = enemies.OrderByDescending(e => e.Grit).First();
-                        var lowestGrit = enemies.OrderBy(e => e.Grit).Last();
+                        // Sort ascending by Grit, then by Instance ID to guarantee tie-breaking!
+                        var sortedEnemies = enemies.OrderBy(e => e.Grit).ThenBy(e => e.GetInstanceID()).ToList();
+                        
+                        var lowestGrit = sortedEnemies.First(); // Truly the lowest
+                        var highestGrit = sortedEnemies.Last(); // Truly the highest
                         
                         if (highestGrit != lowestGrit)
                         {
@@ -718,7 +724,6 @@ namespace TacticalGame.Equipment
                         }
                     }
                 }
-                return;
             }
 
             // === TARGETED CARDS (Click required) ===

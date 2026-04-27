@@ -684,6 +684,8 @@ namespace TacticalGame.Units
             
             // Reduce swap cooldown
             if (swapCooldown > 0) swapCooldown--;
+            
+            GetComponent<StatusEffectManager>()?.OnTurnStart();
         }
 
         /// <summary>
