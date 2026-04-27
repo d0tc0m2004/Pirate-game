@@ -142,6 +142,8 @@ namespace TacticalGame.Combat
         MaxHPBoost,         // Increase max HP
         RangedBlock,        // Block ranged attacks
         Weakness,           // Deal less damage
+        CookDetonateBuff,   // Explodes on attack
+        StunAttackerOnHit,  // Stuns attacker on hit
     }
 
     /// <summary>
@@ -458,6 +460,9 @@ namespace TacticalGame.Combat
         public static StatusEffect CreateLowerHealthStat(int duration, int reduction, GameObject source = null)
             => new StatusEffect(StatusEffectType.HealthStatReduction, "Weakened", duration, reduction, 0f, source);
 
+        public static StatusEffect CreateHealthStatReduction(int duration, float percent, GameObject source = null)
+            => new StatusEffect(StatusEffectType.HealthStatReduction, "Sickened", duration, percent, 0f, source);
+
         public static StatusEffect CreateWeaponCostIncrease(int duration, int increase, GameObject source = null)
             => new StatusEffect(StatusEffectType.EnemyWeaponCostIncrease, "Disarm", duration, increase, 0f, source);
 
@@ -519,5 +524,11 @@ namespace TacticalGame.Combat
 
         public static StatusEffect CreateWeakness(int duration, float percent, GameObject source = null)
             => new StatusEffect(StatusEffectType.Weakness, "Weakened", duration, percent, 0f, source);
+
+        public static StatusEffect CreateCookDetonateBuff(int duration, float damage, GameObject source = null)
+            => new StatusEffect(StatusEffectType.CookDetonateBuff, "Unstable Brew", duration, damage, 0f, source);
+
+        public static StatusEffect CreateStunAttackerOnHit(int duration, GameObject source = null)
+            => new StatusEffect(StatusEffectType.StunAttackerOnHit, "Shocking Aura", duration, 0f, 0f, source);
     }
 }

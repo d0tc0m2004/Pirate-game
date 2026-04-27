@@ -28,6 +28,9 @@ namespace TacticalGame.Combat
                 if (status == null) continue;
                 if (status.HasSurrendered) continue;
                 
+                var effects = unitObj.GetComponent<StatusEffectManager>();
+                if (effects != null && effects.IsInStasis()) continue;
+                
                 bool isEnemy = (attackerTeam == Team.Player && status.Team == Team.Enemy) ||
                                (attackerTeam == Team.Enemy && status.Team == Team.Player);
                 
@@ -62,6 +65,9 @@ namespace TacticalGame.Combat
                 if (status == null) continue;
                 if (status.HasSurrendered) continue;
                 
+                var effects = unitObj.GetComponent<StatusEffectManager>();
+                if (effects != null && effects.IsInStasis()) continue;
+                
                 bool isEnemy = (myTeam == Team.Player && status.Team == Team.Enemy) ||
                                (myTeam == Team.Enemy && status.Team == Team.Player);
                 
@@ -87,6 +93,9 @@ namespace TacticalGame.Combat
                 UnitStatus status = unitObj.GetComponent<UnitStatus>();
                 if (status == null) continue;
                 if (status.HasSurrendered) continue;
+                
+                var effects = unitObj.GetComponent<StatusEffectManager>();
+                if (effects != null && effects.IsInStasis()) continue;
                 
                 if (!includeSelf && status == self) continue;
                 

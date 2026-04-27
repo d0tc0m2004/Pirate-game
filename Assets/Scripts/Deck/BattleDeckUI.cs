@@ -649,7 +649,7 @@ namespace TacticalGame.Equipment
             if (targetType == CardTargetType.None)
             {
                 // 1. Weapons & Gloves -> Highlight Nearest Enemy in Yellow
-                if ((card.IsWeaponCard || card.category == RelicCategory.Gloves) && card.ownerUnit != null)
+                if ((card.IsWeaponCard || card.category == RelicCategory.Gloves) && card.ownerUnit != null && card.effectType != RelicEffectType.Gloves_V2_StasisClosest)
                 {
                     UnitStatus closest = TacticalGame.Combat.TargetFinder.FindNearestEnemy(card.ownerUnit);
                     if (closest != null) HighlightTargetUnit(closest, new Color(1f, 1f, 0f, 1f));
@@ -735,6 +735,44 @@ namespace TacticalGame.Equipment
                         HighlightTargetUnit(lowestHP, new Color(1f, 1f, 0f, 1f));
                     }
                 }
+                // 10. COOK: Stasis Closest Unit
+                else if (card.effectType == RelicEffectType.Gloves_V2_StasisClosest)
+                {
+                    UnitStatus closest = GetClosestUnit(card.ownerUnit);
+                    if (closest != null) HighlightTargetUnit(closest, new Color(0.8f, 0f, 1f, 1f));
+                }
+                // 11. COOK: Swap Health with Closest Enemy
+                else if (card.effectType == RelicEffectType.Ultimate_SwapHealthClosest)
+                {
+                    UnitStatus closest = TacticalGame.Combat.TargetFinder.FindNearestEnemy(card.ownerUnit);
+                    if (closest != null) 
+                    {
+                        HighlightTargetUnit(card.ownerUnit, new Color(1f, 1f, 0f, 1f));
+                        HighlightTargetUnit(closest, new Color(1f, 1f, 0f, 1f));
+                    }
+                }
+                // 12. COOK: Fire Column at Closest Enemy
+                else if (card.effectType == RelicEffectType.Ultimate_V2_FireColumn)
+                {
+                    UnitStatus closest = TacticalGame.Combat.TargetFinder.FindNearestEnemy(card.ownerUnit);
+                    if (closest != null) 
+                    {
+                        HighlightTargetUnit(closest, new Color(1f, 0.5f, 0f, 1f));
+                        HighlightColumn(closest, new Color(1f, 0.5f, 0f, 0.4f));
+                    }
+                }
+                // 13. COOK: Stun on closest ally attacked
+                else if (card.effectType == RelicEffectType.Coat_StunOnAllyAttacked)
+                {
+                    UnitStatus closestAlly = GetClosestAlly(card.ownerUnit);
+                    if (closestAlly != null) HighlightTargetUnit(closestAlly, new Color(1f, 1f, 0f, 1f));
+                }
+                // 14. COOK: Reduce Lowest Ally Card Cost
+                else if (card.effectType == RelicEffectType.Hat_ReduceLowestAllyCardCost)
+                {
+                    UnitStatus lowestHP = GetLowestHPAlly(card.ownerUnit);
+                    if (lowestHP != null) HighlightTargetUnit(lowestHP, new Color(0.2f, 1f, 0.2f, 1f));
+                }
             }
 
             // === TARGETED CARDS (Click required) ===
@@ -807,9 +845,27 @@ namespace TacticalGame.Equipment
         {
             if (owner == null) return null;
             return Object.FindObjectsByType<UnitStatus>(FindObjectsSortMode.None)
-                .Where(u => u != null && u.Team == owner.Team && u != owner && !u.HasSurrendered && u.CurrentHP > 0)
+                .Where(u => u != null && u.Team == owner.Team && !u.HasSurrendered && u.CurrentHP > 0)
                 .OrderBy(u => u.HPPercent)
                 .ThenBy(u => u.GetInstanceID()) // Tie-breaker for consistency
+                .FirstOrDefault();
+        }
+
+        private UnitStatus GetClosestUnit(UnitStatus owner)
+        {
+            if (owner == null) return null;
+            return Object.FindObjectsByType<UnitStatus>(FindObjectsSortMode.None)
+                .Where(u => u != null && u != owner && !u.HasSurrendered && u.CurrentHP > 0)
+                .OrderBy(u => Vector3.Distance(u.transform.position, owner.transform.position))
+                .FirstOrDefault();
+        }
+
+        private UnitStatus GetClosestAlly(UnitStatus owner)
+        {
+            if (owner == null) return null;
+            return Object.FindObjectsByType<UnitStatus>(FindObjectsSortMode.None)
+                .Where(u => u != null && u.Team == owner.Team && u != owner && !u.HasSurrendered && u.CurrentHP > 0)
+                .OrderBy(u => Vector3.Distance(u.transform.position, owner.transform.position))
                 .FirstOrDefault();
         }
 

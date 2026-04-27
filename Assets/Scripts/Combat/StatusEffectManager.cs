@@ -963,6 +963,43 @@ namespace TacticalGame.Combat
                 // unitStatus.AddBuzz(10); // If method exists
                 Debug.Log($"{gameObject.name}'s buzz increased from dealing damage!");
             }
+
+            // Check if this unit is attacking and has CookDetonateBuff
+            if (attacker == gameObject && HasEffect(StatusEffectType.CookDetonateBuff))
+            {
+                StatusEffect effect = GetEffect(StatusEffectType.CookDetonateBuff);
+                var gridManager = ServiceLocator.Get<GridManager>();
+                if (gridManager != null)
+                {
+                    Vector2Int myPos = gridManager.WorldToGridPosition(transform.position);
+                    int damage = Mathf.RoundToInt(effect.value1);
+                    var enemies = UnityEngine.Object.FindObjectsByType<UnitStatus>(UnityEngine.FindObjectsSortMode.None);
+                    foreach (var enemy in enemies)
+                    {
+                        if (enemy != null && enemy.Team != unitStatus.Team && !enemy.HasSurrendered && enemy.CurrentHP > 0)
+                        {
+                            Vector2Int enemyPos = gridManager.WorldToGridPosition(enemy.transform.position);
+                            if (Mathf.Abs(myPos.x - enemyPos.x) <= 1 && Mathf.Abs(myPos.y - enemyPos.y) <= 1)
+                            {
+                                enemy.TakeDamage(damage, gameObject, false);
+                                Debug.Log($"<color=orange>CookDetonateBuff: {gameObject.name} detonated, dealing {damage} to {enemy.name}!</color>");
+                            }
+                        }
+                    }
+                }
+                RemoveEffect(StatusEffectType.CookDetonateBuff);
+            }
+
+            // Check if this unit is attacked and has StunAttackerOnHit
+            if (target == gameObject && HasEffect(StatusEffectType.StunAttackerOnHit))
+            {
+                var attackerStatus = attacker?.GetComponent<UnitStatus>();
+                if (attackerStatus != null)
+                {
+                    attackerStatus.ApplyStun(1);
+                    Debug.Log($"{attacker.name} stunned for attacking {gameObject.name} (Shocking Aura)!");
+                }
+            }
         }
 
         #endregion

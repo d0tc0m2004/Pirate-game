@@ -635,10 +635,20 @@ namespace TacticalGame.Managers
             RectTransform surgRt = equipSurgeonButton.GetComponent<RectTransform>();
             surgRt.anchorMin = new Vector2(0.5f, 0); surgRt.anchorMax = new Vector2(0.5f, 0);
             surgRt.pivot = new Vector2(0.5f, 0); 
-            // Positioned at X=-200, Y=70 so it sits right above the Quartermaster button
+            // Positioned at X=400, Y=70
             surgRt.anchoredPosition = new Vector2(400, 70); 
             equipSurgeonButton.onClick.AddListener(OnEquipSurgeon);
             equipSurgeonButton.GetComponent<Image>().color = new Color(0.8f, 0.3f, 0.3f); // A nice medical red
+            
+            // Create the Cook Button
+            Button equipCookButton = CreateButton(equipmentPanel.transform, "EquipCookButton", "Equip Cook", new Vector2(150, 45));
+            RectTransform cookRt = equipCookButton.GetComponent<RectTransform>();
+            cookRt.anchorMin = new Vector2(0.5f, 0); cookRt.anchorMax = new Vector2(0.5f, 0);
+            cookRt.pivot = new Vector2(0.5f, 0); 
+            // Positioned at X=580, Y=70
+            cookRt.anchoredPosition = new Vector2(580, 70); 
+            equipCookButton.onClick.AddListener(OnEquipCook);
+            equipCookButton.GetComponent<Image>().color = new Color(0.9f, 0.6f, 0.2f); // Orange-yellow
             
             Button autoEquipPlayersButton = CreateButton(equipmentPanel.transform, "AutoEquipPlayersButton", "Auto Equip Players", new Vector2(180, 45));
             RectTransform autoEquipPlayerRt = autoEquipPlayersButton.GetComponent<RectTransform>();
@@ -1266,6 +1276,7 @@ namespace TacticalGame.Managers
         private void OnEquipBoatswain() => EquipRoleDeck(UnitRole.Boatswain);
         private void OnEquipShipwright() => EquipRoleDeck(UnitRole.Shipwright);
         private void OnEquipSurgeon() => EquipRoleDeck(UnitRole.Surgeon);
+        private void OnEquipCook() => EquipRoleDeck(UnitRole.Cook);
 
         private void EquipRoleDeck(UnitRole role)
         {

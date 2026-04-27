@@ -280,6 +280,23 @@ namespace TacticalGame.Equipment
                         return "No empty tiles available";
                     return "";
 
+                // ==================== COOK ====================
+                case RelicEffectType.Gloves_V2_StasisClosest:
+                    if (!HasAnyLivingEnemy(card.ownerUnit) && !HasAnyOtherLivingAlly(card.ownerUnit))
+                        return "No other units to put in stasis";
+                    return "";
+
+                case RelicEffectType.Hat_ReduceLowestAllyCardCost: // V1
+                case RelicEffectType.Coat_StunOnAllyAttacked: // V1
+                    if (!HasAnyOtherLivingAlly(card.ownerUnit))
+                        return "No other allies available";
+                    return "";
+
+                case RelicEffectType.Ultimate_SwapHealthClosest: // V1
+                case RelicEffectType.Ultimate_V2_FireColumn: // V2
+                    if (!HasAnyLivingEnemy(card.ownerUnit))
+                        return "No enemies remaining";
+                    return "";
 
                 // ==================== OTHER ROLES ====================
                 // Will be added in subsequent batches. Default to playable so

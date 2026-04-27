@@ -1037,28 +1037,50 @@ namespace TacticalGame.Equipment
                 // ==================== COOK SPECIFIC ====================
                 case RelicEffectType.Boots_MoveDrawCard:
                     ExecuteMove(caster, targetCell, (int)effect.value1);
-                    DrawCards(caster, 1);
+                    if (BattleDeckManager.Instance != null) {
+                        int beforeCount = BattleDeckManager.Instance.Hand.Count;
+                        DrawCards(caster, 1);
+                        if (BattleDeckManager.Instance.Hand.Count > beforeCount) {
+                            var drawnCard = BattleDeckManager.Instance.Hand.Last();
+                            if (drawnCard != null && drawnCard.BelongsTo(caster) && drawnCard.sourceRelic != null) {
+                                drawnCard.energyCost = Mathf.Max(0, drawnCard.energyCost - 1);
+                                // The deck UI handles visualization of the cost reduction
+                            }
+                        }
+                    }
                     break;
                 case RelicEffectType.Boots_V2_MoveBoostProficiency:
                     ExecuteMove(caster, targetCell, (int)effect.value1);
                     {
                         var effects3 = GetStatusEffects(caster);
-                        effects3?.ApplyEffect(StatusEffect.CreateDamageBoost(1, effect.value2, null));
+                        effects3?.ApplyEffect(StatusEffect.CreateProficiencyBoost(1, effect.value2, null));
                     }
                     break;
                 case RelicEffectType.Gloves_AttackDetonateBuff:
                     if (target != null)
                     {
                         ExecuteAttack(caster, target);
-                        ApplyPoison(target, (int)effect.value2, effect.duration);
+                        var effects = GetStatusEffects(target);
+                        effects?.ApplyEffect(StatusEffect.CreateCookDetonateBuff(effect.duration, 200f, caster.gameObject));
                     }
                     break;
                 case RelicEffectType.Gloves_V2_StasisClosest:
                     {
-                        var closest = GetClosestEnemy(caster);
-                        if (closest != null)
+                        var allUnits = TargetFinder.GetAllUnits(false);
+                        UnitStatus closestUnit = null;
+                        float minDistance = float.MaxValue;
+                        foreach (var u in allUnits) {
+                            if (u == caster) continue;
+                            float dist = Vector3.Distance(caster.transform.position, u.transform.position);
+                            if (dist < minDistance) {
+                                minDistance = dist;
+                                closestUnit = u;
+                            }
+                        }
+                        if (closestUnit != null)
                         {
-                            ApplyStun(closest, effect.duration);
+                            var effects = GetStatusEffects(closestUnit);
+                            effects?.ApplyEffect(StatusEffect.CreateStasis(effect.duration, null));
                         }
                     }
                     break;
@@ -1072,18 +1094,39 @@ namespace TacticalGame.Equipment
                     }
                     break;
                 case RelicEffectType.Hat_V2_MoveForwardHeal:
-                    if (target != null && target.Team == caster.Team)
+                    if (target != null)
                     {
-                        PushUnit(caster, target, -1); 
+                        var gridManager = ServiceLocator.Get<GridManager>();
+                        if (gridManager != null) {
+                            int dir = target.Team == Team.Player ? 1 : -1;
+                            var pos = gridManager.WorldToGridPosition(target.transform.position);
+                            var nextCell = gridManager.GetCell(pos.x + dir, pos.y);
+                            if (nextCell != null && nextCell.CanPlaceUnit()) {
+                                var currentCell = gridManager.GetCell(pos.x, pos.y);
+                                currentCell?.RemoveUnit();
+                                nextCell.PlaceUnit(target.gameObject);
+                                target.transform.position = new Vector3(nextCell.transform.position.x, target.transform.position.y, nextCell.transform.position.z);
+                            }
+                        }
                         target.Heal(Mathf.RoundToInt(target.MaxHP * effect.value1));
                     }
                     break;
                 case RelicEffectType.Coat_StunOnAllyAttacked:
                     {
-                        var closestAlly = GetAlliesInRange(caster, 1).FirstOrDefault();
+                        var allAllies = TargetFinder.GetAllAllies(caster.Team, false, caster);
+                        UnitStatus closestAlly = null;
+                        float minDistance = float.MaxValue;
+                        foreach (var u in allAllies) {
+                            float dist = Vector3.Distance(caster.transform.position, u.transform.position);
+                            if (dist < minDistance) {
+                                minDistance = dist;
+                                closestAlly = u;
+                            }
+                        }
                         if (closestAlly != null)
                         {
-                            ApplyCounterOnAllyHit(closestAlly, effect.duration);
+                            var effects = GetStatusEffects(closestAlly);
+                            effects?.ApplyEffect(StatusEffect.CreateStunAttackerOnHit(effect.duration, null));
                         }
                     }
                     break;
@@ -1108,10 +1151,26 @@ namespace TacticalGame.Equipment
                     break;
                 case RelicEffectType.Totem_V2_SummonStatDebuffObstacle:
                     {
-                        var nearbyEnemies = GetEnemiesInRange(caster, effect.tileRange);
-                        foreach (var enemy in nearbyEnemies)
-                        {
-                            ApplyWeaknessCurse(enemy, effect.value1, effect.duration);
+                        var hazardManager = ServiceLocator.Get<HazardManager>();
+                        var gridManager = ServiceLocator.Get<GridManager>();
+                        if (hazardManager != null && gridManager != null) {
+                            var emptyCells = hazardManager.FindEmptyCellsNear(caster.transform.position, 10, 5);
+                            var spawnCell = emptyCells.FirstOrDefault(c => caster.Team == Team.Player ? !c.IsPlayerSide : c.IsPlayerSide);
+                            if (spawnCell == null) spawnCell = emptyCells.FirstOrDefault();
+                            
+                            if (spawnCell != null) {
+                                hazardManager.CreateSoftObstacle(spawnCell, 50, effect.duration);
+                                // Debuff nearby enemies
+                                var enemies = TargetFinder.GetAllEnemies(caster.Team);
+                                foreach (var enemy in enemies) {
+                                    var ePos = gridManager.WorldToGridPosition(enemy.transform.position);
+                                    if (Mathf.Abs(ePos.x - spawnCell.XPosition) <= 1 && Mathf.Abs(ePos.y - spawnCell.YPosition) <= 1) {
+                                        var effects = GetStatusEffects(enemy);
+                                        effects?.ApplyEffect(StatusEffect.CreateWeakness(effect.duration, 0.5f, null));
+                                        effects?.ApplyEffect(StatusEffect.CreateHealthStatReduction(effect.duration, 0.5f, null));
+                                    }
+                                }
+                            }
                         }
                     }
                     break;
@@ -1123,8 +1182,8 @@ namespace TacticalGame.Equipment
                             int casterHP = caster.CurrentHP;
                             int enemyHP = closestEnemy.CurrentHP;
                             
-                            caster.SetHP(enemyHP);
-                            closestEnemy.SetHP(casterHP);
+                            caster.SetHP(Mathf.Min(enemyHP, caster.MaxHP));
+                            closestEnemy.SetHP(Mathf.Min(casterHP, closestEnemy.MaxHP));
                         }
                     }
                     break;
@@ -2672,8 +2731,9 @@ namespace TacticalGame.Equipment
         private static UnitStatus GetLowestHPAlly(UnitStatus caster)
         {
             return GetAllAllies(caster)
-                .Where(a => a != caster)
+                .Where(a => !a.HasSurrendered && a.CurrentHP > 0)
                 .OrderBy(a => a.HPPercent)
+                .ThenBy(a => a.GetInstanceID()) // Tie-breaker guarantees Execution matches UI
                 .FirstOrDefault();
         }
         

@@ -7,6 +7,7 @@ using TacticalGame.Grid;
 using TacticalGame.Enums;
 using TacticalGame.Combat;
 using TacticalGame.Managers;
+using TacticalGame.Hazards;
 
 namespace TacticalGame.Equipment
 {
@@ -200,6 +201,16 @@ namespace TacticalGame.Equipment
                 }
             }
             
+            // Trinket_V2_DrawExtraBelow50 - Cook V2
+            if (HasPassive(RelicEffectType.Trinket_V2_DrawExtraBelow50))
+            {
+                if (unitStatus.HPPercent < 0.5f)
+                {
+                    DrawFromSharedDeck(1);
+                    Debug.Log($"<color=cyan>{gameObject.name}: +1 card from passive (HP < 50%)</color>");
+                }
+            }
+            
             // PassiveUnique_V2_CardMaster - Quartermaster V2 (cards cost 1 less is handled in GetCardCostReduction)
         }
 
@@ -258,6 +269,18 @@ namespace TacticalGame.Equipment
             {
                 // Would need attacker reference - handled by StatusEffectManager
                 knockbackAttackerUsedThisTurn = true;
+            }
+
+            // Totem_HealLowestOnDamage - Cook V1
+            if (HasPassive(RelicEffectType.Totem_HealLowestOnDamage))
+            {
+                var lowestAlly = GetAllies().OrderBy(a => a.HPPercent).FirstOrDefault();
+                if (lowestAlly != null)
+                {
+                    int healAmount = Mathf.RoundToInt(unitStatus.MaxHP * 0.05f); // 5% max HP
+                    lowestAlly.Heal(healAmount);
+                    Debug.Log($"<color=cyan>{gameObject.name}: Healed {lowestAlly.name} for {healAmount} from passive</color>");
+                }
             }
 
             // ==================== V2 DAMAGE TAKEN PASSIVES ====================
@@ -370,27 +393,25 @@ namespace TacticalGame.Equipment
 
         private void OnUnitAttack(GameObject attacker, GameObject target)
         {
-            // Track weapons used on target for Ultimate_FourWeaponsSurrender (not in current enum)
-            // if (attacker == gameObject && HasPassive(RelicEffectType.Ultimate_FourWeaponsSurrender))
-            // {
-            //     if (currentTarget != target)
-            //     {
-            //         currentTarget = target;
-            //         weaponsUsedOnCurrentTarget = 0;
-            //     }
-            //     weaponsUsedOnCurrentTarget++;
-            //     
-            //     if (weaponsUsedOnCurrentTarget >= 4)
-            //     {
-            //         var targetStatus = target?.GetComponent<UnitStatus>();
-            //         if (targetStatus != null && !targetStatus.IsCaptain)
-            //         {
-            //             // Force surrender
-            //             Debug.Log($"<color=yellow>{target.name} forced to surrender after 4 weapon hits!</color>");
-            //             GameEvents.TriggerUnitSurrender(target);
-            //         }
-            //     }
-            // }
+            if (attacker == gameObject && HasPassive(RelicEffectType.PassiveUnique_DisplaceOnWeaponUse))
+            {
+                var hazardManager = ServiceLocator.Get<HazardManager>();
+                var gridManager = ServiceLocator.Get<GridManager>();
+                if (hazardManager != null && gridManager != null)
+                {
+                    var emptyCells = hazardManager.FindEmptyCellsNear(transform.position, 1, 2);
+                    if (emptyCells.Count > 0)
+                    {
+                        var randomCell = emptyCells[0];
+                        var pos = gridManager.WorldToGridPosition(transform.position);
+                        var currentCell = gridManager.GetCell(pos.x, pos.y);
+                        currentCell?.RemoveUnit();
+                        randomCell.PlaceUnit(gameObject);
+                        transform.position = randomCell.transform.position;
+                        Debug.Log($"<color=cyan>{gameObject.name}: Teleported from passive!</color>");
+                    }
+                }
+            }
         }
 
         private void OnUnitMoved(GameObject unit, GridCell from, GridCell to)
@@ -624,9 +645,19 @@ namespace TacticalGame.Equipment
         /// </summary>
         public bool AreRelicsNotConsumed()
         {
-            // PassiveUnique_RelicsNotConsumed not in current enum
-            // return HasPassive(RelicEffectType.PassiveUnique_RelicsNotConsumed);
-            return false;
+            return HasPassive(RelicEffectType.PassiveUnique_V2_RelicsNotConsumed);
+        }
+
+        /// <summary>
+        /// Get enemy hazard size increase.
+        /// </summary>
+        public int GetEnemyHazardSizeIncrease()
+        {
+            if (HasPassive(RelicEffectType.Trinket_HazardSizeIncrease))
+            {
+                return 1;
+            }
+            return 0;
         }
 
         /// <summary>

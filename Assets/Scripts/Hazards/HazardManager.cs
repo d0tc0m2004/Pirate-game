@@ -680,6 +680,20 @@ namespace TacticalGame.Hazards
 
                 List<Vector2Int> targetCoords = GetShapeCoordinates(selectedHazard.shapePattern, startX, startY);
 
+                int sizeIncrease = GetHazardSizeIncreaseForSide(isPlayerSide);
+                if (sizeIncrease > 0)
+                {
+                    for (int i = 0; i < sizeIncrease; i++)
+                    {
+                        Vector2Int? extra = GetExtraAdjacentCoordinate(targetCoords);
+                        if (extra.HasValue)
+                        {
+                            targetCoords.Add(extra.Value);
+                            shapeSize++;
+                        }
+                    }
+                }
+
                 // Validate all coordinates
                 bool shapeIsValid = true;
                 foreach (Vector2Int coord in targetCoords)
@@ -809,6 +823,52 @@ namespace TacticalGame.Hazards
                     return;
                 }
             }
+        }
+
+        private int GetHazardSizeIncreaseForSide(bool isPlayerSide)
+        {
+            var units = Object.FindObjectsByType<UnitStatus>(FindObjectsSortMode.None);
+            int maxIncrease = 0;
+            foreach (var unit in units)
+            {
+                if (unit == null || unit.HasSurrendered) continue;
+                var passiveManager = unit.GetComponent<TacticalGame.Equipment.PassiveRelicManager>();
+                if (passiveManager != null)
+                {
+                    int increase = passiveManager.GetEnemyHazardSizeIncrease();
+                    if (increase > 0)
+                    {
+                        bool unitIsPlayerSide = unit.Team == Team.Player;
+                        if (isPlayerSide != unitIsPlayerSide)
+                        {
+                            maxIncrease = Mathf.Max(maxIncrease, increase);
+                        }
+                    }
+                }
+            }
+            return maxIncrease;
+        }
+
+        private Vector2Int? GetExtraAdjacentCoordinate(List<Vector2Int> existingCoords)
+        {
+            Vector2Int[] directions = { Vector2Int.up, Vector2Int.down, Vector2Int.left, Vector2Int.right };
+            
+            // Try up to 10 random adjacent spots
+            for (int attempt = 0; attempt < 10; attempt++)
+            {
+                Vector2Int baseCoord = existingCoords[Random.Range(0, existingCoords.Count)];
+                Vector2Int newCoord = baseCoord + directions[Random.Range(0, directions.Length)];
+                
+                if (!existingCoords.Contains(newCoord))
+                {
+                    GridCell cell = gridManager.GetCell(newCoord.x, newCoord.y);
+                    if (cell != null && !cell.IsMiddleColumn && !cell.HasHazard && !cell.IsBlocked)
+                    {
+                        return newCoord;
+                    }
+                }
+            }
+            return null;
         }
 
         #endregion
