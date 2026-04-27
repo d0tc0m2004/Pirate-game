@@ -144,6 +144,8 @@ namespace TacticalGame.Combat
         Weakness,           // Deal less damage
         CookDetonateBuff,   // Explodes on attack
         StunAttackerOnHit,  // Stuns attacker on hit
+        StunOnMoveTracker,  // Stuns if the target moves
+        WeaponHitTracker,   // Tracks weapon hits for surrender
     }
 
     /// <summary>
@@ -530,5 +532,20 @@ namespace TacticalGame.Combat
 
         public static StatusEffect CreateStunAttackerOnHit(int duration, GameObject source = null)
             => new StatusEffect(StatusEffectType.StunAttackerOnHit, "Shocking Aura", duration, 0f, 0f, source);
+
+        public static StatusEffect CreateStunOnMoveTracker(int duration, GameObject source = null)
+            => new StatusEffect(StatusEffectType.StunOnMoveTracker, "Unsteady", duration, 0f, 0f, source);
+
+        public static StatusEffect CreatePassivesDisabled(int duration, GameObject source = null)
+            => new StatusEffect(StatusEffectType.DisablePassives, "Passives Disabled", duration, 0f, 0f, source);
+
+        public static StatusEffect CreateWeaponHitTracker(int duration, GameObject source = null)
+            => new StatusEffect(StatusEffectType.WeaponHitTracker, "Battered", duration, 0f, 0f, source);
+
+        public static StatusEffect CreateTrapped(int duration, GameObject source = null)
+            => new StatusEffect(StatusEffectType.Trapped, "Trapped", duration, 0.1f, 0f, source); // 10% more damage
+
+        public static StatusEffect CreateCursed(int duration, float bonusDamagePercent, GameObject source = null)
+            => new StatusEffect(StatusEffectType.Cursed, "Cursed", duration, bonusDamagePercent, 0f, source);
     }
 }

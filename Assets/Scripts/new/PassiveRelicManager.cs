@@ -412,6 +412,29 @@ namespace TacticalGame.Equipment
                     }
                 }
             }
+
+            // Ultimate_V2_SurrenderOn4Weapons - Swashbuckler V2
+            if (attacker == gameObject && HasPassive(RelicEffectType.Ultimate_V2_SurrenderOn4Weapons))
+            {
+                var targetEffects = target?.GetComponent<StatusEffectManager>();
+                var targetStatus = target?.GetComponent<UnitStatus>();
+                if (targetEffects != null && targetStatus != null)
+                {
+                    targetEffects.ApplyEffect(StatusEffect.CreateWeaponHitTracker(2, gameObject));
+                    
+                    // Check if they reached 4 stacks
+                    var tracker = targetEffects.GetEffect(StatusEffectType.WeaponHitTracker);
+                    if (tracker != null && tracker.value1 >= 4f)
+                    {
+                        Debug.Log($"<color=red>{target.name} SURRENDERS after 4 weapon hits from {gameObject.name}!</color>");
+                        targetStatus.Surrender();
+                    }
+                    else if (tracker != null)
+                    {
+                        tracker.value1++; // Manually increment stack count
+                    }
+                }
+            }
         }
 
         private void OnUnitMoved(GameObject unit, GridCell from, GridCell to)
@@ -477,6 +500,15 @@ namespace TacticalGame.Equipment
                 target != null && IsSameRow(target))
             {
                 bonus += 0.1f; // +10% vs same row enemies
+            }
+
+            // Trinket_BonusDamageIfAlone - Swashbuckler V1 (+20% damage if no nearby allies)
+            if (HasPassive(RelicEffectType.Trinket_BonusDamageIfAlone))
+            {
+                if (GetNearbyAllies(1).Count == 0)
+                {
+                    bonus += 0.2f; // +20% if alone
+                }
             }
 
             // ==================== V2 DAMAGE BONUSES ====================
@@ -559,6 +591,26 @@ namespace TacticalGame.Equipment
                 reduction += 0.5f;
             }
             
+            // Coat_NearbyAllyDamageReduction - Swashbuckler V1 (nearby allies -15% damage if attacker has lower speed)
+            if (attacker != null)
+            {
+                var mySpeed = unitStatus.Speed;
+                var attackerSpeed = attacker.Speed;
+                if (attackerSpeed < mySpeed)
+                {
+                    var nearbyAllies = GetNearbyAllies(1);
+                    foreach (var ally in nearbyAllies)
+                    {
+                        var allyPassives = ally.GetComponent<PassiveRelicManager>();
+                        if (allyPassives != null && allyPassives.HasPassive(RelicEffectType.Coat_NearbyAllyDamageReduction))
+                        {
+                            reduction += 0.15f;
+                            break;
+                        }
+                    }
+                }
+            }
+
             // PassiveUnique_V2_Unstoppable - MasterAtArms V2 (handled in StatusEffectManager)
 
             return reduction;
@@ -665,11 +717,11 @@ namespace TacticalGame.Equipment
         /// </summary>
         public int GetEnemyMovementLimit()
         {
-            // PassiveUnique_EnemyBootsLimited not in current enum
-            // if (HasPassive(RelicEffectType.PassiveUnique_EnemyBootsLimited))
-            // {
-            //     return 1; // Enemies limited to 1 tile
-            // }
+            // PassiveUnique_V2_EnemyBootsLimit - Swashbuckler V2 (Enemies limited to 3 tiles)
+            if (HasPassive(RelicEffectType.PassiveUnique_V2_EnemyBootsLimit))
+            {
+                return 3;
+            }
             return -1; // No limit
         }
 

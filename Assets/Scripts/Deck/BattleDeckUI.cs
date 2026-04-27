@@ -779,7 +779,14 @@ namespace TacticalGame.Equipment
             bool isMovementCard = (targetType == CardTargetType.Tile && card.category == RelicCategory.Boots);
             if (isMovementCard)
             {
-                HighlightAdjacentTiles(card.ownerUnit);
+                if (card.effectType == RelicEffectType.Boots_V2_MoveRowOnly)
+                {
+                    HighlightRowMoveTiles(card.ownerUnit);
+                }
+                else
+                {
+                    HighlightAdjacentTiles(card.ownerUnit);
+                }
             }
             else
             {
@@ -1100,6 +1107,31 @@ namespace TacticalGame.Equipment
             }
         }
 
+        private void HighlightRowMoveTiles(UnitStatus owner)
+        {
+            var gridManager = ServiceLocator.Get<GridManager>();
+            if (gridManager == null || owner == null) return;
+            
+            var pos = gridManager.WorldToGridPosition(owner.transform.position);
+            int middleCol = gridManager.GetMiddleColumnIndex();
+            
+            for (int x = 0; x < middleCol; x++)
+            {
+                for (int y = 0; y < gridManager.GridHeight; y++)
+                {
+                    if (y == pos.y || (x == pos.x && Mathf.Abs(y - pos.y) == 1))
+                    {
+                        var cell = gridManager.GetCell(x, y);
+                        if (cell != null && cell.CanPlaceUnit() && !cell.IsMiddleColumn)
+                        {
+                            highlightedMoveCells.Add(cell);
+                            PaintCell(cell, new Color(0.3f, 0.8f, 1f, 1f));
+                        }
+                    }
+                }
+            }
+        }
+
         #endregion
 
         #region Targeting
@@ -1120,8 +1152,16 @@ namespace TacticalGame.Equipment
             {
                 int moveRange = GetCardMoveRange(card);
                 remainingMoveSteps = moveRange;
-                HighlightAdjacentTiles(card.ownerUnit);
-                UpdateTargetingPrompt($"Move {card.ownerUnit.UnitName} ({remainingMoveSteps} steps left) — click adjacent tile");
+                if (card.effectType == RelicEffectType.Boots_V2_MoveRowOnly)
+                {
+                    HighlightRowMoveTiles(card.ownerUnit);
+                    UpdateTargetingPrompt($"Move {card.ownerUnit.UnitName} (Same row or 1 tile col) — click tile");
+                }
+                else
+                {
+                    HighlightAdjacentTiles(card.ownerUnit);
+                    UpdateTargetingPrompt($"Move {card.ownerUnit.UnitName} ({remainingMoveSteps} steps left) — click adjacent tile");
+                }
             }
             else
             {
@@ -1187,6 +1227,11 @@ namespace TacticalGame.Equipment
                     }
                 }
                 if (isHighest) return 99; // Move anywhere!
+            }
+
+            if (card.effectType == RelicEffectType.Boots_V2_MoveRowOnly)
+            {
+                return 1;
             }
 
             // Normal Range Fetching
@@ -1287,12 +1332,15 @@ namespace TacticalGame.Equipment
             {
                 case CardTargetType.Tile:
                     int middleCol = gridManager.GetMiddleColumnIndex();
-                    for (int x = 0; x < middleCol; x++)
+                    bool allowAnywhere = (card.effectType == RelicEffectType.Coat_V2_CurseEmptyTile);
+                    int maxX = allowAnywhere ? gridManager.GridWidth : middleCol;
+
+                    for (int x = 0; x < maxX; x++)
                     {
                         for (int y = 0; y < gridManager.GridHeight; y++)
                         {
                             var c = gridManager.GetCell(x, y);
-                            if (c != null && c.CanPlaceUnit() && !c.IsMiddleColumn)
+                            if (c != null && c.CanPlaceUnit() && (!c.IsMiddleColumn || allowAnywhere))
                                 result.Add(c);
                         }
                     }

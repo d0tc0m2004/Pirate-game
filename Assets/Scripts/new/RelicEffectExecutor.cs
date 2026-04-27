@@ -1086,7 +1086,7 @@ namespace TacticalGame.Equipment
                     break;
                 case RelicEffectType.Hat_ReduceLowestAllyCardCost:
                     {
-                        var lowestAlly3 = GetLowestHPAlly(caster);
+                        var lowestAlly3 = GetAllAllies(caster).OrderBy(a => a.HPPercent).ThenBy(a => a.gameObject.GetInstanceID()).FirstOrDefault();
                         if (lowestAlly3 != null)
                         {
                             ApplyReduceAllCosts(lowestAlly3, (int)effect.value1, effect.duration);
@@ -1102,10 +1102,7 @@ namespace TacticalGame.Equipment
                             var pos = gridManager.WorldToGridPosition(target.transform.position);
                             var nextCell = gridManager.GetCell(pos.x + dir, pos.y);
                             if (nextCell != null && nextCell.CanPlaceUnit()) {
-                                var currentCell = gridManager.GetCell(pos.x, pos.y);
-                                currentCell?.RemoveUnit();
-                                nextCell.PlaceUnit(target.gameObject);
-                                target.transform.position = new Vector3(nextCell.transform.position.x, target.transform.position.y, nextCell.transform.position.z);
+                                ExecuteMove(target, nextCell, 1);
                             }
                         }
                         target.Heal(Mathf.RoundToInt(target.MaxHP * effect.value1));
@@ -1253,7 +1250,11 @@ namespace TacticalGame.Equipment
                     if (target != null)
                     {
                         ExecuteAttack(caster, target);
-                        ApplyStun(target, effect.duration);
+                        var targetEffects = GetStatusEffects(target);
+                        if (targetEffects != null)
+                        {
+                            targetEffects.ApplyEffect(StatusEffect.CreateStunOnMoveTracker(effect.duration, caster.gameObject));
+                        }
                     }
                     break;
                 case RelicEffectType.Hat_DrawWeaponReduceCost:
@@ -1273,11 +1274,29 @@ namespace TacticalGame.Equipment
                     }
                     break;
                 case RelicEffectType.Coat_V2_CurseEmptyTile:
-                    if (targetCell != null)
                     {
+                        var gridManager2 = ServiceLocator.Get<GridManager>();
                         var hazardManager2 = ServiceLocator.Get<HazardManager>();
-                        if (hazardManager2 != null)
-                            hazardManager2.CreateTrap(targetCell, effect.duration);
+                        if (gridManager2 != null && hazardManager2 != null)
+                        {
+                            GridCell validCell = null;
+                            for (int attempt = 0; attempt < 50; attempt++)
+                            {
+                                int x = Random.Range(0, gridManager2.GridWidth);
+                                int y = Random.Range(0, gridManager2.GridHeight);
+                                var cell = gridManager2.GetCell(x, y);
+                                bool targetIsPlayerSide = caster.Team == Team.Enemy; // Target opposite team's side
+                                if (cell != null && !cell.HasHazard && !cell.IsMiddleColumn && cell.IsPlayerSide == targetIsPlayerSide)
+                                {
+                                    validCell = cell;
+                                    break;
+                                }
+                            }
+                            if (validCell != null)
+                            {
+                                hazardManager2.CreateCursedTile(validCell, effect.duration);
+                            }
+                        }
                     }
                     break;
                 case RelicEffectType.Trinket_BonusDamageIfAlone:
@@ -1293,14 +1312,15 @@ namespace TacticalGame.Equipment
                         if (gridManager2 != null && hazardManager3 != null)
                         {
                             int placed = 0;
-                            for (int attempt = 0; attempt < 20 && placed < (int)effect.value1; attempt++)
+                            for (int attempt = 0; attempt < 50 && placed < (int)effect.value1; attempt++)
                             {
-                                int x = Random.Range(0, 8);
-                                int y = Random.Range(0, 8);
+                                int x = Random.Range(0, gridManager2.GridWidth);
+                                int y = Random.Range(0, gridManager2.GridHeight);
                                 var cell = gridManager2.GetCell(x, y);
-                                if (cell != null && !cell.IsOccupied)
+                                bool targetIsPlayerSide = caster.Team == Team.Enemy; // Target opposite team's side
+                                if (cell != null && !cell.IsOccupied && !cell.IsMiddleColumn && !cell.HasHazard && cell.IsPlayerSide == targetIsPlayerSide)
                                 {
-                                    hazardManager3.CreateTrap(cell, effect.duration);
+                                    hazardManager3.CreateInvisibleTrap(cell, effect.duration);
                                     placed++;
                                 }
                             }
@@ -1312,7 +1332,11 @@ namespace TacticalGame.Equipment
                         var enemies = GetEnemies(caster);
                         foreach (var enemy in enemies)
                         {
-                            ApplyStun(enemy, 0); 
+                            var targetEffects = GetStatusEffects(enemy);
+                            if (targetEffects != null)
+                            {
+                                targetEffects.ApplyEffect(StatusEffect.CreatePassivesDisabled(effect.duration, caster.gameObject));
+                            }
                         }
                     }
                     break;

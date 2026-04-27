@@ -117,7 +117,26 @@ namespace TacticalGame.Units
         public float ProficiencyMultiplier => proficiency / 100f;
         public int Grit => grit;
         public int Hull => hull;
-        public int Speed => speed;
+        public int Speed 
+        {
+            get
+            {
+                float speedMult = 1.0f;
+                var allPassives = UnityEngine.Object.FindObjectsByType<TacticalGame.Equipment.PassiveRelicManager>(UnityEngine.FindObjectsSortMode.None);
+                foreach (var pm in allPassives)
+                {
+                    var pmUnit = pm.GetComponent<UnitStatus>();
+                    if (pmUnit != null && pmUnit.Team != team)
+                    {
+                        if (pm.HasPassive(RelicEffectType.Trinket_V2_EnemySpeedReduction))
+                        {
+                            speedMult *= 0.9f;
+                        }
+                    }
+                }
+                return Mathf.RoundToInt(speed * speedMult);
+            }
+        }
 
         // Buzz System
         public int CurrentBuzz => currentBuzz;
@@ -779,7 +798,7 @@ namespace TacticalGame.Units
             return false;
         }
 
-        private void Surrender()
+        public void Surrender()
         {
             hasSurrendered = true;
             

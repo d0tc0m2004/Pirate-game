@@ -6,6 +6,7 @@ using TacticalGame.Units;
 using TacticalGame.Combat;
 using TacticalGame.Enums;
 using System.Linq;
+using TacticalGame.Equipment;
 
 namespace TacticalGame.Hazards
 {
@@ -355,6 +356,37 @@ namespace TacticalGame.Hazards
         }
 
         /// <summary>
+        /// Create an invisible trap (stun) at a specific cell.
+        /// </summary>
+        public RuntimeHazard CreateInvisibleTrap(GridCell cell, int duration)
+        {
+            if (cell == null || cell.HasHazard || cell.IsOccupied) return null;
+
+            var hazard = CreateRuntimeHazard(cell, RuntimeHazardType.InvisibleTrap, 1, duration);
+            if (hazard != null)
+            {
+                hazard.SetColor(new Color(1f, 1f, 1f, 0f)); // Fully invisible
+                Debug.Log($"Created invisible trap at ({cell.XPosition}, {cell.YPosition}) for {duration} turns");
+            }
+            return hazard;
+        }
+
+        /// <summary>
+        /// Create a cursed tile that prevents movement out and increases damage taken.
+        /// </summary>
+        public RuntimeHazard CreateCursedTile(GridCell cell, int duration)
+        {
+            if (cell == null || cell.HasHazard || cell.IsOccupied) return null;
+
+            var hazard = CreateRuntimeHazard(cell, RuntimeHazardType.CursedTile, 1, duration);
+            if (hazard != null)
+            {
+                hazard.SetColor(new Color(0.3f, 0f, 0.4f, 0.8f)); // Dark purple
+                Debug.Log($"Created cursed tile at ({cell.XPosition}, {cell.YPosition}) for {duration} turns");
+            }
+            return hazard;
+        }
+        /// <summary>
         /// Find empty cells near a position for spawning.
         /// </summary>
         public List<GridCell> FindEmptyCellsNear(Vector3 worldPos, int count, int searchRange = 3)
@@ -541,8 +573,29 @@ namespace TacticalGame.Hazards
                     break;
                     
                 case RuntimeHazardType.Trap:
+                case RuntimeHazardType.InvisibleTrap:
                     unit.ApplyStun(hazard.Value);
                     Debug.Log($"{unit.UnitName} triggered trap! Stunned for {hazard.Value} turns!");
+                    
+                    // Check if player has PassiveUnique_EnemyDiscardOnBoot
+                    if (unit.Team == Team.Enemy)
+                    {
+                        var allPassives = FindObjectsByType<TacticalGame.Equipment.PassiveRelicManager>(FindObjectsSortMode.None);
+                        foreach (var pm in allPassives)
+                        {
+                            var pmUnit = pm.GetComponent<UnitStatus>();
+                            if (pmUnit != null && pmUnit.Team == Team.Player && pm.HasPassive(RelicEffectType.PassiveUnique_EnemyDiscardOnBoot))
+                            {
+                                var deckManager = unit.GetComponent<TacticalGame.Equipment.CardDeckManager>();
+                                if (deckManager != null)
+                                {
+                                    deckManager.DiscardRandomCard();
+                                }
+                                break;
+                            }
+                        }
+                    }
+
                     hazard.Duration = 0;
                     break;
                     
@@ -554,7 +607,7 @@ namespace TacticalGame.Hazards
                     
                 case RuntimeHazardType.SpeedBoost:
                     var effects = unit.GetComponent<StatusEffectManager>();
-                    effects?.ApplyEffect(StatusEffect.CreateSpeedBoost(1, hazard.Value, null));
+                    if (effects != null) effects.ApplyEffect(StatusEffect.CreateSpeedBoost(1, hazard.Value, null));
                     Debug.Log($"{unit.UnitName} gained +{hazard.Value} movement from speed zone!");
                     break;
 
@@ -566,6 +619,15 @@ namespace TacticalGame.Hazards
                 case RuntimeHazardType.RumPuddle:
                     unit.AddBuzz(hazard.Value);
                     Debug.Log($"{unit.UnitName} stepped in rum puddle! Gained {hazard.Value} buzz.");
+                    break;
+
+                case RuntimeHazardType.CursedTile:
+                    var stEffects = unit.GetComponent<StatusEffectManager>();
+                    if (stEffects != null)
+                    {
+                        stEffects.ApplyEffect(StatusEffect.CreateTrapped(hazard.Duration, null));
+                        Debug.Log($"{unit.UnitName} stepped on a cursed tile and is now trapped!");
+                    }
                     break;
 
                 case RuntimeHazardType.HardObstacle:
@@ -892,7 +954,9 @@ namespace TacticalGame.Hazards
         SoftObstacle,
         ExplodingBarrel,
         CannonObstacle,
-        RumPuddle // <--- NEW FOR HELMSMAN V2
+        RumPuddle, // <--- NEW FOR HELMSMAN V2
+        InvisibleTrap,
+        CursedTile
     }
     
     /// <summary>

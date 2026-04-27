@@ -729,6 +729,14 @@ namespace TacticalGame.Combat
             {
                 // This should be handled by the movement system
             }
+
+            // Stun on Move Tracker
+            if (HasEffect(StatusEffectType.StunOnMoveTracker))
+            {
+                RemoveEffect(StatusEffectType.StunOnMoveTracker);
+                unitStatus.ApplyStun(1);
+                Debug.Log($"<color=orange>{gameObject.name} was stunned because they moved while tracked by Gloves V2!</color>");
+            }
         }
 
         /// <summary>

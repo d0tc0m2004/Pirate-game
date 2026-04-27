@@ -648,7 +648,19 @@ namespace TacticalGame.Managers
             // Positioned at X=580, Y=70
             cookRt.anchoredPosition = new Vector2(580, 70); 
             equipCookButton.onClick.AddListener(OnEquipCook);
-            equipCookButton.GetComponent<Image>().color = new Color(0.9f, 0.6f, 0.2f); // Orange-yellow
+            equipCookButton.GetComponent<Image>().color = new Color(0.8f, 0.6f, 0.2f); // Orange-yellow
+
+            // Create the Swashbuckler Button
+            Button equipSwashButton = CreateButton(equipmentPanel.transform, "EquipSwashButton", "Equip Swash", new Vector2(150, 45));
+            RectTransform swashRt = equipSwashButton.GetComponent<RectTransform>();
+            swashRt.anchorMin = new Vector2(0.5f, 0); swashRt.anchorMax = new Vector2(0.5f, 0);
+            swashRt.pivot = new Vector2(0.5f, 0); 
+            swashRt.anchoredPosition = new Vector2(-420, 15); // Bottom row, left side
+            equipSwashButton.onClick.AddListener(OnEquipSwashbuckler);
+            equipSwashButton.GetComponent<Image>().color = new Color(0.7f, 0.2f, 0.4f); // Pinkish-red
+            
+            // Generate pool
+            GenerateCategoryRelicPool();
             
             Button autoEquipPlayersButton = CreateButton(equipmentPanel.transform, "AutoEquipPlayersButton", "Auto Equip Players", new Vector2(180, 45));
             RectTransform autoEquipPlayerRt = autoEquipPlayersButton.GetComponent<RectTransform>();
@@ -1277,6 +1289,7 @@ namespace TacticalGame.Managers
         private void OnEquipShipwright() => EquipRoleDeck(UnitRole.Shipwright);
         private void OnEquipSurgeon() => EquipRoleDeck(UnitRole.Surgeon);
         private void OnEquipCook() => EquipRoleDeck(UnitRole.Cook);
+        private void OnEquipSwashbuckler() => EquipRoleDeck(UnitRole.Swashbuckler);
 
         private void EquipRoleDeck(UnitRole role)
         {

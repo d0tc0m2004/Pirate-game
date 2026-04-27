@@ -626,6 +626,23 @@ namespace TacticalGame.Equipment
         {
             return hand.Count(c => c.roleTag == role);
         }
+
+        /// <summary>
+        /// Discard a random card from hand.
+        /// </summary>
+        public bool DiscardRandomCard()
+        {
+            if (hand.Count > 0)
+            {
+                int index = Random.Range(0, hand.Count);
+                var card = hand[index];
+                hand.RemoveAt(index);
+                spentCards.Add(card);
+                Debug.Log($"<color=red>{gameObject.name} Discarded: {card.GetDisplayName()}</color>");
+                return true;
+            }
+            return false;
+        }
         
         #endregion
         

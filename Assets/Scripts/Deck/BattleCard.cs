@@ -146,9 +146,14 @@ namespace TacticalGame.Equipment
                     return CardTargetType.Ally;
 
                 // === Coat effects that target tiles ===
-                case RelicEffectType.Coat_V2_CurseEmptyTile:
                 case RelicEffectType.Coat_V2_BuffTileDamageExchange:
                     return CardTargetType.Tile;
+
+                // === Instant / Random effects ===
+                case RelicEffectType.Totem_V2_DisableEnemyPassives:
+                case RelicEffectType.Totem_SummonInvisibleTraps:
+                case RelicEffectType.Coat_V2_CurseEmptyTile:
+                    return CardTargetType.None;
 
                 // === Auto-cast / Random Target Effects (No UI Target Prompt) ===
                 case RelicEffectType.Totem_RallyNoMoraleDamage:
