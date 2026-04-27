@@ -75,15 +75,36 @@ namespace TacticalGame.Equipment
                     break;
                     
                 case RelicEffectType.Boots_AllyFreeMoveLowestMorale:
+                {
+                    var lowestAlly = GetLowestMoraleAlly(caster);
+                    if (lowestAlly != null)
                     {
-                        var lowestAlly = GetLowestMoraleAlly(caster);
-                        if (lowestAlly != null)
-                        {
-                            // Instantly pops up the tile selection UI for exactly 1 tile!
-                            ExecuteMoveAlly(caster, lowestAlly, 1, card);
-                        }
+                        // Bypass the normal 1-step logic and trigger a board-wide Teleport selection!
+                        RelicTargetSelector.Instance.SelectTile(
+                            $"Teleport {lowestAlly.UnitName} anywhere on your side",
+                            (destinationCell) =>
+                            {
+                                // Verify the tile is empty and on the correct side of the board
+                                if (destinationCell != null && destinationCell.IsPlayerSide && destinationCell.CanPlaceUnit() && !destinationCell.IsMiddleColumn)
+                                {
+                                    if (card != null) BattleDeckManager.Instance.ConsumeCard(card);
+                                    TeleportUnit(lowestAlly, destinationCell);
+                                }
+                                else
+                                {
+                                    Debug.Log("Invalid tile! You must select an empty tile on your side of the board.");
+                                }
+                            },
+                            () => { Debug.Log("Move cancelled"); },
+                            true, // requireEmpty
+                            99,   // range (99 = entire board)
+                            lowestAlly,
+                            true, // playerSideOnly
+                            true  // isFirstStep
+                        );
                     }
                     break;
+                }
                     
                 case RelicEffectType.Boots_MoveClearBuzz:
                     ExecuteMove(caster, targetCell, (int)effect.value1);
@@ -2597,13 +2618,14 @@ namespace TacticalGame.Equipment
         
         private static UnitStatus GetLowestMoraleAlly(UnitStatus caster)
         {
-            var validAllies = GetAllAllies(caster).Where(a => a != caster).ToList();
+            var validAllies = GetAllAllies(caster);
             if (validAllies.Count == 0) return null;
 
-            float lowestMoralePercent = validAllies.Min(a => a.MoralePercent);
-            var tiedAllies = validAllies.Where(a => Mathf.Approximately(a.MoralePercent, lowestMoralePercent)).ToList();
-            
-            return tiedAllies[UnityEngine.Random.Range(0, tiedAllies.Count)];
+            return validAllies
+                .Where(a => a != null && !a.HasSurrendered && a.CurrentHP > 0)
+                .OrderBy(a => a.MoralePercent)
+                .ThenBy(a => a.GetInstanceID()) // Tie-breaker guarantees Execution matches UI
+                .FirstOrDefault();
         }
         
         private static UnitStatus GetLowestHPAlly(UnitStatus caster)

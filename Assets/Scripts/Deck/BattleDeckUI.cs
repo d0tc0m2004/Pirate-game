@@ -842,8 +842,9 @@ namespace TacticalGame.Equipment
         {
             if (owner == null) return null;
             return Object.FindObjectsByType<UnitStatus>(FindObjectsSortMode.None)
-                .Where(u => u != null && u.Team == owner.Team && u != owner && !u.HasSurrendered)
+                .Where(u => u != null && u.Team == owner.Team && !u.HasSurrendered && u.CurrentHP > 0)
                 .OrderBy(u => u.MoralePercent)
+                .ThenBy(u => u.GetInstanceID()) // Tie-breaker guarantees UI matches execution
                 .FirstOrDefault();
         }
         
