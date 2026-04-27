@@ -645,6 +645,7 @@ namespace TacticalGame.Equipment
             var targetType = card.GetTargetType();
 
             // === AUTO-TARGETING CARDS (No click required) ===
+            // === AUTO-TARGETING CARDS (No click required) ===
             if (targetType == CardTargetType.None)
             {
                 // 1. Weapons & Gloves -> Highlight Nearest Enemy in Yellow
@@ -653,14 +654,26 @@ namespace TacticalGame.Equipment
                     UnitStatus closest = TacticalGame.Combat.TargetFinder.FindNearestEnemy(card.ownerUnit);
                     if (closest != null) HighlightTargetUnit(closest, new Color(1f, 1f, 0f, 1f));
                 }
-                // 2. Auto-Ally -> Highlight Lowest Morale Ally in Green
-                else if (card.effectType == RelicEffectType.Boots_AllyFreeMoveLowestMorale ||
-                         card.effectType == RelicEffectType.Hat_RestoreMoraleLowest)
+                // 2. Boots V1: Highlight Lowest Morale Ally AND ALL empty tiles!
+                else if (card.effectType == RelicEffectType.Boots_AllyFreeMoveLowestMorale)
                 {
                     UnitStatus lowestMorale = GetLowestMoraleAlly(card.ownerUnit);
-                    if (lowestMorale != null) HighlightTargetUnit(lowestMorale, new Color(0.2f, 1f, 0.2f, 1f));
+                    if (lowestMorale != null) 
+                    {
+                        HighlightTargetUnit(lowestMorale, new Color(0.2f, 1f, 0.2f, 1f));
+                        HighlightAllEmptyTiles(); // Draws green tiles across the whole board
+                    }
                 }
-                // 3. Radial AoE -> Highlight aura in Transparent Green (ADDED SHIPWRIGHT COAT V2)
+                // 3. Hat V1: Highlight Lowest Morale Ally only
+                else if (card.effectType == RelicEffectType.Hat_RestoreMoraleLowest)
+                {
+                    UnitStatus lowestMorale = GetLowestMoraleAlly(card.ownerUnit);
+                    if (lowestMorale != null) 
+                    {
+                        HighlightTargetUnit(lowestMorale, new Color(0.2f, 1f, 0.2f, 1f));
+                    }
+                }
+                // 4. Radial AoE -> Highlight aura in Transparent Green (SHIPWRIGHT COAT V2)
                 else if (card.effectType == RelicEffectType.Hat_RestoreMoraleNearby ||
                          card.effectType == RelicEffectType.Totem_RallyNoMoraleDamage ||
                          card.effectType == RelicEffectType.Coat_V2_WellFed) 
@@ -668,20 +681,43 @@ namespace TacticalGame.Equipment
                     int radius = card.sourceRelic?.effectData != null ? card.sourceRelic.effectData.tileRange : 1;
                     HighlightAoE(card.ownerUnit, radius, new Color(0.2f, 1f, 0.2f, 0.4f));
                 }
-                // 4. Global Buffs -> Highlight ALL Allies in Transparent Green (ADDED SHIPWRIGHT ULT V2)
+                // 5. Global Buffs -> Highlight ALL Allies in Transparent Green (SHIPWRIGHT ULT V2)
                 else if (card.effectType == RelicEffectType.Coat_ReduceMoraleDamage ||
                          card.effectType == RelicEffectType.Ultimate_ReflectMoraleDamage ||
                          card.effectType == RelicEffectType.Ultimate_V2_Fortress) 
                 {
                     HighlightAllAllies(card.ownerUnit, new Color(0.2f, 1f, 0.2f, 0.4f));
                 }
-                // 5. ROW Buffs -> Highlight the entire Player-side Row (ADDED SHIPWRIGHT COAT V1)
+                // 6. ROW Buffs -> Highlight the entire Player-side Row (SHIPWRIGHT COAT V1)
                 else if (card.effectType == RelicEffectType.Coat_RowCantBeTargeted ||
                          card.effectType == RelicEffectType.Coat_RowRangedProtection)
                 {
                     HighlightRow(card.ownerUnit, new Color(0.2f, 1f, 0.2f, 0.4f));
                 }
-                
+                // 7. COLUMN Buffs -> Highlight the entire Column (SHIPWRIGHT COAT V2)
+                else if (card.effectType == RelicEffectType.Coat_ColumnDamageBoost)
+                {
+                    HighlightColumn(card.ownerUnit, new Color(0.2f, 1f, 0.2f, 0.4f));
+                }
+                // 8. Enemy Grit Swap -> Highlight highest and lowest Grit enemies (SHIPWRIGHT HAT V2)
+                else if (card.effectType == RelicEffectType.Hat_SwapEnemyByGrit)
+                {
+                    var enemies = Object.FindObjectsByType<UnitStatus>(FindObjectsSortMode.None)
+                        .Where(u => u != null && u.Team != card.ownerUnit.Team && !u.HasSurrendered)
+                        .ToList();
+                        
+                    if (enemies.Count >= 2)
+                    {
+                        var highestGrit = enemies.OrderByDescending(e => e.Grit).First();
+                        var lowestGrit = enemies.OrderBy(e => e.Grit).Last();
+                        
+                        if (highestGrit != lowestGrit)
+                        {
+                            HighlightTargetUnit(highestGrit, new Color(1f, 0.5f, 0f, 1f)); 
+                            HighlightTargetUnit(lowestGrit, new Color(1f, 0.5f, 0f, 1f));
+                        }
+                    }
+                }
                 return;
             }
 
@@ -694,6 +730,20 @@ namespace TacticalGame.Equipment
             else
             {
                 HighlightValidTargets(card);
+            }
+        }
+
+        private void HighlightColumn(UnitStatus owner, Color color)
+        {
+            var gridManager = ServiceLocator.Get<GridManager>();
+            if (gridManager == null || owner == null) return;
+            
+            var pos = gridManager.WorldToGridPosition(owner.transform.position);
+            
+            for (int y = 0; y < gridManager.GridHeight; y++)
+            {
+                var cell = gridManager.GetCell(pos.x, y);
+                if (cell != null && !cell.IsMiddleColumn) PaintCell(cell, color);
             }
         }
 
@@ -715,6 +765,29 @@ namespace TacticalGame.Equipment
         }
 
         // --- PREVIEW HELPERS ---
+
+        // --- NEW PREVIEW HELPER FOR ALL EMPTY TILES ---
+        private void HighlightAllEmptyTiles()
+        {
+            var gridManager = ServiceLocator.Get<GridManager>();
+            if (gridManager == null) return;
+            
+            int middleCol = gridManager.GetMiddleColumnIndex();
+            for (int x = 0; x < middleCol; x++) // Highlights standard player-side placement tiles
+            {
+                for (int y = 0; y < gridManager.GridHeight; y++)
+                {
+                    var cell = gridManager.GetCell(x, y);
+                    if (cell != null && cell.CanPlaceUnit() && !cell.IsMiddleColumn)
+                    {
+                        highlightedMoveCells.Add(cell);
+                        PaintCell(cell, new Color(0.3f, 0.8f, 1f, 1f)); // Use your blue targeting tint
+                    }
+                }
+            }
+        }
+
+        
         private void HighlightTargetUnit(UnitStatus target, Color color)
         {
             var gridManager = ServiceLocator.Get<GridManager>();
@@ -1521,6 +1594,8 @@ namespace TacticalGame.Equipment
         {
             Debug.Log($"Discard: {BattleDeckManager.Instance.DiscardCount} cards");
         }
+
+        
         
         #endregion
     }

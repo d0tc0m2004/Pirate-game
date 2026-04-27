@@ -461,63 +461,74 @@ namespace TacticalGame.Managers
         {
             if (selectedUnit == null || playerUnits == null) return;
             
-            // 1. Wipe all units completely
+            var effects = TacticalGame.Equipment.RelicEffectsDatabase.Instance.GetEffectsByRole(role);
+
+            // 1. SAFE WIPE: Only wipe R2 to R5 (indices 1, 2, 3, 4)
+            // This leaves your Weapon (0), Ultimate, and Passive perfectly safe!
             foreach (var pUnit in playerUnits)
             {
                 if (pUnit != null && pUnit.equipment != null)
                 {
-                    for (int i = 0; i < 6; i++) pUnit.equipment.UnequipCategoryRelic(i);
-                    pUnit.equipment.UnequipWeaponRelic(0);
-                    pUnit.equipment.UnequipWeaponRelic(1);
-                    
-                    if (pUnit.defaultWeaponRelic != null)
-                        pUnit.equipment.EquipWeaponRelic(0, pUnit.defaultWeaponRelic);
+                    for (int i = 1; i <= 4; i++) 
+                    {
+                        pUnit.equipment.UnequipCategoryRelic(i); 
+                    }
+                }
+            }
+
+            // 2. Unit 1 gets V1 (Fills R2-R5, sends Trinket/Totem to Unit 3)
+            if (playerUnits.Count > 0 && playerUnits[0] != null && playerUnits[0].equipment != null)
+            {
+                var allV1 = new System.Collections.Generic.List<RelicEffectData> {
+                    effects.FirstOrDefault(e => e.category == RelicCategory.Boots),
+                    effects.FirstOrDefault(e => e.category == RelicCategory.Gloves),
+                    effects.FirstOrDefault(e => e.category == RelicCategory.Hat),
+                    effects.FirstOrDefault(e => e.category == RelicCategory.Coat),
+                    effects.FirstOrDefault(e => e.category == RelicCategory.Trinket),
+                    effects.FirstOrDefault(e => e.category == RelicCategory.Totem)
+                };
+                allV1.RemoveAll(item => item == null);
+
+                // Fill Unit 1
+                for (int i = 0; i < Mathf.Min(4, allV1.Count); i++)
+                    playerUnits[0].equipment.EquipCategoryRelic(i + 1, new EquippedRelic(allV1[i]));
+                
+                // Spill overflow to Unit 3
+                if (playerUnits.Count > 2 && playerUnits[2] != null && playerUnits[2].equipment != null)
+                {
+                    for (int i = 4; i < allV1.Count; i++)
+                        playerUnits[2].equipment.EquipCategoryRelic((i - 4) + 1, new EquippedRelic(allV1[i]));
                 }
             }
             
-            var effects = TacticalGame.Equipment.RelicEffectsDatabase.Instance.GetEffectsByRole(role);
-
-            // 2. Unit 1 gets V1
-            if (playerUnits.Count > 0 && playerUnits[0] != null && playerUnits[0].equipment != null)
-            {
-                var eq = playerUnits[0].equipment;
-                var bootsV1 = effects.FirstOrDefault(e => e.category == RelicCategory.Boots);
-                var glovesV1 = effects.FirstOrDefault(e => e.category == RelicCategory.Gloves);
-                var hatV1 = effects.FirstOrDefault(e => e.category == RelicCategory.Hat);
-                var coatV1 = effects.FirstOrDefault(e => e.category == RelicCategory.Coat);
-                var trinketV1 = effects.FirstOrDefault(e => e.category == RelicCategory.Trinket);
-                var totemV1 = effects.FirstOrDefault(e => e.category == RelicCategory.Totem);
-
-                if (bootsV1 != null) eq.EquipCategoryRelic(0, new EquippedRelic(bootsV1));
-                if (glovesV1 != null) eq.EquipCategoryRelic(1, new EquippedRelic(glovesV1));
-                if (hatV1 != null) eq.EquipCategoryRelic(2, new EquippedRelic(hatV1));
-                if (coatV1 != null) eq.EquipCategoryRelic(3, new EquippedRelic(coatV1));
-                if (trinketV1 != null) eq.EquipCategoryRelic(4, new EquippedRelic(trinketV1));
-                if (totemV1 != null) eq.EquipCategoryRelic(5, new EquippedRelic(totemV1));
-            }
-            
-            // 3. Unit 2 gets V2
+            // 3. Unit 2 gets V2 (Fills R2-R5, sends Trinket/Totem to Unit 4)
             if (playerUnits.Count > 1 && playerUnits[1] != null && playerUnits[1].equipment != null)
             {
-                var eq = playerUnits[1].equipment;
-                var bootsV2 = effects.LastOrDefault(e => e.category == RelicCategory.Boots);
-                var glovesV2 = effects.LastOrDefault(e => e.category == RelicCategory.Gloves);
-                var hatV2 = effects.LastOrDefault(e => e.category == RelicCategory.Hat);
-                var coatV2 = effects.LastOrDefault(e => e.category == RelicCategory.Coat);
-                var trinketV2 = effects.LastOrDefault(e => e.category == RelicCategory.Trinket);
-                var totemV2 = effects.LastOrDefault(e => e.category == RelicCategory.Totem);
+                var allV2 = new System.Collections.Generic.List<RelicEffectData> {
+                    effects.LastOrDefault(e => e.category == RelicCategory.Boots),
+                    effects.LastOrDefault(e => e.category == RelicCategory.Gloves),
+                    effects.LastOrDefault(e => e.category == RelicCategory.Hat),
+                    effects.LastOrDefault(e => e.category == RelicCategory.Coat),
+                    effects.LastOrDefault(e => e.category == RelicCategory.Trinket),
+                    effects.LastOrDefault(e => e.category == RelicCategory.Totem)
+                };
+                allV2.RemoveAll(item => item == null);
 
-                if (bootsV2 != null) eq.EquipCategoryRelic(0, new EquippedRelic(bootsV2));
-                if (glovesV2 != null) eq.EquipCategoryRelic(1, new EquippedRelic(glovesV2));
-                if (hatV2 != null) eq.EquipCategoryRelic(2, new EquippedRelic(hatV2));
-                if (coatV2 != null) eq.EquipCategoryRelic(3, new EquippedRelic(coatV2));
-                if (trinketV2 != null) eq.EquipCategoryRelic(4, new EquippedRelic(trinketV2));
-                if (totemV2 != null) eq.EquipCategoryRelic(5, new EquippedRelic(totemV2));
+                // Fill Unit 2
+                for (int i = 0; i < Mathf.Min(4, allV2.Count); i++)
+                    playerUnits[1].equipment.EquipCategoryRelic(i + 1, new EquippedRelic(allV2[i]));
+                
+                // Spill overflow to Unit 4
+                if (playerUnits.Count > 3 && playerUnits[3] != null && playerUnits[3].equipment != null)
+                {
+                    for (int i = 4; i < allV2.Count; i++)
+                        playerUnits[3].equipment.EquipCategoryRelic((i - 4) + 1, new EquippedRelic(allV2[i]));
+                }
             }
 
             UpdateRelicSlots();
             RefreshRelicPool();
-            Debug.Log($"Auto-equipped {role} relics (V1 to Unit 1, V2 to Unit 2)");
+            Debug.Log($"Auto-equipped {role} safely into R2-R5!");
         }
     }
 

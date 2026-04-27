@@ -75,14 +75,15 @@ namespace TacticalGame.Equipment
                     break;
                     
                 case RelicEffectType.Boots_AllyFreeMoveLowestMorale:
-                {
-                    UnitStatus moveTarget = target ?? GetLowestMoraleAlly(caster);
-                    if (moveTarget != null)
                     {
-                        ExecuteMoveAlly(caster, moveTarget, (int)effect.value1, card);
+                        var lowestAlly = GetLowestMoraleAlly(caster);
+                        if (lowestAlly != null)
+                        {
+                            // Instantly pops up the tile selection UI for exactly 1 tile!
+                            ExecuteMoveAlly(caster, lowestAlly, 1, card);
+                        }
                     }
                     break;
-                }
                     
                 case RelicEffectType.Boots_MoveClearBuzz:
                     ExecuteMove(caster, targetCell, (int)effect.value1);
@@ -2138,10 +2139,12 @@ namespace TacticalGame.Equipment
         
         private static void ApplyDamageBoostToColumn(UnitStatus caster, float percent, int duration)
         {
+            float actualPercent = percent >= 1f ? percent / 100f : percent;
+            
             foreach (var ally in GetAlliesInColumn(caster))
             {
                 var effects = GetStatusEffects(ally);
-                effects?.ApplyEffect(StatusEffect.CreateDamageBoost(duration, percent, null));
+                effects?.ApplyEffect(StatusEffect.CreateDamageBoost(duration, actualPercent, null));
             }
         }
         
@@ -2632,7 +2635,7 @@ namespace TacticalGame.Equipment
             if (enemies.Count < 2) return;
             
             var highest = enemies.OrderByDescending(e => e.Grit).First();
-            var lowest = enemies.OrderBy(e => e.Grit).First();
+            var lowest = enemies.OrderBy(e => e.Grit).Last(); 
             
             if (highest != lowest)
             {

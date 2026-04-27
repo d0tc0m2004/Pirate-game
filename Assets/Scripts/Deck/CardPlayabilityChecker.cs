@@ -184,8 +184,35 @@ namespace TacticalGame.Equipment
 
                 // --- HAT ---
                 case RelicEffectType.Hat_RestoreMoraleLowest:
-                    if (!HasAnyOtherLivingAlly(card.ownerUnit))
+                    var unitsForHat = Object.FindObjectsByType<UnitStatus>(FindObjectsSortMode.None);
+                    UnitStatus lowestAllyForHat = null;
+                    float lowestMoraleForHat = float.MaxValue;
+
+                    foreach (var u in unitsForHat)
+                    {
+                        if (u != null && u.Team == card.ownerUnit.Team && u != card.ownerUnit && !u.HasSurrendered && u.CurrentHP > 0)
+                        {
+                            if (u.MoralePercent < lowestMoraleForHat)
+                            {
+                                lowestMoraleForHat = u.MoralePercent;
+                                lowestAllyForHat = u;
+                            }
+                        }
+                    }
+
+                    // If no other valid ally was found, lock the card
+                    if (lowestAllyForHat == null)
+                    {
                         return "No other allies to rally";
+                    }
+                    
+                    // If an ally was found, check their morale percentage
+                    float missingMoralePercent = 1f - lowestAllyForHat.MoralePercent;
+                    if (missingMoralePercent <= 0.30f)
+                    {
+                        return "Lowest morale ally is missing 30% or less morale.";
+                    }
+                    
                     return "";
 
                 case RelicEffectType.Hat_RestoreMoraleNearby:
