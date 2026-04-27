@@ -126,7 +126,6 @@ namespace TacticalGame.Equipment
                 case RelicEffectType.Boots_SwapWithUnit:
                 case RelicEffectType.Boots_MoveAlly:
                 case RelicEffectType.Boots_V2_MoveAllyGainShield:
-                case RelicEffectType.Boots_V2_SwapLowestHealthAlly:
                     return CardTargetType.Ally;
 
                 // === Boots that target enemies ===
@@ -170,6 +169,8 @@ namespace TacticalGame.Equipment
                 case RelicEffectType.Totem_StunOnKnockback:
                 case RelicEffectType.Ultimate_SummonHardObstacles:
                 case RelicEffectType.Ultimate_IgnoreHighestHP:
+                case RelicEffectType.Boots_V2_SwapLowestHealthAlly:
+                case RelicEffectType.Totem_V2_SummonHealingPotions:
                     return CardTargetType.None;
 
                 // === Ultimates that target allies ===

@@ -629,6 +629,16 @@ namespace TacticalGame.Managers
             swRt.anchoredPosition = new Vector2(200, 70); 
             equipShipwrightButton.onClick.AddListener(OnEquipShipwright);
             equipShipwrightButton.GetComponent<Image>().color = new Color(0.4f, 0.6f, 0.2f); // A nice greenish color
+
+            // Create the Surgeon Button
+            Button equipSurgeonButton = CreateButton(equipmentPanel.transform, "EquipSurgeonButton", "Equip Surgeon", new Vector2(150, 45));
+            RectTransform surgRt = equipSurgeonButton.GetComponent<RectTransform>();
+            surgRt.anchorMin = new Vector2(0.5f, 0); surgRt.anchorMax = new Vector2(0.5f, 0);
+            surgRt.pivot = new Vector2(0.5f, 0); 
+            // Positioned at X=-200, Y=70 so it sits right above the Quartermaster button
+            surgRt.anchoredPosition = new Vector2(400, 70); 
+            equipSurgeonButton.onClick.AddListener(OnEquipSurgeon);
+            equipSurgeonButton.GetComponent<Image>().color = new Color(0.8f, 0.3f, 0.3f); // A nice medical red
             
             Button autoEquipPlayersButton = CreateButton(equipmentPanel.transform, "AutoEquipPlayersButton", "Auto Equip Players", new Vector2(180, 45));
             RectTransform autoEquipPlayerRt = autoEquipPlayersButton.GetComponent<RectTransform>();
@@ -1255,6 +1265,7 @@ namespace TacticalGame.Managers
         private void OnEquipHelmsman() => EquipRoleDeck(UnitRole.Helmsmaster);
         private void OnEquipBoatswain() => EquipRoleDeck(UnitRole.Boatswain);
         private void OnEquipShipwright() => EquipRoleDeck(UnitRole.Shipwright);
+        private void OnEquipSurgeon() => EquipRoleDeck(UnitRole.Surgeon);
 
         private void EquipRoleDeck(UnitRole role)
         {

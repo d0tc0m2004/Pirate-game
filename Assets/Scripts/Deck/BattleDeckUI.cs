@@ -724,6 +724,17 @@ namespace TacticalGame.Equipment
                         }
                     }
                 }
+                // 9. Swap with Lowest HP Ally (SURGEON BOOTS V2)
+                else if (card.effectType == RelicEffectType.Boots_V2_SwapLowestHealthAlly)
+                {
+                    UnitStatus lowestHP = GetLowestHPAlly(card.ownerUnit);
+                    if (lowestHP != null) 
+                    {
+                        // Highlights the Surgeon and the target in Yellow to show the swap
+                        HighlightTargetUnit(card.ownerUnit, new Color(1f, 1f, 0f, 1f));
+                        HighlightTargetUnit(lowestHP, new Color(1f, 1f, 0f, 1f));
+                    }
+                }
             }
 
             // === TARGETED CARDS (Click required) ===
@@ -790,6 +801,16 @@ namespace TacticalGame.Equipment
                     }
                 }
             }
+        }
+
+        private UnitStatus GetLowestHPAlly(UnitStatus owner)
+        {
+            if (owner == null) return null;
+            return Object.FindObjectsByType<UnitStatus>(FindObjectsSortMode.None)
+                .Where(u => u != null && u.Team == owner.Team && u != owner && !u.HasSurrendered && u.CurrentHP > 0)
+                .OrderBy(u => u.HPPercent)
+                .ThenBy(u => u.GetInstanceID()) // Tie-breaker for consistency
+                .FirstOrDefault();
         }
 
         

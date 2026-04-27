@@ -549,6 +549,7 @@ namespace TacticalGame.Hazards
                 case RuntimeHazardType.Healing:
                     unit.Heal(hazard.Value);
                     Debug.Log($"{unit.UnitName} healed {hazard.Value} HP from healing zone!");
+                    hazard.Duration = 0; // <-- Consumes the potion!
                     break;
                     
                 case RuntimeHazardType.SpeedBoost:
@@ -619,17 +620,20 @@ namespace TacticalGame.Hazards
         {
             if (unit == null || cell == null) return;
             
-            var trapHazard = activeRuntimeHazards.Find(h => h.Cell == cell && h.Type == RuntimeHazardType.Trap);
-            if (trapHazard != null)
-            {
-                ApplyHazardEffect(trapHazard, unit);
+            // Checks for both Traps AND Healing Potions!
+            var triggeredHazard = activeRuntimeHazards.Find(h => h.Cell == cell && 
+                (h.Type == RuntimeHazardType.Trap || h.Type == RuntimeHazardType.Healing));
                 
-                // Remove trap after triggering
-                if (trapHazard.Duration <= 0)
+            if (triggeredHazard != null)
+            {
+                ApplyHazardEffect(triggeredHazard, unit);
+                
+                // Remove after triggering
+                if (triggeredHazard.Duration <= 0)
                 {
                     cell.hasHazardState = false;
-                    trapHazard.Destroy();
-                    activeRuntimeHazards.Remove(trapHazard);
+                    triggeredHazard.Destroy();
+                    activeRuntimeHazards.Remove(triggeredHazard);
                 }
             }
         }

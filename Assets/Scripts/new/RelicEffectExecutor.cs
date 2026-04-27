@@ -922,9 +922,26 @@ namespace TacticalGame.Equipment
                     break;
                 case RelicEffectType.Boots_V2_SwapLowestHealthAlly:
                     {
-                        var lowestAlly = GetLowestHPAlly(caster);
+                        // 1. Get all allies
+                        var validAllies = GetAllAllies(caster)
+                            .Where(a => a != null && a != caster && !a.HasSurrendered && a.CurrentHP > 0) // EXPLICITLY ignore the caster!
+                            .ToList();
+
+                        // 2. Sort by lowest health percentage
+                        var lowestAlly = validAllies
+                            .OrderBy(a => a.HPPercent)
+                            .ThenBy(a => a.GetInstanceID()) // Guarantee it picks the exact same one the UI highlighted
+                            .FirstOrDefault();
+
                         if (lowestAlly != null)
-                            ExecuteSwapWithUnit(caster, lowestAlly, card);
+                        {
+                            ExecuteSwapWithUnit(caster, lowestAlly);
+                            Debug.Log($"<color=yellow>{caster.UnitName} swapped places with {lowestAlly.UnitName} (Lowest HP)!</color>");
+                        }
+                        else
+                        {
+                            Debug.LogWarning("No valid other allies alive to swap with!");
+                        }
                     }
                     break;
                 case RelicEffectType.Gloves_AttackHealLowestAlly:
@@ -942,7 +959,7 @@ namespace TacticalGame.Equipment
                     Debug.Log($"<color=gray>Passive effect {effectType} - handled by PassiveRelicManager</color>");
                     break;
                 case RelicEffectType.Hat_DrawTrinketReduceCost:
-                    DrawCards(caster, 1);
+                    DrawTrinketCard(caster);
                     ApplyReduceAllCosts(caster, 1, 1);
                     break;
                 case RelicEffectType.Hat_V2_HealOnCaptainDamage:
@@ -955,7 +972,9 @@ namespace TacticalGame.Equipment
                     if (target != null && target.Team == caster.Team)
                     {
                         var effects2 = GetStatusEffects(target);
-                        effects2?.ApplyEffect(StatusEffect.CreateDamageBoost(effect.duration, effect.value1, null));
+                        effects2?.ApplyEffect(StatusEffect.CreateDamageBoost(effect.duration, 1.0f, null));
+                        effects2?.ApplyEffect(StatusEffect.CreateAimBoost(effect.duration, 1.0f, null));
+                        Debug.Log($"<color=cyan>{target.UnitName} stats doubled!</color>");
                     }
                     break;
                 case RelicEffectType.Coat_V2_KnockbackOnAllyDeath:
@@ -972,13 +991,27 @@ namespace TacticalGame.Equipment
                     break;
                 case RelicEffectType.Totem_V2_SummonHealingPotions:
                     {
-                        var allies = GetAllAllies(caster);
-                        int healed = 0;
-                        while (healed < 3 && allies.Count > 0)
+                        var gridManager = ServiceLocator.Get<GridManager>();
+                        var hazardManager = ServiceLocator.Get<HazardManager>();
+                        if (gridManager != null && hazardManager != null)
                         {
-                            var ally = allies[Random.Range(0, allies.Count)];
-                            ally.Heal((int)effect.value1);
-                            healed++;
+                            int middleCol = gridManager.GetMiddleColumnIndex(); 
+                            
+                            int placed = 0;
+                            for (int attempt = 0; attempt < 50 && placed < 3; attempt++) 
+                            {
+                                int x = UnityEngine.Random.Range(0, middleCol); 
+                                int y = UnityEngine.Random.Range(0, gridManager.GridHeight);
+                                var cell = gridManager.GetCell(x, y);
+                                
+                                // FIXED: CanPlaceUnit() guarantees it is a completely empty, walkable floor tile!
+                                if (cell != null && cell.CanPlaceUnit() && !cell.HasHazard)
+                                {
+                                    hazardManager.CreateHealingZone(cell, 200, 99); 
+                                    placed++;
+                                }
+                            }
+                            Debug.Log($"<color=green>{caster.UnitName} dropped {placed} Healing Potions on empty Player tiles!</color>");
                         }
                     }
                     break;
@@ -2225,6 +2258,14 @@ namespace TacticalGame.Equipment
             energyManager?.AddGrog(amount);
         }
         
+        private static void DrawTrinketCard(UnitStatus unit)
+        {
+            var deckManager = BattleDeckManager.Instance;
+            if (deckManager != null)
+            {
+                deckManager.DrawCardByCategory(unit, RelicCategory.Trinket);
+            }
+        }
         private static void ConvertGrogToEnergy(int grogAmount)
         {
             var energyManager = ServiceLocator.Get<EnergyManager>();

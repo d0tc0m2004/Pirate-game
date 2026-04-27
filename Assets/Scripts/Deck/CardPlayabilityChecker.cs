@@ -215,6 +215,17 @@ namespace TacticalGame.Equipment
                     
                     return "";
 
+// ==================== SURGEON ====================
+                case RelicEffectType.Boots_V2_SwapLowestHealthAlly:
+                    if (!HasAnyOtherLivingAlly(card.ownerUnit))
+                        return "No other allies to swap with";
+                    return "";
+
+                case RelicEffectType.Ultimate_V2_FullHealthRestore:
+                    if (!HasAnyOtherLivingAlly(card.ownerUnit))
+                        return "No allies to heal";
+                    return "";
+                    
                 case RelicEffectType.Hat_RestoreMoraleNearby:
                     return ""; // Always playable
 

@@ -200,7 +200,7 @@ namespace TacticalGame.Equipment
             AddEffect(RelicCategory.Boots, UnitRole.Navigator, true, 2, 0, false,
                 RelicEffectType.Boots_V2_MoveFree,
                 "Move 2 tiles in any direction", 2, 0, 0);
-            AddEffect(RelicCategory.Boots, UnitRole.Surgeon, true, 2, 0, false,
+            AddEffect(RelicCategory.Boots, UnitRole.Surgeon, true, 2, 1, false,
                 RelicEffectType.Boots_V2_SwapLowestHealthAlly,
                 "Swap with lowest health ally (0 energy)", 0, 0, 0);
             AddEffect(RelicCategory.Boots, UnitRole.Cook, true, 2, 1, false,
