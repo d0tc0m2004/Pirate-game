@@ -1746,10 +1746,18 @@ namespace TacticalGame.Equipment
                     if (deckManager != null && deckManager.DrawOneCard())
                     {
                         var drawnCard = deckManager.Hand.LastOrDefault();
+                        // Only reduce cost if the drawn card is a Cook-ROLE relic (Cook Hat, Cook Boot, etc.)
+                        // NOT other role relics (e.g. Surgeon Boot) that happen to be equipped by a Cook unit
                         if (drawnCard != null && drawnCard.roleTag == UnitRole.Cook)
                         {
-                            drawnCard.energyCost = Mathf.Max(0, drawnCard.energyCost - 1);
-                            Debug.Log($"Cook relic cost reduced by 1 for {drawnCard.GetDisplayName()}");
+                            if (drawnCard.originalEnergyCost < 0)
+                                drawnCard.originalEnergyCost = drawnCard.energyCost; // Save for end-of-turn revert
+                            drawnCard.energyCost = 0;
+                            Debug.Log($"<color=green>Cook Boots V1: Drew Cook relic '{drawnCard.GetDisplayName()}' - cost set to 0</color>");
+                        }
+                        else
+                        {
+                            Debug.Log($"Drew non-Cook relic '{drawnCard?.GetDisplayName()}' - no cost change");
                         }
                     }
                     Debug.Log($"{unit.UnitName} drew a card after moving");

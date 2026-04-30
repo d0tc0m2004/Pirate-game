@@ -75,8 +75,15 @@ namespace TacticalGame.Equipment
         private static string CheckEffectCondition(BattleCard card)
         {
             // Weapon cards: need a living enemy to exist on the board.
-            if (card.IsWeaponCard)
+            if (card.IsWeaponCard || card.category == RelicCategory.Gloves)
             {
+                // Check if owner has WeaponDisabled status (MA Totem V1)
+                if (card.ownerUnit != null)
+                {
+                    var sem = card.ownerUnit.GetComponent<TacticalGame.Combat.StatusEffectManager>();
+                    if (sem != null && sem.HasEffect(TacticalGame.Combat.StatusEffectType.WeaponDisabled))
+                        return "Weapons are disabled this turn";
+                }
                 if (!HasAnyLivingEnemy(card.ownerUnit))
                     return "No enemies remaining";
                 return "";

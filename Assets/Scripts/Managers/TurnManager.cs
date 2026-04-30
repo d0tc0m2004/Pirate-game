@@ -107,6 +107,13 @@ namespace TacticalGame.Managers
             // Apply end-of-turn hazard effects
             ApplyHazardEffects();
 
+            // Process earthquake hazards (displace units on affected tiles)
+            var hazardManager = ServiceLocator.Get<HazardManager>();
+            if (hazardManager != null)
+            {
+                hazardManager.ProcessEarthquakeHazards();
+            }
+
             // Handle player turn end
             if (isPlayerTurn)
             {

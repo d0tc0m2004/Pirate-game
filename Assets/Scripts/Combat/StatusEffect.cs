@@ -146,6 +146,8 @@ namespace TacticalGame.Combat
         StunAttackerOnHit,  // Stuns attacker on hit
         StunOnMoveTracker,  // Stuns if the target moves
         WeaponHitTracker,   // Tracks weapon hits for surrender
+        WeaponDisabled,     // Cannot use weapon/gloves relics
+        WeaponCostIncrease, // Next weapon relic costs more
     }
 
     /// <summary>
@@ -547,5 +549,11 @@ namespace TacticalGame.Combat
 
         public static StatusEffect CreateCursed(int duration, float bonusDamagePercent, GameObject source = null)
             => new StatusEffect(StatusEffectType.Cursed, "Cursed", duration, bonusDamagePercent, 0f, source);
+
+        public static StatusEffect CreateWeaponDisabled(int duration, GameObject source = null)
+            => new StatusEffect(StatusEffectType.WeaponDisabled, "Disarmed", duration, 0f, 0f, source);
+
+        public static StatusEffect CreateWeaponCostIncrease(int duration, int costIncrease, GameObject source = null)
+            => new StatusEffect(StatusEffectType.WeaponCostIncrease, "Hindered", duration, costIncrease, 0f, source);
     }
 }

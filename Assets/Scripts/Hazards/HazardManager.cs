@@ -386,6 +386,67 @@ namespace TacticalGame.Hazards
             }
             return hazard;
         }
+
+        /// <summary>
+        /// Create an earthquake hazard that displaces units at end of turn.
+        /// </summary>
+        public RuntimeHazard CreateEarthquakeHazard(GridCell cell, int duration)
+        {
+            if (cell == null || cell.HasHazard) return null;
+
+            var hazard = CreateRuntimeHazard(cell, RuntimeHazardType.Earthquake, 0, duration);
+            if (hazard != null)
+            {
+                hazard.SetColor(new Color(0.8f, 0.5f, 0.1f, 0.7f)); // Orange-brown for earthquake
+                Debug.Log($"Created earthquake hazard at ({cell.XPosition}, {cell.YPosition}) for {duration} turns");
+            }
+            return hazard;
+        }
+
+        /// <summary>
+        /// Process all earthquake hazards at end of turn — displace units on affected tiles.
+        /// </summary>
+        public void ProcessEarthquakeHazards()
+        {
+            EnsureGridManager();
+            var earthquakes = activeRuntimeHazards.FindAll(h => h.Type == RuntimeHazardType.Earthquake);
+            foreach (var eq in earthquakes)
+            {
+                var cell = eq.Cell;
+                if (cell == null || !cell.IsOccupied || cell.OccupyingUnit == null) continue;
+
+                var unit = cell.OccupyingUnit.GetComponent<UnitStatus>();
+                if (unit == null) continue;
+
+                // Find nearest empty tile to displace to
+                GridCell nearestEmpty = null;
+                int minDist = int.MaxValue;
+                for (int x = 0; x < gridManager.GridWidth; x++)
+                {
+                    for (int y = 0; y < gridManager.GridHeight; y++)
+                    {
+                        var candidate = gridManager.GetCell(x, y);
+                        if (candidate != null && !candidate.IsOccupied && !candidate.HasHazard && !candidate.IsMiddleColumn)
+                        {
+                            int dist = Mathf.Abs(x - cell.XPosition) + Mathf.Abs(y - cell.YPosition);
+                            if (dist > 0 && dist < minDist)
+                            {
+                                minDist = dist;
+                                nearestEmpty = candidate;
+                            }
+                        }
+                    }
+                }
+
+                if (nearestEmpty != null)
+                {
+                    cell.ClearOccupant();
+                    unit.transform.position = nearestEmpty.GetWorldPosition();
+                    nearestEmpty.SetOccupant(unit.gameObject);
+                    Debug.Log($"<color=yellow>Earthquake displaced {unit.UnitName} to ({nearestEmpty.XPosition},{nearestEmpty.YPosition})</color>");
+                }
+            }
+        }
         /// <summary>
         /// Find empty cells near a position for spawning.
         /// </summary>
@@ -956,7 +1017,8 @@ namespace TacticalGame.Hazards
         CannonObstacle,
         RumPuddle, // <--- NEW FOR HELMSMAN V2
         InvisibleTrap,
-        CursedTile
+        CursedTile,
+        Earthquake          // Displaces units at end of turn
     }
     
     /// <summary>

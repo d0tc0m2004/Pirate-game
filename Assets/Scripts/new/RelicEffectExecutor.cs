@@ -1659,13 +1659,37 @@ namespace TacticalGame.Equipment
                     break;
                 case RelicEffectType.Boots_V2_MoveDestroyObstacle:
                     ExecuteMove(caster, targetCell, (int)effect.value1);
+                    // Destroy obstacle on destination tile
+                    if (targetCell != null && targetCell.HasHazard)
+                    {
+                        var hazMgr = ServiceLocator.Get<HazardManager>();
+                        if (hazMgr != null)
+                        {
+                            hazMgr.ClearHazard(targetCell);
+                            Debug.Log($"<color=cyan>Boots V2: Destroyed obstacle at ({targetCell.XPosition},{targetCell.YPosition})</color>");
+                        }
+                    }
                     break;
                 case RelicEffectType.Gloves_AttackBonusPerNearbyAlly:
                     if (target != null)
                     {
-                        int nearbyCount = GetAlliesInRange(caster, effect.tileRange).Count;
-                        float allyBonus = nearbyCount * effect.value1;
+                        // Count nearby enemy allies around the TARGET (not caster allies)
+                        var gridMgr = ServiceLocator.Get<GridManager>();
+                        int nearbyEnemyAllyCount = 0;
+                        if (gridMgr != null)
+                        {
+                            var targetPos2 = gridMgr.WorldToGridPosition(target.transform.position);
+                            var enemyAllies = GetEnemies(caster).Where(e => e != target);
+                            foreach (var ea in enemyAllies)
+                            {
+                                var eaPos = gridMgr.WorldToGridPosition(ea.transform.position);
+                                if (Mathf.Max(Mathf.Abs(eaPos.x - targetPos2.x), Mathf.Abs(eaPos.y - targetPos2.y)) <= effect.tileRange)
+                                    nearbyEnemyAllyCount++;
+                            }
+                        }
+                        float allyBonus = nearbyEnemyAllyCount * effect.value2;
                         ExecuteAttackWithPercentBonus(caster, target, allyBonus);
+                        Debug.Log($"<color=cyan>Gloves V1: {nearbyEnemyAllyCount} nearby enemy allies, bonus={allyBonus*100}%</color>");
                     }
                     break;
                 case RelicEffectType.Gloves_V2_AttackBonusPerRelicInHand:
@@ -1674,23 +1698,44 @@ namespace TacticalGame.Equipment
                         int relicCount = 0;
                         if (BattleDeckManager.Instance != null)
                         {
+                            // Only count Master-at-Arms relic cards in hand
                             relicCount = BattleDeckManager.Instance.Hand
-                                .Count(c => c.ownerUnit == caster);
+                                .Count(c => c.roleTag == UnitRole.MasterAtArms);
                         }
-                        float relicBonus = relicCount * effect.value1;
+                        float relicBonus = relicCount * effect.value2;
                         ExecuteAttackWithPercentBonus(caster, target, relicBonus);
+                        Debug.Log($"<color=cyan>Gloves V2: {relicCount} MA cards in hand, bonus={relicBonus*100}%</color>");
                     }
                     break;
                 case RelicEffectType.Hat_ReduceUltimateCost:
-                    ApplyReduceAllCosts(caster, (int)effect.value1, effect.duration);
+                    {
+                        // Directly reduce cost of ultimate cards in hand belonging to caster
+                        if (BattleDeckManager.Instance != null)
+                        {
+                            int reduction2 = (int)effect.value1;
+                            foreach (var handCard2 in BattleDeckManager.Instance.Hand)
+                            {
+                                if (handCard2.category == RelicCategory.Ultimate && handCard2.BelongsTo(caster))
+                                {
+                                    if (handCard2.originalEnergyCost < 0)
+                                        handCard2.originalEnergyCost = handCard2.energyCost;
+                                    handCard2.energyCost = Mathf.Max(0, handCard2.energyCost - reduction2);
+                                    Debug.Log($"<color=green>Hat V1: Reduced {handCard2.cardName} cost to {handCard2.energyCost}</color>");
+                                }
+                            }
+                        }
+                    }
                     break;
                 case RelicEffectType.Hat_V2_IncreaseEnemyWeaponCost:
                     {
-                        var closestEnemy3 = target ?? GetClosestEnemy(caster);
-                        if (closestEnemy3 != null)
+                        // Apply WeaponCostIncrease to ALL enemies so whichever plays a weapon next pays more
+                        var allEnemies2 = GetEnemies(caster);
+                        foreach (var enemy in allEnemies2)
                         {
-                            ApplyIncreaseCost(closestEnemy3, (int)effect.value1, effect.duration);
+                            var sem5 = GetStatusEffects(enemy);
+                            sem5?.ApplyEffect(StatusEffect.CreateWeaponCostIncrease(1, (int)effect.value1, null));
                         }
+                        Debug.Log($"<color=cyan>Hat V2: Next enemy weapon relic costs +{(int)effect.value1} energy</color>");
                     }
                     break;
                 case RelicEffectType.Coat_BonusDamageNearbyAllies:
@@ -1699,8 +1744,9 @@ namespace TacticalGame.Equipment
                         foreach (var ally in nearbyAllies5)
                         {
                             var effects9 = GetStatusEffects(ally);
-                            effects9?.ApplyEffect(StatusEffect.CreateDamageBoost(effect.duration, effect.value1, null));
+                            effects9?.ApplyEffect(StatusEffect.CreateDamageBoost(effect.duration, effect.value2, null));
                         }
+                        Debug.Log($"<color=cyan>Coat V1: Boosted {nearbyAllies5.Count} nearby allies by {effect.value2*100}% damage</color>");
                     }
                     break;
                 case RelicEffectType.Coat_V2_ReduceEnemyPower:
@@ -1720,11 +1766,14 @@ namespace TacticalGame.Equipment
                     break;
                 case RelicEffectType.Totem_DisableEnemyWeapons:
                     {
+                        // Disable enemy weapon/gloves relics for next turn
                         var enemies8 = GetEnemies(caster);
                         foreach (var enemy in enemies8)
                         {
-                            ApplyWeaknessCurse(enemy, 1f, effect.duration); 
+                            var sem6 = GetStatusEffects(enemy);
+                            sem6?.ApplyEffect(StatusEffect.CreateWeaponDisabled(effect.duration, null));
                         }
+                        Debug.Log($"<color=red>Totem V1: Disabled enemy weapons for {effect.duration} turn(s)</color>");
                     }
                     break;
                 case RelicEffectType.Totem_V2_EarthquakeHazard:
@@ -1733,21 +1782,23 @@ namespace TacticalGame.Equipment
                         var hazardManager5 = ServiceLocator.Get<HazardManager>();
                         if (gridManager5 != null && hazardManager5 != null)
                         {
+                            int middleCol2 = gridManager5.GetMiddleColumnIndex();
                             int placed3 = 0;
-                            for (int attempt = 0; attempt < 20 && placed3 < (int)effect.value1; attempt++)
+                            for (int attempt = 0; attempt < 50 && placed3 < (int)effect.value1; attempt++)
                             {
-                                int x = Random.Range(0, 8);
-                                int y = Random.Range(0, 8);
+                                // Only on enemy side
+                                int x;
+                                if (caster.Team == Team.Player)
+                                    x = Random.Range(middleCol2 + 1, gridManager5.GridWidth);
+                                else
+                                    x = Random.Range(0, middleCol2);
+                                int y = Random.Range(0, gridManager5.GridHeight);
                                 var cell = gridManager5.GetCell(x, y);
-                                if (cell != null)
+                                if (cell != null && !cell.HasHazard && !cell.IsMiddleColumn)
                                 {
-                                    if (cell.IsOccupied && cell.OccupyingUnit != null)
-                                    {
-                                        var unit = cell.OccupyingUnit.GetComponent<UnitStatus>();
-                                        if (unit != null)
-                                            unit.TakeDamage((int)effect.value2, caster.gameObject, false);
-                                    }
+                                    hazardManager5.CreateEarthquakeHazard(cell, effect.duration);
                                     placed3++;
+                                    Debug.Log($"<color=yellow>Earthquake hazard placed at ({cell.XPosition},{cell.YPosition})</color>");
                                 }
                             }
                         }
@@ -1770,15 +1821,16 @@ namespace TacticalGame.Equipment
                         if (gridManager6 != null)
                         {
                             var targetPos = gridManager6.WorldToGridPosition(target.transform.position);
-                            var rowEnemies = GetEnemies(caster).Where(e =>
+                            var rowUnits = GetEnemies(caster).Where(e =>
                             {
                                 var ePos = gridManager6.WorldToGridPosition(e.transform.position);
                                 return ePos.y == targetPos.y && e != target;
                             }).ToList();
-                            foreach (var enemy in rowEnemies)
+                            foreach (var enemy in rowUnits)
                             {
-                                enemy.TakeDamage((int)effect.value2, caster.gameObject, false);
+                                enemy.TakeDamage((int)effect.value1, caster.gameObject, false);
                             }
+                            Debug.Log($"<color=cyan>Ult V2: Row splash hit {rowUnits.Count} enemies for {(int)effect.value1} damage</color>");
                         }
                     }
                     break;
