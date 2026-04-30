@@ -479,6 +479,16 @@ namespace TacticalGame.Equipment
         /// </summary>
         public void DiscardNonStowedCards()
         {
+            // Revert any temporary cost reductions before discarding
+            foreach (var card in hand)
+            {
+                if (card.originalEnergyCost >= 0)
+                {
+                    card.energyCost = card.originalEnergyCost;
+                    card.originalEnergyCost = -1;
+                }
+            }
+
             var toDiscard = hand.Where(c => !c.isStowed).ToList();
             
             foreach (var card in toDiscard)

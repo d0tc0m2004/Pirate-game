@@ -77,6 +77,7 @@ namespace TacticalGame.Equipment
         private BattleCard cardAwaitingTarget;
 
         private int remainingMoveSteps = 0;
+        private int initialMoveSteps = 0;
         private List<GridCell> highlightedMoveCells = new List<GridCell>();
         private Dictionary<GridCell, Color> originalCellColors = new Dictionary<GridCell, Color>();
 
@@ -423,7 +424,15 @@ namespace TacticalGame.Equipment
         {
             if (isTargeting && (Input.GetMouseButtonDown(1) || Input.GetKeyDown(KeyCode.Escape)))
             {
-                CancelTargeting();
+                // Block cancel if movement has already started (unit already moved at least 1 step)
+                if (initialMoveSteps > 0 && remainingMoveSteps < initialMoveSteps && remainingMoveSteps > 0)
+                {
+                    Debug.Log("Cannot cancel — movement already started. Finish your remaining steps.");
+                }
+                else
+                {
+                    CancelTargeting();
+                }
             }
 
             UpdateCardOwnerPulse();
@@ -682,8 +691,15 @@ namespace TacticalGame.Equipment
                     int radius = card.sourceRelic?.effectData != null ? card.sourceRelic.effectData.tileRange : 1;
                     HighlightAoE(card.ownerUnit, radius, new Color(0.2f, 1f, 0.2f, 0.4f));
                 }
-                // 4b. Coat V2 WellFed -> Highlight AoE AND allies in range
+                // 4b. Cook Coat V2 WellFed -> Highlight AoE AND allies in range
                 else if (card.effectType == RelicEffectType.Coat_V2_WellFed)
+                {
+                    int radius = card.sourceRelic?.effectData != null ? card.sourceRelic.effectData.tileRange : 1;
+                    HighlightAoE(card.ownerUnit, radius, new Color(0.2f, 1f, 0.2f, 0.4f));
+                    HighlightAlliesInRadius(card.ownerUnit, radius, new Color(1f, 1f, 0f, 1f));
+                }
+                // 4c. Cook Coat V2 ClearDebuffsNearby -> Highlight AoE AND allies in range
+                else if (card.effectType == RelicEffectType.Coat_V2_ClearDebuffsNearby)
                 {
                     int radius = card.sourceRelic?.effectData != null ? card.sourceRelic.effectData.tileRange : 1;
                     HighlightAoE(card.ownerUnit, radius, new Color(0.2f, 1f, 0.2f, 0.4f));
@@ -905,7 +921,7 @@ namespace TacticalGame.Equipment
         {
             if (owner == null) return null;
             return Object.FindObjectsByType<UnitStatus>(FindObjectsSortMode.None)
-                .Where(u => u != null && u.Team == owner.Team && !u.HasSurrendered && u.CurrentHP > 0)
+                .Where(u => u != null && u != owner && u.Team == owner.Team && !u.HasSurrendered && u.CurrentHP > 0)
                 .OrderBy(u => u.HPPercent)
                 .ThenBy(u => u.GetInstanceID()) // Tie-breaker for consistency
                 .FirstOrDefault();
@@ -1240,6 +1256,7 @@ namespace TacticalGame.Equipment
             {
                 int moveRange = GetCardMoveRange(card);
                 remainingMoveSteps = moveRange;
+                initialMoveSteps = moveRange;
                 if (card.effectType == RelicEffectType.Boots_V2_MoveRowOnly)
                 {
                     HighlightRowMoveTiles(card.ownerUnit);
@@ -1265,9 +1282,17 @@ namespace TacticalGame.Equipment
 
         private void CancelTargeting()
         {
+            // Block cancel if movement has already started
+            if (initialMoveSteps > 0 && remainingMoveSteps < initialMoveSteps && remainingMoveSteps > 0)
+            {
+                Debug.Log("Cannot cancel — movement already started.");
+                return;
+            }
+
             isTargeting = false;
             cardAwaitingTarget = null;
             remainingMoveSteps = 0;
+            initialMoveSteps = 0;
 
             ClearTileHighlights();
 
@@ -1675,6 +1700,7 @@ namespace TacticalGame.Equipment
                     manager.FinishCardAfterMove(cachedCard);
                 }
 
+                initialMoveSteps = 0; // Reset before cleanup so CancelTargeting doesn't block
                 CancelTargeting();
             }
             else

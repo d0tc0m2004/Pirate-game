@@ -24,6 +24,7 @@ namespace TacticalGame.Equipment
         public RelicCategory category;
         public UnitRole roleTag;
         public int energyCost;
+        public int originalEnergyCost = -1;  // Tracks base cost for temporary discounts
         public RelicEffectType effectType;
         public string description;
         

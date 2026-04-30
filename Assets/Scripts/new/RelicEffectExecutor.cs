@@ -1043,9 +1043,11 @@ namespace TacticalGame.Equipment
                         DrawCards(caster, 1);
                         if (BattleDeckManager.Instance.Hand.Count > beforeCount) {
                             var drawnCard = BattleDeckManager.Instance.Hand.Last();
-                            if (drawnCard != null && drawnCard.BelongsTo(caster) && drawnCard.sourceRelic != null) {
-                                drawnCard.energyCost = Mathf.Max(0, drawnCard.energyCost - 1);
-                                // The deck UI handles visualization of the cost reduction
+                            // Only reduce cost if drawn card is a Cook relic card
+                            if (drawnCard != null && drawnCard.roleTag == UnitRole.Cook) {
+                                drawnCard.originalEnergyCost = drawnCard.energyCost; // Save for revert
+                                drawnCard.energyCost = Mathf.Max(0, drawnCard.energyCost - (int)effect.value2);
+                                Debug.Log($"<color=green>Cook Boots V1: Reduced {drawnCard.cardName} cost to {drawnCard.energyCost} (was {drawnCard.originalEnergyCost})</color>");
                             }
                         }
                     }
@@ -1087,10 +1089,26 @@ namespace TacticalGame.Equipment
                     break;
                 case RelicEffectType.Hat_ReduceLowestAllyCardCost:
                     {
-                        var lowestAlly3 = GetAllAllies(caster).OrderBy(a => a.HPPercent).ThenBy(a => a.gameObject.GetInstanceID()).FirstOrDefault();
-                        if (lowestAlly3 != null)
+                        // Find the lowest HP ally (excluding caster)
+                        var lowestAlly3 = GetAllAllies(caster)
+                            .Where(a => a != caster)
+                            .OrderBy(a => a.HPPercent)
+                            .ThenBy(a => a.gameObject.GetInstanceID())
+                            .FirstOrDefault();
+                        if (lowestAlly3 != null && BattleDeckManager.Instance != null)
                         {
-                            ApplyReduceAllCosts(lowestAlly3, (int)effect.value1, effect.duration);
+                            // Directly reduce the cost of this ally's cards in hand
+                            int reduction = (int)effect.value1;
+                            foreach (var handCard in BattleDeckManager.Instance.Hand)
+                            {
+                                if (handCard.BelongsTo(lowestAlly3))
+                                {
+                                    if (handCard.originalEnergyCost < 0)
+                                        handCard.originalEnergyCost = handCard.energyCost; // Save for revert
+                                    handCard.energyCost = Mathf.Max(0, handCard.energyCost - reduction);
+                                }
+                            }
+                            Debug.Log($"<color=green>Cook Hat V1: Reduced all {lowestAlly3.UnitName}'s card costs by {reduction} this turn</color>");
                         }
                     }
                     break;
@@ -1177,6 +1195,7 @@ namespace TacticalGame.Equipment
                             
                             if (spawnCell != null) {
                                 hazardManager.CreateSoftObstacle(spawnCell, 50, effect.duration);
+                                Debug.Log($"<color=cyan>Cook Totem V2: Spawned debuff obstacle on ENEMY side at ({spawnCell.XPosition},{spawnCell.YPosition})</color>");
                                 // Debuff nearby enemies
                                 var enemies = TargetFinder.GetAllEnemies(caster.Team);
                                 foreach (var enemy in enemies) {
