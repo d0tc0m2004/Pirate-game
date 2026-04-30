@@ -298,6 +298,14 @@ namespace TacticalGame.Equipment
                         return "No enemies remaining";
                     return "";
 
+                // ==================== SWASHBUCKLER ====================
+                // Ultimate V1: "Lowest health unit and captain attack each other"
+                // Unplayable if there is no enemy captain
+                case RelicEffectType.Ultimate_ForceLowestAndCaptainFight:
+                    if (!HasEnemyCaptain(card.ownerUnit))
+                        return "No enemy captain on the board";
+                    return "";
+
                 // ==================== OTHER ROLES ====================
                 // Will be added in subsequent batches. Default to playable so
                 // untested cards don't silently lock themselves out.

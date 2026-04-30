@@ -674,15 +674,20 @@ namespace TacticalGame.Equipment
                     }
                 }
                 // 4. Radial AoE -> Highlight aura in Transparent Green
-                // 4. Radial AoE -> Highlight aura in Transparent Green
                 else if (card.effectType == RelicEffectType.Hat_RestoreMoraleNearby ||
                          card.effectType == RelicEffectType.Totem_RallyNoMoraleDamage ||
-                         card.effectType == RelicEffectType.Coat_V2_WellFed ||
                          card.effectType == RelicEffectType.Coat_ReduceRumEffect ||
                          card.effectType == RelicEffectType.Coat_PreventDisplacement)
                 {
                     int radius = card.sourceRelic?.effectData != null ? card.sourceRelic.effectData.tileRange : 1;
                     HighlightAoE(card.ownerUnit, radius, new Color(0.2f, 1f, 0.2f, 0.4f));
+                }
+                // 4b. Coat V2 WellFed -> Highlight AoE AND allies in range
+                else if (card.effectType == RelicEffectType.Coat_V2_WellFed)
+                {
+                    int radius = card.sourceRelic?.effectData != null ? card.sourceRelic.effectData.tileRange : 1;
+                    HighlightAoE(card.ownerUnit, radius, new Color(0.2f, 1f, 0.2f, 0.4f));
+                    HighlightAlliesInRadius(card.ownerUnit, radius, new Color(1f, 1f, 0f, 1f));
                 }
                 // 5. Global Buffs -> Highlight ALL Allies in Transparent Green (SHIPWRIGHT ULT V2)
                 else if (card.effectType == RelicEffectType.Coat_ReduceMoraleDamage ||
@@ -691,11 +696,15 @@ namespace TacticalGame.Equipment
                 {
                     HighlightAllAllies(card.ownerUnit, new Color(0.2f, 1f, 0.2f, 0.4f));
                 }
-                // 6. ROW Buffs -> Highlight the entire Player-side Row (SHIPWRIGHT COAT V1)
-                else if (card.effectType == RelicEffectType.Coat_RowCantBeTargeted ||
-                         card.effectType == RelicEffectType.Coat_RowRangedProtection)
+                // 6. ROW Buffs -> Highlight the entire Player-side Row
+                else if (card.effectType == RelicEffectType.Coat_RowRangedProtection)
                 {
                     HighlightRow(card.ownerUnit, new Color(0.2f, 1f, 0.2f, 0.4f));
+                }
+                // 6b. ROW Behind -> Highlight only tiles behind the caster (SHIPWRIGHT COAT V1)
+                else if (card.effectType == RelicEffectType.Coat_RowCantBeTargeted)
+                {
+                    HighlightRowBehind(card.ownerUnit, new Color(0.2f, 1f, 0.2f, 0.4f));
                 }
                 // 7. COLUMN Buffs -> Highlight the entire Column (SHIPWRIGHT COAT V2)
                 else if (card.effectType == RelicEffectType.Coat_ColumnDamageBoost)
@@ -773,6 +782,16 @@ namespace TacticalGame.Equipment
                     UnitStatus lowestHP = GetLowestHPAlly(card.ownerUnit);
                     if (lowestHP != null) HighlightTargetUnit(lowestHP, new Color(0.2f, 1f, 0.2f, 1f));
                 }
+                // 15. SWASHBUCKLER: Force Lowest HP and Captain to fight
+                else if (card.effectType == RelicEffectType.Ultimate_ForceLowestAndCaptainFight)
+                {
+                    var enemies = Object.FindObjectsByType<UnitStatus>(FindObjectsSortMode.None)
+                        .Where(u => u != null && u.Team != card.ownerUnit.Team && !u.HasSurrendered && u.CurrentHP > 0).ToList();
+                    var enemyCaptain = enemies.FirstOrDefault(e => e.IsCaptain);
+                    var lowestHP = enemies.Where(e => !e.IsCaptain).OrderBy(e => e.CurrentHP).FirstOrDefault();
+                    if (enemyCaptain != null) HighlightTargetUnit(enemyCaptain, new Color(1f, 0.2f, 0.2f, 1f));
+                    if (lowestHP != null) HighlightTargetUnit(lowestHP, new Color(1f, 0.5f, 0f, 1f));
+                }
             }
 
             // === TARGETED CARDS (Click required) ===
@@ -782,6 +801,10 @@ namespace TacticalGame.Equipment
                 if (card.effectType == RelicEffectType.Boots_V2_MoveRowOnly)
                 {
                     HighlightRowMoveTiles(card.ownerUnit);
+                }
+                else if (card.effectType == RelicEffectType.Boots_MoveToNeutral)
+                {
+                    HighlightNeutralZoneTiles();
                 }
                 else
                 {
@@ -822,6 +845,36 @@ namespace TacticalGame.Equipment
             {
                 var cell = gridManager.GetCell(x, pos.y);
                 if (cell != null && !cell.IsMiddleColumn) PaintCell(cell, color);
+            }
+        }
+
+        // --- PREVIEW HELPER FOR ROW BEHIND ---
+        private void HighlightRowBehind(UnitStatus owner, Color color)
+        {
+            var gridManager = ServiceLocator.Get<GridManager>();
+            if (gridManager == null || owner == null) return;
+
+            var pos = gridManager.WorldToGridPosition(owner.transform.position);
+            int middleCol = gridManager.GetMiddleColumnIndex();
+            bool isPlayer = owner.Team == TacticalGame.Enums.Team.Player;
+
+            // For player: behind = x < caster.x (away from neutral)
+            // For enemy: behind = x > caster.x (away from neutral)
+            if (isPlayer)
+            {
+                for (int x = 0; x < pos.x; x++)
+                {
+                    var cell = gridManager.GetCell(x, pos.y);
+                    if (cell != null && !cell.IsMiddleColumn) PaintCell(cell, color);
+                }
+            }
+            else
+            {
+                for (int x = pos.x + 1; x < gridManager.GridWidth; x++)
+                {
+                    var cell = gridManager.GetCell(x, pos.y);
+                    if (cell != null && !cell.IsMiddleColumn) PaintCell(cell, color);
+                }
             }
         }
 
@@ -906,6 +959,24 @@ namespace TacticalGame.Equipment
                     
                     var cell = gridManager.GetCell(center.x + dx, center.y + dy);
                     if (cell != null) PaintCell(cell, color);
+                }
+            }
+        }
+
+        private void HighlightAlliesInRadius(UnitStatus owner, int radius, Color color)
+        {
+            var gridManager = ServiceLocator.Get<GridManager>();
+            if (gridManager == null || owner == null) return;
+
+            Vector2Int center = gridManager.WorldToGridPosition(owner.transform.position);
+            var units = Object.FindObjectsByType<UnitStatus>(FindObjectsSortMode.None);
+            foreach (var u in units)
+            {
+                if (u == null || u == owner || u.Team != owner.Team || u.HasSurrendered) continue;
+                var pos = gridManager.WorldToGridPosition(u.transform.position);
+                if (Mathf.Max(Mathf.Abs(pos.x - center.x), Mathf.Abs(pos.y - center.y)) <= radius)
+                {
+                    HighlightTargetUnit(u, color);
                 }
             }
         }
@@ -1132,6 +1203,23 @@ namespace TacticalGame.Equipment
             }
         }
 
+        private void HighlightNeutralZoneTiles()
+        {
+            var gridManager = ServiceLocator.Get<GridManager>();
+            if (gridManager == null) return;
+
+            int middleCol = gridManager.GetMiddleColumnIndex();
+            for (int y = 0; y < gridManager.GridHeight; y++)
+            {
+                var cell = gridManager.GetCell(middleCol, y);
+                if (cell != null && !cell.IsOccupied)
+                {
+                    highlightedMoveCells.Add(cell);
+                    PaintCell(cell, new Color(0.3f, 0.8f, 1f, 1f));
+                }
+            }
+        }
+
         #endregion
 
         #region Targeting
@@ -1156,6 +1244,11 @@ namespace TacticalGame.Equipment
                 {
                     HighlightRowMoveTiles(card.ownerUnit);
                     UpdateTargetingPrompt($"Move {card.ownerUnit.UnitName} (Same row or 1 tile col) — click tile");
+                }
+                else if (card.effectType == RelicEffectType.Boots_MoveToNeutral)
+                {
+                    HighlightNeutralZoneTiles();
+                    UpdateTargetingPrompt($"Move {card.ownerUnit.UnitName} to a neutral zone tile — click tile");
                 }
                 else
                 {
@@ -1230,6 +1323,11 @@ namespace TacticalGame.Equipment
             }
 
             if (card.effectType == RelicEffectType.Boots_V2_MoveRowOnly)
+            {
+                return 1;
+            }
+
+            if (card.effectType == RelicEffectType.Boots_MoveToNeutral)
             {
                 return 1;
             }
@@ -1331,17 +1429,33 @@ namespace TacticalGame.Equipment
             switch (targetType)
             {
                 case CardTargetType.Tile:
-                    int middleCol = gridManager.GetMiddleColumnIndex();
-                    bool allowAnywhere = (card.effectType == RelicEffectType.Coat_V2_CurseEmptyTile);
-                    int maxX = allowAnywhere ? gridManager.GridWidth : middleCol;
-
-                    for (int x = 0; x < maxX; x++)
+                    // Special case: Shipwright Totem V2 targets any tile (including empty), excluding hazards and middle column
+                    if (card.effectType == RelicEffectType.Totem_SummonObstacleDisplace)
                     {
-                        for (int y = 0; y < gridManager.GridHeight; y++)
+                        for (int x = 0; x < gridManager.GridWidth; x++)
                         {
-                            var c = gridManager.GetCell(x, y);
-                            if (c != null && c.CanPlaceUnit() && (!c.IsMiddleColumn || allowAnywhere))
+                            for (int y = 0; y < gridManager.GridHeight; y++)
+                            {
+                                var c = gridManager.GetCell(x, y);
+                                if (c == null || c.HasHazard || c.IsMiddleColumn) continue;
                                 result.Add(c);
+                            }
+                        }
+                    }
+                    else
+                    {
+                        int middleCol = gridManager.GetMiddleColumnIndex();
+                        bool allowAnywhere = (card.effectType == RelicEffectType.Coat_V2_CurseEmptyTile);
+                        int maxX = allowAnywhere ? gridManager.GridWidth : middleCol;
+
+                        for (int x = 0; x < maxX; x++)
+                        {
+                            for (int y = 0; y < gridManager.GridHeight; y++)
+                            {
+                                var c = gridManager.GetCell(x, y);
+                                if (c != null && c.CanPlaceUnit() && (!c.IsMiddleColumn || allowAnywhere))
+                                    result.Add(c);
+                            }
                         }
                     }
                     break;
@@ -1508,7 +1622,18 @@ namespace TacticalGame.Equipment
                 Vector2Int oldPos = gridManager.WorldToGridPosition(unit.transform.position);
                 GridCell oldCell = gridManager.GetCell(oldPos.x, oldPos.y);
                 if (oldCell != null) oldCell.RemoveUnit();
-                cell.PlaceUnit(unit.gameObject);
+                
+                // For neutral zone moves, the middle column is blocked by default
+                // so we must force-place rather than using PlaceUnit
+                if (cardAwaitingTarget != null && cardAwaitingTarget.effectType == RelicEffectType.Boots_MoveToNeutral && cell.IsMiddleColumn)
+                {
+                    cell.isOccupiedState = true;
+                    unit.transform.position = cell.GetWorldPosition();
+                }
+                else
+                {
+                    cell.PlaceUnit(unit.gameObject);
+                }
             }
 
             unit.transform.position = cell.GetWorldPosition();

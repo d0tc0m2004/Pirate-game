@@ -338,8 +338,9 @@ namespace TacticalGame.Equipment
                     break;
                     
                 case RelicEffectType.Coat_RowCantBeTargeted:
-                    // FIXED SHIPWRIGHT V1: Now applies Stealth to the whole row
-                    foreach (var ally in GetAlliesInRow(caster))
+                    // Only applies to allies BEHIND the caster in the same row
+                    // "Behind" = further from neutral zone (lower x for player, higher x for enemy)
+                    foreach (var ally in GetAlliesBehindInRow(caster))
                     {
                         var effects = GetStatusEffects(ally);
                         effects?.ApplyEffect(StatusEffect.CreateRowCantBeTargeted(effect.duration, null));
@@ -1151,9 +1152,28 @@ namespace TacticalGame.Equipment
                         var hazardManager = ServiceLocator.Get<HazardManager>();
                         var gridManager = ServiceLocator.Get<GridManager>();
                         if (hazardManager != null && gridManager != null) {
-                            var emptyCells = hazardManager.FindEmptyCellsNear(caster.transform.position, 10, 5);
-                            var spawnCell = emptyCells.FirstOrDefault(c => caster.Team == Team.Player ? !c.IsPlayerSide : c.IsPlayerSide);
-                            if (spawnCell == null) spawnCell = emptyCells.FirstOrDefault();
+                            // Always spawn on the enemy side
+                            GridCell spawnCell = null;
+                            int middleCol = gridManager.GetMiddleColumnIndex();
+                            for (int attempt = 0; attempt < 50; attempt++)
+                            {
+                                int x, y;
+                                if (caster.Team == Team.Player)
+                                {
+                                    x = Random.Range(middleCol + 1, gridManager.GridWidth);
+                                }
+                                else
+                                {
+                                    x = Random.Range(0, middleCol);
+                                }
+                                y = Random.Range(0, gridManager.GridHeight);
+                                var cell = gridManager.GetCell(x, y);
+                                if (cell != null && !cell.IsOccupied && !cell.HasHazard && !cell.IsMiddleColumn)
+                                {
+                                    spawnCell = cell;
+                                    break;
+                                }
+                            }
                             
                             if (spawnCell != null) {
                                 hazardManager.CreateSoftObstacle(spawnCell, 50, effect.duration);
@@ -1920,13 +1940,10 @@ namespace TacticalGame.Equipment
         
         private static void ExecuteMoveToNeutralZone(UnitStatus caster, GridCell targetCell)
         {
-            if (targetCell == null) return;
+            if (targetCell == null || caster == null) return;
             
-            var gridManager = ServiceLocator.Get<GridManager>();
-            if (gridManager != null && targetCell.IsMiddleColumn)
-            {
-                ExecuteMove(caster, targetCell, 99);
-            }
+            // The UI already constrains the selection to neutral zone tiles
+            TeleportUnit(caster, targetCell);
         }
         
         private static void TeleportUnit(UnitStatus unit, GridCell destination)
@@ -2493,29 +2510,109 @@ namespace TacticalGame.Equipment
             var gridManager = ServiceLocator.Get<GridManager>();
             if (hazardManager == null || gridManager == null) return;
 
+            GridCell targetCell = cell;
+
+            // If target unit was passed, use its cell
             if (target != null)
             {
                 Vector2Int pos = gridManager.WorldToGridPosition(target.transform.position);
-                var targetCell = gridManager.GetCell(pos.x, pos.y);
+                targetCell = gridManager.GetCell(pos.x, pos.y);
+            }
 
-                var adjacent = gridManager.GetCell(pos.x + 1, pos.y) ?? gridManager.GetCell(pos.x - 1, pos.y);
+            if (targetCell == null) return;
 
-                if (adjacent != null && adjacent.CanPlaceUnit())
+            // If a unit occupies the tile, displace them to nearest free tile
+            if (targetCell.IsOccupied && targetCell.OccupyingUnit != null)
+            {
+                var unitOnTile = targetCell.OccupyingUnit.GetComponent<UnitStatus>();
+                if (unitOnTile != null)
                 {
-                    if (targetCell != null) targetCell.RemoveUnit();
-                    adjacent.PlaceUnit(target.gameObject);
-                    target.transform.position = adjacent.GetWorldPosition();
-
-                    if (targetCell != null)
+                    // Find nearest free adjacent tile
+                    GridCell freeCell = null;
+                    int searchRadius = 1;
+                    while (freeCell == null && searchRadius <= 5)
                     {
-                        hazardManager.CreateHardObstacle(targetCell, 3);
+                        for (int dx = -searchRadius; dx <= searchRadius && freeCell == null; dx++)
+                        {
+                            for (int dy = -searchRadius; dy <= searchRadius && freeCell == null; dy++)
+                            {
+                                if (dx == 0 && dy == 0) continue;
+                                var adj = gridManager.GetCell(targetCell.XPosition + dx, targetCell.YPosition + dy);
+                                if (adj != null && adj.CanPlaceUnit())
+                                {
+                                    freeCell = adj;
+                                }
+                            }
+                        }
+                        searchRadius++;
+                    }
+
+                    if (freeCell != null)
+                    {
+                        targetCell.RemoveUnit();
+                        freeCell.PlaceUnit(unitOnTile.gameObject);
+                        unitOnTile.transform.position = freeCell.GetWorldPosition();
+                        GameEvents.TriggerUnitMoved(unitOnTile.gameObject, targetCell, freeCell);
+                        Debug.Log($"Displaced {unitOnTile.UnitName} to ({freeCell.XPosition},{freeCell.YPosition})");
+                    }
+                    else
+                    {
+                        Debug.LogWarning($"Cannot displace {unitOnTile.UnitName} — no free adjacent tile found. Obstacle not placed.");
+                        return;
                     }
                 }
             }
-            else if (cell != null)
+            // If an obstacle is on the tile (blocked but not middle), displace it to nearest free tile
+            else if (targetCell.IsBlocked && !targetCell.IsMiddleColumn)
             {
-                hazardManager.CreateHardObstacle(cell, 3);
+                GridCell freeCell = null;
+                int searchRadius = 1;
+                while (freeCell == null && searchRadius <= 5)
+                {
+                    for (int dx = -searchRadius; dx <= searchRadius && freeCell == null; dx++)
+                    {
+                        for (int dy = -searchRadius; dy <= searchRadius && freeCell == null; dy++)
+                        {
+                            if (dx == 0 && dy == 0) continue;
+                            var adj = gridManager.GetCell(targetCell.XPosition + dx, targetCell.YPosition + dy);
+                            if (adj != null && !adj.IsOccupied && !adj.IsBlocked && !adj.IsMiddleColumn && !adj.HasHazard)
+                            {
+                                freeCell = adj;
+                            }
+                        }
+                    }
+                    searchRadius++;
+                }
+
+                if (freeCell != null)
+                {
+                    // Move the obstacle visual to the new cell
+                    if (targetCell.HazardVisualObject != null)
+                    {
+                        targetCell.HazardVisualObject.transform.position = freeCell.GetWorldPosition();
+                        targetCell.HazardVisualObject.transform.SetParent(freeCell.transform);
+                        freeCell.hazardVisualObjectRef = targetCell.HazardVisualObject;
+                    }
+                    freeCell.hasHazardState = true;
+                    freeCell.isBlockedState = true;
+
+                    // Clear original tile without destroying visual
+                    targetCell.hazardVisualObjectRef = null;
+                    targetCell.hasHazardState = false;
+                    targetCell.isBlockedState = false;
+
+                    Debug.Log($"Displaced obstacle from ({targetCell.XPosition},{targetCell.YPosition}) to ({freeCell.XPosition},{freeCell.YPosition})");
+                }
+                else
+                {
+                    Debug.LogWarning($"Cannot displace obstacle — no free adjacent tile found. Obstacle not placed.");
+                    return;
+                }
             }
+
+            // Now place the soft obstacle on the target tile (only reached if displacement succeeded or tile was empty)
+            hazardManager.CreateSoftObstacle(targetCell, 50, 3);
+            Debug.Log($"Summoned obstacle at ({targetCell.XPosition},{targetCell.YPosition})");
         }
 
         private static void SummonExplodingBarrels(UnitStatus caster, int count, int delay)
@@ -2844,6 +2941,30 @@ namespace TacticalGame.Equipment
             return GetAllAllies(caster).Where(ally => {
                 Vector2Int allyPos = gridManager.WorldToGridPosition(ally.transform.position);
                 return allyPos.y == casterPos.y;
+            }).ToList();
+        }
+
+        /// <summary>
+        /// Get allies behind the caster in the same row.
+        /// "Behind" = further from the neutral zone (middle column).
+        /// For player units: lower x values are behind.
+        /// For enemy units: higher x values are behind.
+        /// </summary>
+        private static List<UnitStatus> GetAlliesBehindInRow(UnitStatus caster)
+        {
+            var gridManager = ServiceLocator.Get<GridManager>();
+            if (gridManager == null) return new List<UnitStatus>();
+            
+            Vector2Int casterPos = gridManager.WorldToGridPosition(caster.transform.position);
+            bool isPlayer = caster.Team == Team.Player;
+            
+            return GetAllAllies(caster).Where(ally => {
+                if (ally == caster) return false;
+                Vector2Int allyPos = gridManager.WorldToGridPosition(ally.transform.position);
+                if (allyPos.y != casterPos.y) return false;
+                // For player: behind = lower x (further from middle)
+                // For enemy: behind = higher x (further from middle)
+                return isPlayer ? allyPos.x < casterPos.x : allyPos.x > casterPos.x;
             }).ToList();
         }
         
