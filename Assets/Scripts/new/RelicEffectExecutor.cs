@@ -1658,71 +1658,100 @@ namespace TacticalGame.Equipment
                     }
                     break;
                 case RelicEffectType.Boots_V2_MoveDestroyObstacle:
-                    ExecuteMove(caster, targetCell, (int)effect.value1);
-                    // Destroy obstacle on destination tile
-                    if (targetCell != null && targetCell.HasHazard)
+                    // Destroy obstacle on target tile BEFORE moving so tile is accessible
+                    if (targetCell != null && (targetCell.HasHazard || targetCell.IsBlocked))
                     {
                         var hazMgr = ServiceLocator.Get<HazardManager>();
                         if (hazMgr != null)
                         {
                             hazMgr.ClearHazard(targetCell);
-                            Debug.Log($"<color=cyan>Boots V2: Destroyed obstacle at ({targetCell.XPosition},{targetCell.YPosition})</color>");
                         }
+                        // Also unblock the cell if it was blocked by an obstacle
+                        targetCell.isBlockedState = false;
+                        Debug.Log($"<color=cyan>Boots V2: Destroyed obstacle at ({targetCell.XPosition},{targetCell.YPosition})</color>");
                     }
+                    ExecuteMove(caster, targetCell, (int)effect.value1);
                     break;
                 case RelicEffectType.Gloves_AttackBonusPerNearbyAlly:
-                    if (target != null)
                     {
-                        // Count nearby enemy allies around the TARGET (not caster allies)
-                        var gridMgr = ServiceLocator.Get<GridManager>();
-                        int nearbyEnemyAllyCount = 0;
-                        if (gridMgr != null)
+                        // Auto-resolve closest enemy if no target specified
+                        var glovesTarget1 = target ?? GetClosestEnemy(caster);
+                        if (glovesTarget1 != null)
                         {
-                            var targetPos2 = gridMgr.WorldToGridPosition(target.transform.position);
-                            var enemyAllies = GetEnemies(caster).Where(e => e != target);
-                            foreach (var ea in enemyAllies)
+                            // Count nearby enemy allies around the TARGET (not caster allies)
+                            var gridMgr = ServiceLocator.Get<GridManager>();
+                            int nearbyEnemyAllyCount = 0;
+                            if (gridMgr != null)
                             {
-                                var eaPos = gridMgr.WorldToGridPosition(ea.transform.position);
-                                if (Mathf.Max(Mathf.Abs(eaPos.x - targetPos2.x), Mathf.Abs(eaPos.y - targetPos2.y)) <= effect.tileRange)
-                                    nearbyEnemyAllyCount++;
+                                var targetPos2 = gridMgr.WorldToGridPosition(glovesTarget1.transform.position);
+                                var enemyAllies = GetEnemies(caster).Where(e => e != glovesTarget1);
+                                foreach (var ea in enemyAllies)
+                                {
+                                    var eaPos = gridMgr.WorldToGridPosition(ea.transform.position);
+                                    if (Mathf.Max(Mathf.Abs(eaPos.x - targetPos2.x), Mathf.Abs(eaPos.y - targetPos2.y)) <= effect.tileRange)
+                                        nearbyEnemyAllyCount++;
+                                }
                             }
+                            float allyBonus = nearbyEnemyAllyCount * effect.value2;
+                            ExecuteAttackWithPercentBonus(caster, glovesTarget1, allyBonus);
+                            Debug.Log($"<color=cyan>Gloves V1: {nearbyEnemyAllyCount} nearby enemy allies, bonus={allyBonus*100}%</color>");
                         }
-                        float allyBonus = nearbyEnemyAllyCount * effect.value2;
-                        ExecuteAttackWithPercentBonus(caster, target, allyBonus);
-                        Debug.Log($"<color=cyan>Gloves V1: {nearbyEnemyAllyCount} nearby enemy allies, bonus={allyBonus*100}%</color>");
                     }
                     break;
                 case RelicEffectType.Gloves_V2_AttackBonusPerRelicInHand:
-                    if (target != null)
                     {
-                        int relicCount = 0;
-                        if (BattleDeckManager.Instance != null)
+                        // Auto-resolve closest enemy if no target specified
+                        var glovesTarget = target ?? GetClosestEnemy(caster);
+                        if (glovesTarget != null)
                         {
-                            // Only count Master-at-Arms relic cards in hand
-                            relicCount = BattleDeckManager.Instance.Hand
-                                .Count(c => c.roleTag == UnitRole.MasterAtArms);
+                            int relicCount = 0;
+                            if (BattleDeckManager.Instance != null)
+                            {
+                                // Only count Master-at-Arms relic cards in hand
+                                relicCount = BattleDeckManager.Instance.Hand
+                                    .Count(c => c.roleTag == UnitRole.MasterAtArms);
+                            }
+                            float relicBonus = relicCount * effect.value2;
+                            ExecuteAttackWithPercentBonus(caster, glovesTarget, relicBonus);
+                            Debug.Log($"<color=cyan>Gloves V2: {relicCount} MA cards in hand, bonus={relicBonus*100}%</color>");
                         }
-                        float relicBonus = relicCount * effect.value2;
-                        ExecuteAttackWithPercentBonus(caster, target, relicBonus);
-                        Debug.Log($"<color=cyan>Gloves V2: {relicCount} MA cards in hand, bonus={relicBonus*100}%</color>");
                     }
                     break;
                 case RelicEffectType.Hat_ReduceUltimateCost:
                     {
-                        // Directly reduce cost of ultimate cards in hand belonging to caster
                         if (BattleDeckManager.Instance != null)
                         {
                             int reduction2 = (int)effect.value1;
+                            
+                            // Set persistent flag so future drawn ultimates also get reduced
+                            BattleDeckManager.Instance.ultimateCostReductionActive = true;
+                            BattleDeckManager.Instance.ultimateCostReductionAmount = reduction2;
+                            
+                            // Reduce all ultimate cards currently in hand
                             foreach (var handCard2 in BattleDeckManager.Instance.Hand)
                             {
-                                if (handCard2.category == RelicCategory.Ultimate && handCard2.BelongsTo(caster))
+                                if (handCard2.category == RelicCategory.Ultimate)
                                 {
                                     if (handCard2.originalEnergyCost < 0)
                                         handCard2.originalEnergyCost = handCard2.energyCost;
-                                    handCard2.energyCost = Mathf.Max(0, handCard2.energyCost - reduction2);
+                                    // Always reduce from ORIGINAL cost to prevent double-stacking
+                                    handCard2.energyCost = Mathf.Max(0, handCard2.originalEnergyCost - reduction2);
                                     Debug.Log($"<color=green>Hat V1: Reduced {handCard2.cardName} cost to {handCard2.energyCost}</color>");
                                 }
                             }
+                            
+                            // Also reduce ultimates still in the deck
+                            foreach (var deckCard in BattleDeckManager.Instance.Deck)
+                            {
+                                if (deckCard.category == RelicCategory.Ultimate)
+                                {
+                                    if (deckCard.originalEnergyCost < 0)
+                                        deckCard.originalEnergyCost = deckCard.energyCost;
+                                    deckCard.energyCost = Mathf.Max(0, deckCard.originalEnergyCost - reduction2);
+                                }
+                            }
+                            
+                            Debug.Log($"<color=green>Hat V1: Ultimate cost reduction active (-{reduction2} energy) until next ultimate is played</color>");
                         }
                     }
                     break;
@@ -1746,6 +1775,28 @@ namespace TacticalGame.Equipment
                             var effects9 = GetStatusEffects(ally);
                             effects9?.ApplyEffect(StatusEffect.CreateDamageBoost(effect.duration, effect.value2, null));
                         }
+                        
+                        // Flash highlight tiles and units in radius
+                        var gridMgr6 = ServiceLocator.Get<GridManager>();
+                        if (gridMgr6 != null)
+                        {
+                            var casterGridPos = gridMgr6.WorldToGridPosition(caster.transform.position);
+                            int range = effect.tileRange;
+                            Color highlightColor = new Color(1f, 0.85f, 0.2f, 0.8f); // Golden
+                            
+                            for (int dx = -range; dx <= range; dx++)
+                            {
+                                for (int dy = -range; dy <= range; dy++)
+                                {
+                                    var cell = gridMgr6.GetCell(casterGridPos.x + dx, casterGridPos.y + dy);
+                                    if (cell != null)
+                                    {
+                                        cell.FlashHighlight(highlightColor, 2f);
+                                    }
+                                }
+                            }
+                        }
+                        
                         Debug.Log($"<color=cyan>Coat V1: Boosted {nearbyAllies5.Count} nearby allies by {effect.value2*100}% damage</color>");
                     }
                     break;

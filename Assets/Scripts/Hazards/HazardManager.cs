@@ -440,9 +440,8 @@ namespace TacticalGame.Hazards
 
                 if (nearestEmpty != null)
                 {
-                    cell.ClearOccupant();
-                    unit.transform.position = nearestEmpty.GetWorldPosition();
-                    nearestEmpty.SetOccupant(unit.gameObject);
+                    cell.RemoveUnit();
+                    nearestEmpty.PlaceUnit(unit.gameObject);
                     Debug.Log($"<color=yellow>Earthquake displaced {unit.UnitName} to ({nearestEmpty.XPosition},{nearestEmpty.YPosition})</color>");
                 }
             }

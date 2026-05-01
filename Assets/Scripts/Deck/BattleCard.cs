@@ -155,6 +155,9 @@ namespace TacticalGame.Equipment
                 case RelicEffectType.Totem_SummonInvisibleTraps:
                 case RelicEffectType.Coat_V2_CurseEmptyTile:
                 case RelicEffectType.Totem_V2_SummonStatDebuffObstacle:
+                // === MA auto-cast effects ===
+                case RelicEffectType.Totem_DisableEnemyWeapons:      // Applies to ALL enemies, no target
+                case RelicEffectType.Totem_V2_EarthquakeHazard:      // Random enemy tiles, no target
                     return CardTargetType.None;
 
                 // === Auto-cast / Random Target Effects (No UI Target Prompt) ===

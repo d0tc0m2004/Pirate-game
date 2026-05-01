@@ -584,102 +584,100 @@ namespace TacticalGame.Managers
             Button backButton = CreateButton(equipmentPanel.transform, "BackButton", "<- Back", new Vector2(130, 45));
             RectTransform backRt = backButton.GetComponent<RectTransform>();
             backRt.anchorMin = new Vector2(0, 0); backRt.anchorMax = new Vector2(0, 0);
-            backRt.pivot = new Vector2(0, 0); backRt.anchoredPosition = new Vector2(20, 15);
+            backRt.pivot = new Vector2(0, 0); backRt.anchoredPosition = new Vector2(20, 10);
             backButton.onClick.AddListener(() => onBackClicked?.Invoke());
             
-            Button unequipButton = CreateButton(equipmentPanel.transform, "UnequipButton", "Unequip All", new Vector2(150, 45));
-            RectTransform unequipRt = unequipButton.GetComponent<RectTransform>();
-            unequipRt.anchorMin = new Vector2(0.5f, 0); unequipRt.anchorMax = new Vector2(0.5f, 0);
-            unequipRt.pivot = new Vector2(0.5f, 0); unequipRt.anchoredPosition = new Vector2(-200, 15);
-            unequipButton.onClick.AddListener(OnUnequipAll);
-            unequipButton.GetComponent<Image>().color = new Color(0.5f, 0.2f, 0.2f);
-            
-            // 1. Equip Quartermaster Button
-            Button equipQMButton = CreateButton(equipmentPanel.transform, "EquipQMButton", "Equip QM", new Vector2(130, 45));
+            // ==================== ROW 3 (Y=120): Role Equip Buttons ====================
+            int btnW = 120; int btnSp = 5; int numBtns = 8;
+            float rowW = numBtns * btnW + (numBtns - 1) * btnSp;
+            float sx = -rowW / 2f + btnW / 2f;
+
+            Button equipQMButton = CreateButton(equipmentPanel.transform, "EquipQMButton", "Equip QM", new Vector2(btnW, 40));
             RectTransform qmRt = equipQMButton.GetComponent<RectTransform>();
             qmRt.anchorMin = new Vector2(0.5f, 0); qmRt.anchorMax = new Vector2(0.5f, 0);
-            qmRt.pivot = new Vector2(0.5f, 0); qmRt.anchoredPosition = new Vector2(-270, 70); // Positioned further left
+            qmRt.pivot = new Vector2(0.5f, 0); qmRt.anchoredPosition = new Vector2(sx, 120);
             equipQMButton.onClick.AddListener(OnEquipQuartermaster);
-            equipQMButton.GetComponent<Image>().color = new Color(0.2f, 0.6f, 0.2f); // Green
+            equipQMButton.GetComponent<Image>().color = new Color(0.2f, 0.6f, 0.2f);
 
-            // 2. Equip Helmsman Button
-            Button equipHMButton = CreateButton(equipmentPanel.transform, "EquipHMButton", "Equip HM", new Vector2(130, 45));
+            Button equipHMButton = CreateButton(equipmentPanel.transform, "EquipHMButton", "Equip HM", new Vector2(btnW, 40));
             RectTransform hmRt = equipHMButton.GetComponent<RectTransform>();
             hmRt.anchorMin = new Vector2(0.5f, 0); hmRt.anchorMax = new Vector2(0.5f, 0);
-            hmRt.pivot = new Vector2(0.5f, 0); hmRt.anchoredPosition = new Vector2(-130, 70); // Positioned right next to QM
+            hmRt.pivot = new Vector2(0.5f, 0); hmRt.anchoredPosition = new Vector2(sx + (btnW + btnSp), 120);
             equipHMButton.onClick.AddListener(OnEquipHelmsman);
-            equipHMButton.GetComponent<Image>().color = new Color(0.6f, 0.4f, 0.1f); // Amber
+            equipHMButton.GetComponent<Image>().color = new Color(0.6f, 0.4f, 0.1f);
 
-            // Create the Boatswain Button
-            Button equipBoatswainButton = CreateButton(equipmentPanel.transform, "EquipBoatswainButton", "Equip Boatswain", new Vector2(150, 45));
+            Button equipBoatswainButton = CreateButton(equipmentPanel.transform, "EquipBoatswainButton", "Equip Boatsw", new Vector2(btnW, 40));
             RectTransform bwRt = equipBoatswainButton.GetComponent<RectTransform>();
             bwRt.anchorMin = new Vector2(0.5f, 0); bwRt.anchorMax = new Vector2(0.5f, 0);
-            bwRt.pivot = new Vector2(0.5f, 0); 
-            // Positioned at X=0 so it sits to the right of the QM button (which is at -200)
-            bwRt.anchoredPosition = new Vector2(0, 70); 
+            bwRt.pivot = new Vector2(0.5f, 0); bwRt.anchoredPosition = new Vector2(sx + 2 * (btnW + btnSp), 120);
             equipBoatswainButton.onClick.AddListener(OnEquipBoatswain);
-            equipBoatswainButton.GetComponent<Image>().color = new Color(0.2f, 0.4f, 0.6f); // A nice blueish color
+            equipBoatswainButton.GetComponent<Image>().color = new Color(0.2f, 0.4f, 0.6f);
 
-            // Create the Shipwright Button
-            Button equipShipwrightButton = CreateButton(equipmentPanel.transform, "EquipShipwrightButton", "Equip Shipwright", new Vector2(150, 45));
+            Button equipShipwrightButton = CreateButton(equipmentPanel.transform, "EquipShipwrightButton", "Equip Shipwr", new Vector2(btnW, 40));
             RectTransform swRt = equipShipwrightButton.GetComponent<RectTransform>();
             swRt.anchorMin = new Vector2(0.5f, 0); swRt.anchorMax = new Vector2(0.5f, 0);
-            swRt.pivot = new Vector2(0.5f, 0); 
-            // Positioned at X=200 so it sits to the right of the Boatswain button (which is at 0)
-            swRt.anchoredPosition = new Vector2(200, 70); 
+            swRt.pivot = new Vector2(0.5f, 0); swRt.anchoredPosition = new Vector2(sx + 3 * (btnW + btnSp), 120);
             equipShipwrightButton.onClick.AddListener(OnEquipShipwright);
-            equipShipwrightButton.GetComponent<Image>().color = new Color(0.4f, 0.6f, 0.2f); // A nice greenish color
+            equipShipwrightButton.GetComponent<Image>().color = new Color(0.4f, 0.6f, 0.2f);
 
-            // Create the Surgeon Button
-            Button equipSurgeonButton = CreateButton(equipmentPanel.transform, "EquipSurgeonButton", "Equip Surgeon", new Vector2(150, 45));
+            Button equipSurgeonButton = CreateButton(equipmentPanel.transform, "EquipSurgeonButton", "Equip Surgeon", new Vector2(btnW, 40));
             RectTransform surgRt = equipSurgeonButton.GetComponent<RectTransform>();
             surgRt.anchorMin = new Vector2(0.5f, 0); surgRt.anchorMax = new Vector2(0.5f, 0);
-            surgRt.pivot = new Vector2(0.5f, 0); 
-            // Positioned at X=400, Y=70
-            surgRt.anchoredPosition = new Vector2(400, 70); 
+            surgRt.pivot = new Vector2(0.5f, 0); surgRt.anchoredPosition = new Vector2(sx + 4 * (btnW + btnSp), 120);
             equipSurgeonButton.onClick.AddListener(OnEquipSurgeon);
-            equipSurgeonButton.GetComponent<Image>().color = new Color(0.8f, 0.3f, 0.3f); // A nice medical red
-            
-            // Create the Cook Button
-            Button equipCookButton = CreateButton(equipmentPanel.transform, "EquipCookButton", "Equip Cook", new Vector2(150, 45));
+            equipSurgeonButton.GetComponent<Image>().color = new Color(0.8f, 0.3f, 0.3f);
+
+            Button equipCookButton = CreateButton(equipmentPanel.transform, "EquipCookButton", "Equip Cook", new Vector2(btnW, 40));
             RectTransform cookRt = equipCookButton.GetComponent<RectTransform>();
             cookRt.anchorMin = new Vector2(0.5f, 0); cookRt.anchorMax = new Vector2(0.5f, 0);
-            cookRt.pivot = new Vector2(0.5f, 0); 
-            // Positioned at X=580, Y=70
-            cookRt.anchoredPosition = new Vector2(580, 70); 
+            cookRt.pivot = new Vector2(0.5f, 0); cookRt.anchoredPosition = new Vector2(sx + 5 * (btnW + btnSp), 120);
             equipCookButton.onClick.AddListener(OnEquipCook);
-            equipCookButton.GetComponent<Image>().color = new Color(0.8f, 0.6f, 0.2f); // Orange-yellow
+            equipCookButton.GetComponent<Image>().color = new Color(0.8f, 0.6f, 0.2f);
 
-            // Create the Swashbuckler Button
-            Button equipSwashButton = CreateButton(equipmentPanel.transform, "EquipSwashButton", "Equip Swash", new Vector2(150, 45));
+            Button equipSwashButton = CreateButton(equipmentPanel.transform, "EquipSwashButton", "Equip Swash", new Vector2(btnW, 40));
             RectTransform swashRt = equipSwashButton.GetComponent<RectTransform>();
             swashRt.anchorMin = new Vector2(0.5f, 0); swashRt.anchorMax = new Vector2(0.5f, 0);
-            swashRt.pivot = new Vector2(0.5f, 0); 
-            swashRt.anchoredPosition = new Vector2(-420, 15); // Bottom row, left side
+            swashRt.pivot = new Vector2(0.5f, 0); swashRt.anchoredPosition = new Vector2(sx + 6 * (btnW + btnSp), 120);
             equipSwashButton.onClick.AddListener(OnEquipSwashbuckler);
-            equipSwashButton.GetComponent<Image>().color = new Color(0.7f, 0.2f, 0.4f); // Pinkish-red
+            equipSwashButton.GetComponent<Image>().color = new Color(0.7f, 0.2f, 0.4f);
+
+            Button equipMAButton = CreateButton(equipmentPanel.transform, "EquipMasterAtArmsButton", "Equip MA", new Vector2(btnW, 40));
+            RectTransform maRt = equipMAButton.GetComponent<RectTransform>();
+            maRt.anchorMin = new Vector2(0.5f, 0); maRt.anchorMax = new Vector2(0.5f, 0);
+            maRt.pivot = new Vector2(0.5f, 0); maRt.anchoredPosition = new Vector2(sx + 7 * (btnW + btnSp), 120);
+            equipMAButton.onClick.AddListener(OnEquipMasterAtArms);
+            equipMAButton.GetComponent<Image>().color = new Color(0.5f, 0.5f, 0.5f);
             
             // Generate pool
             GenerateCategoryRelicPool();
             
-            Button autoEquipPlayersButton = CreateButton(equipmentPanel.transform, "AutoEquipPlayersButton", "Auto Equip Players", new Vector2(180, 45));
+            // ==================== ROW 2 (Y=65): Utility Buttons ====================
+            Button unequipButton = CreateButton(equipmentPanel.transform, "UnequipButton", "Unequip All", new Vector2(150, 40));
+            RectTransform unequipRt = unequipButton.GetComponent<RectTransform>();
+            unequipRt.anchorMin = new Vector2(0.5f, 0); unequipRt.anchorMax = new Vector2(0.5f, 0);
+            unequipRt.pivot = new Vector2(0.5f, 0); unequipRt.anchoredPosition = new Vector2(-250, 65);
+            unequipButton.onClick.AddListener(OnUnequipAll);
+            unequipButton.GetComponent<Image>().color = new Color(0.5f, 0.2f, 0.2f);
+
+            Button autoEquipPlayersButton = CreateButton(equipmentPanel.transform, "AutoEquipPlayersButton", "Auto Equip Players", new Vector2(170, 40));
             RectTransform autoEquipPlayerRt = autoEquipPlayersButton.GetComponent<RectTransform>();
             autoEquipPlayerRt.anchorMin = new Vector2(0.5f, 0); autoEquipPlayerRt.anchorMax = new Vector2(0.5f, 0);
-            autoEquipPlayerRt.pivot = new Vector2(0.5f, 0); autoEquipPlayerRt.anchoredPosition = new Vector2(0, 15);
+            autoEquipPlayerRt.pivot = new Vector2(0.5f, 0); autoEquipPlayerRt.anchoredPosition = new Vector2(-60, 65);
             autoEquipPlayersButton.onClick.AddListener(OnAutoEquipPlayers);
             autoEquipPlayersButton.GetComponent<Image>().color = new Color(0.2f, 0.4f, 0.5f);
 
-            Button autoEquipButton = CreateButton(equipmentPanel.transform, "AutoEquipButton", "Auto Equip Enemies", new Vector2(180, 45));
+            Button autoEquipButton = CreateButton(equipmentPanel.transform, "AutoEquipButton", "Auto Equip Enemies", new Vector2(170, 40));
             RectTransform autoEquipRt = autoEquipButton.GetComponent<RectTransform>();
             autoEquipRt.anchorMin = new Vector2(0.5f, 0); autoEquipRt.anchorMax = new Vector2(0.5f, 0);
-            autoEquipRt.pivot = new Vector2(0.5f, 0); autoEquipRt.anchoredPosition = new Vector2(200, 15);
+            autoEquipRt.pivot = new Vector2(0.5f, 0); autoEquipRt.anchoredPosition = new Vector2(140, 65);
             autoEquipButton.onClick.AddListener(OnAutoEquipEnemies);
             autoEquipButton.GetComponent<Image>().color = new Color(0.5f, 0.3f, 0.2f);
             
+            // ==================== ROW 1 (Y=10): Navigation ====================
             Button startButton = CreateButton(equipmentPanel.transform, "StartButton", "Start Battle ->", new Vector2(170, 45));
             RectTransform startRt = startButton.GetComponent<RectTransform>();
             startRt.anchorMin = new Vector2(1, 0); startRt.anchorMax = new Vector2(1, 0);
-            startRt.pivot = new Vector2(1, 0); startRt.anchoredPosition = new Vector2(-20, 15);
+            startRt.pivot = new Vector2(1, 0); startRt.anchoredPosition = new Vector2(-20, 10);
             startButton.onClick.AddListener(OnStartBattle);
             startButton.GetComponent<Image>().color = new Color(0.2f, 0.5f, 0.2f);
         }
@@ -1290,6 +1288,7 @@ namespace TacticalGame.Managers
         private void OnEquipSurgeon() => EquipRoleDeck(UnitRole.Surgeon);
         private void OnEquipCook() => EquipRoleDeck(UnitRole.Cook);
         private void OnEquipSwashbuckler() => EquipRoleDeck(UnitRole.Swashbuckler);
+        private void OnEquipMasterAtArms() => EquipRoleDeck(UnitRole.MasterAtArms);
 
         private void EquipRoleDeck(UnitRole role)
         {

@@ -80,6 +80,10 @@ namespace TacticalGame.Equipment
         [SerializeField] private BattleCard selectedCard;
         
         private bool isInitialized = false;
+
+        // Hat V1 persistent ultimate cost reduction
+        public bool ultimateCostReductionActive = false;
+        public int ultimateCostReductionAmount = 0;
         
         #endregion
         
@@ -244,7 +248,35 @@ namespace TacticalGame.Equipment
             discardPile.Add(card);
             selectedCard = null;
 
-            // 3. Update the UI so the card visually vanishes!
+            // 3. If an Ultimate was just used, revert cost reduction on ALL remaining ultimates (Hat V1 mechanic)
+            if (card.category == RelicCategory.Ultimate && ultimateCostReductionActive)
+            {
+                ultimateCostReductionActive = false;
+                ultimateCostReductionAmount = 0;
+                
+                // Revert ultimates in hand
+                foreach (var handCard in hand)
+                {
+                    if (handCard.category == RelicCategory.Ultimate && handCard.originalEnergyCost >= 0)
+                    {
+                        handCard.energyCost = handCard.originalEnergyCost;
+                        handCard.originalEnergyCost = -1;
+                        Debug.Log($"<color=yellow>Hat V1: Reverted {handCard.cardName} cost back to {handCard.energyCost}</color>");
+                    }
+                }
+                // Revert ultimates still in deck
+                foreach (var deckCard in deck)
+                {
+                    if (deckCard.category == RelicCategory.Ultimate && deckCard.originalEnergyCost >= 0)
+                    {
+                        deckCard.energyCost = deckCard.originalEnergyCost;
+                        deckCard.originalEnergyCost = -1;
+                    }
+                }
+                Debug.Log("<color=yellow>Hat V1: Ultimate cost reduction deactivated</color>");
+            }
+
+            // 4. Update the UI so the card visually vanishes!
             OnCardPlayed?.Invoke(card);
             OnHandChanged?.Invoke(hand);
         }
@@ -413,6 +445,15 @@ namespace TacticalGame.Equipment
             var card = deck[0];
             deck.RemoveAt(0);
             hand.Add(card);
+            
+            // Hat V1: Apply persistent ultimate cost reduction to newly drawn ultimates
+            if (ultimateCostReductionActive && card.category == RelicCategory.Ultimate)
+            {
+                if (card.originalEnergyCost < 0)
+                    card.originalEnergyCost = card.energyCost;
+                card.energyCost = Mathf.Max(0, card.originalEnergyCost - ultimateCostReductionAmount);
+                Debug.Log($"<color=green>Hat V1: Auto-reduced drawn {card.cardName} cost to {card.energyCost}</color>");
+            }
             
             OnCardDrawn?.Invoke(card);
             OnHandChanged?.Invoke(hand);

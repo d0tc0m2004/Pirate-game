@@ -552,8 +552,5 @@ namespace TacticalGame.Combat
 
         public static StatusEffect CreateWeaponDisabled(int duration, GameObject source = null)
             => new StatusEffect(StatusEffectType.WeaponDisabled, "Disarmed", duration, 0f, 0f, source);
-
-        public static StatusEffect CreateWeaponCostIncrease(int duration, int costIncrease, GameObject source = null)
-            => new StatusEffect(StatusEffectType.WeaponCostIncrease, "Hindered", duration, costIncrease, 0f, source);
     }
 }

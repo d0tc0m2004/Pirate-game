@@ -8,6 +8,7 @@ using TacticalGame.Core;
 using TacticalGame.Combat;
 using TacticalGame.Managers;
 using TacticalGame.Enums;
+using TacticalGame.Hazards;
 using TMPro;
 
 namespace TacticalGame.Equipment
@@ -809,6 +810,13 @@ namespace TacticalGame.Equipment
                     if (lowestHP != null) HighlightTargetUnit(lowestHP, new Color(1f, 0.5f, 0f, 1f));
                 }
             }
+            
+            // === MA COAT V1 PREVIEW: Highlight 1-tile radius ===
+            if (card.effectType == RelicEffectType.Coat_BonusDamageNearbyAllies)
+            {
+                HighlightRadiusPreview(card.ownerUnit, 1, new Color(1f, 0.85f, 0.2f, 0.7f));
+                HighlightAlliesInRadius(card.ownerUnit, 1, new Color(0.3f, 1f, 0.3f, 1f));
+            }
 
             // === TARGETED CARDS (Click required) ===
             bool isMovementCard = (targetType == CardTargetType.Tile && card.category == RelicCategory.Boots);
@@ -821,6 +829,10 @@ namespace TacticalGame.Equipment
                 else if (card.effectType == RelicEffectType.Boots_MoveToNeutral)
                 {
                     HighlightNeutralZoneTiles();
+                }
+                else if (card.effectType == RelicEffectType.Boots_V2_MoveDestroyObstacle)
+                {
+                    HighlightDestroyObstacleTiles(card.ownerUnit, 2);
                 }
                 else
                 {
@@ -1267,6 +1279,13 @@ namespace TacticalGame.Equipment
                     HighlightNeutralZoneTiles();
                     UpdateTargetingPrompt($"Move {card.ownerUnit.UnitName} to a neutral zone tile — click tile");
                 }
+                else if (card.effectType == RelicEffectType.Boots_V2_MoveDestroyObstacle)
+                {
+                    remainingMoveSteps = 1; // Single click, not step-by-step
+                    initialMoveSteps = 1;
+                    HighlightDestroyObstacleTiles(card.ownerUnit, 2);
+                    UpdateTargetingPrompt($"Move {card.ownerUnit.UnitName} to any tile in 2-tile radius (destroys obstacles) — click tile");
+                }
                 else
                 {
                     HighlightAdjacentTiles(card.ownerUnit);
@@ -1396,6 +1415,65 @@ namespace TacticalGame.Equipment
                         if (!originalCellColors.ContainsKey(cell))
                             originalCellColors[cell] = renderer.material.color;
                         renderer.material.color = new Color(0.3f, 0.8f, 1f, 1f); 
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// Special highlight for Boots V2 (MoveDestroyObstacle): shows all tiles within radius,
+        /// INCLUDING blocked/hazard tiles (orange for obstacle, cyan for empty).
+        /// </summary>
+        private void HighlightDestroyObstacleTiles(UnitStatus unit, int radius)
+        {
+            ClearTileHighlights();
+
+            var gridManager = ServiceLocator.Get<GridManager>();
+            if (gridManager == null || unit == null) return;
+
+            Vector2Int pos = gridManager.WorldToGridPosition(unit.transform.position);
+
+            for (int dx = -radius; dx <= radius; dx++)
+            {
+                for (int dy = -radius; dy <= radius; dy++)
+                {
+                    if (dx == 0 && dy == 0) continue; // Skip caster's own tile
+                    var cell = gridManager.GetCell(pos.x + dx, pos.y + dy);
+                    if (cell == null || cell.IsMiddleColumn || cell.IsOccupied) continue;
+                    
+                    highlightedMoveCells.Add(cell);
+                    var renderer = cell.GetComponent<Renderer>();
+                    if (renderer != null)
+                    {
+                        if (!originalCellColors.ContainsKey(cell))
+                            originalCellColors[cell] = renderer.material.color;
+                        // Orange for obstacle tiles, cyan for empty
+                        renderer.material.color = (cell.IsBlocked || cell.HasHazard)
+                            ? new Color(1f, 0.6f, 0.2f, 1f)
+                            : new Color(0.3f, 0.8f, 1f, 1f);
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// Highlight tiles and units in radius around a unit (used for Coat V1 preview).
+        /// </summary>
+        private void HighlightRadiusPreview(UnitStatus unit, int radius, Color tileColor)
+        {
+            var gridManager = ServiceLocator.Get<GridManager>();
+            if (gridManager == null || unit == null) return;
+
+            Vector2Int pos = gridManager.WorldToGridPosition(unit.transform.position);
+
+            for (int dx = -radius; dx <= radius; dx++)
+            {
+                for (int dy = -radius; dy <= radius; dy++)
+                {
+                    var cell = gridManager.GetCell(pos.x + dx, pos.y + dy);
+                    if (cell != null && !cell.IsMiddleColumn)
+                    {
+                        PaintCell(cell, tileColor);
                     }
                 }
             }
@@ -1654,6 +1732,26 @@ namespace TacticalGame.Equipment
                 {
                     cell.isOccupiedState = true;
                     unit.transform.position = cell.GetWorldPosition();
+                }
+                // Boots V2: Destroy obstacle before placing unit
+                else if (cardAwaitingTarget != null && cardAwaitingTarget.effectType == RelicEffectType.Boots_V2_MoveDestroyObstacle)
+                {
+                    if (cell.HasHazard || cell.IsBlocked)
+                    {
+                        // Destroy hazard visual and clear cell state
+                        cell.ClearHazard();
+                        cell.isBlockedState = false;
+                        
+                        // Also remove from HazardManager tracking
+                        var hazMgr = ServiceLocator.Get<HazardManager>();
+                        if (hazMgr != null)
+                        {
+                            hazMgr.ClearHazard(cell);
+                        }
+                        
+                        Debug.Log($"<color=cyan>Boots V2: Destroyed obstacle at ({cell.XPosition},{cell.YPosition})</color>");
+                    }
+                    cell.PlaceUnit(unit.gameObject);
                 }
                 else
                 {

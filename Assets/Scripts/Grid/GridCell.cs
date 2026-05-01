@@ -32,6 +32,8 @@ namespace TacticalGame.Grid
         #region Private State
 
         private MeshRenderer meshRenderer;
+        private Color originalColor;
+        private bool isHighlighted = false;
 
         #endregion
 
@@ -61,6 +63,8 @@ namespace TacticalGame.Grid
         private void Awake()
         {
             meshRenderer = GetComponent<MeshRenderer>();
+            if (meshRenderer != null)
+                originalColor = meshRenderer.material.color;
         }
 
         #endregion
@@ -198,6 +202,47 @@ namespace TacticalGame.Grid
         public bool IsPassable()
         {
             return !isBlocked && !isOccupied;
+        }
+
+        #endregion
+
+        #region Highlight
+
+        /// <summary>
+        /// Highlight this cell with a color overlay.
+        /// </summary>
+        public void SetHighlightColor(Color color)
+        {
+            if (meshRenderer == null) return;
+            if (!isHighlighted)
+                originalColor = meshRenderer.material.color;
+            meshRenderer.material.color = color;
+            isHighlighted = true;
+        }
+
+        /// <summary>
+        /// Reset highlight back to original color.
+        /// </summary>
+        public void ResetHighlight()
+        {
+            if (meshRenderer == null || !isHighlighted) return;
+            meshRenderer.material.color = originalColor;
+            isHighlighted = false;
+        }
+
+        /// <summary>
+        /// Flash highlight for a duration then auto-reset.
+        /// </summary>
+        public void FlashHighlight(Color color, float duration)
+        {
+            SetHighlightColor(color);
+            StartCoroutine(ResetAfterDelay(duration));
+        }
+
+        private System.Collections.IEnumerator ResetAfterDelay(float delay)
+        {
+            yield return new WaitForSeconds(delay);
+            ResetHighlight();
         }
 
         #endregion

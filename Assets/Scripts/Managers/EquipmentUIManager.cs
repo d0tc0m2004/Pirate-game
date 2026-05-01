@@ -65,6 +65,7 @@ namespace TacticalGame.Managers
         [SerializeField] private Button autoEquipQuartermasterButton;
         [SerializeField] private Button autoEquipHelmsmanButton;
         [SerializeField] private Button autoEquipBoatswainButton;
+        [SerializeField] private Button autoEquipMasterAtArmsButton;
 
         [Header("Managers")]
         [SerializeField] private DeploymentManager deploymentManager;
@@ -95,6 +96,7 @@ namespace TacticalGame.Managers
             
             // NEW LISTENER
             if (autoEquipBoatswainButton) autoEquipBoatswainButton.onClick.AddListener(AutoEquipBoatswainCards); 
+            if (autoEquipMasterAtArmsButton) autoEquipMasterAtArmsButton.onClick.AddListener(AutoEquipMasterAtArmsCards);
 
             SetupSlotCallbacks();
 
@@ -456,6 +458,7 @@ namespace TacticalGame.Managers
         public void AutoEquipQuartermasterCards() => AutoEquipRoleCards(UnitRole.Quartermaster);
         public void AutoEquipHelmsmanCards() => AutoEquipRoleCards(UnitRole.Helmsmaster);
         public void AutoEquipBoatswainCards() => AutoEquipRoleCards(UnitRole.Boatswain);
+        public void AutoEquipMasterAtArmsCards() => AutoEquipRoleCards(UnitRole.MasterAtArms);
 
         private void AutoEquipRoleCards(UnitRole role)
         {
