@@ -1378,13 +1378,22 @@ namespace TacticalGame.Equipment
             }
 
             // Normal Range Fetching
+            int baseRange = 2; // default
             if (card.sourceRelic?.effectData != null)
             {
                 int range = (int)card.sourceRelic.effectData.value1;
-                if (range > 0) return range;
+                if (range > 0) baseRange = range;
             }
-            var movement = card.ownerUnit?.GetComponent<UnitMovement>();
-            return movement != null ? movement.GetEffectiveMoveRange() : 2;
+            else
+            {
+                var movement = card.ownerUnit?.GetComponent<UnitMovement>();
+                if (movement != null) baseRange = movement.GetEffectiveMoveRange();
+            }
+            
+            // Navigator V2 PassiveUnique: +1 tile to all movement relics
+            baseRange += PassiveRelicManager.GetTeamMovementBonus();
+            
+            return baseRange;
         }
 
         private void HighlightAdjacentTiles(UnitStatus unit)

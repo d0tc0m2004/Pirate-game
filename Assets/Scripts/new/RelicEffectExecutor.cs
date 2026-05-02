@@ -1550,10 +1550,14 @@ namespace TacticalGame.Equipment
                     ExecuteMove(caster, targetCell, (int)effect.value1);
                     break;
                 case RelicEffectType.Gloves_DisableWeaponEffect:
-                    if (target != null)
                     {
-                        var effects7 = GetStatusEffects(target);
-                        effects7?.ApplyEffect(StatusEffect.CreateWeakness(effect.duration, 0.5f, null));
+                        // Auto-cast: disable weapon role effects on ALL enemies
+                        foreach (var enemy in GetEnemies(caster))
+                        {
+                            var fx = GetStatusEffects(enemy);
+                            fx?.ApplyEffect(StatusEffect.CreateWeakness(effect.duration, 0.5f, null));
+                        }
+                        Debug.Log($"<color=cyan>Navigator Gloves V1: Disabled weapon effects on all enemies for {effect.duration} turns</color>");
                     }
                     break;
                 case RelicEffectType.Gloves_V2_AttackBonusPerBootsCard:
@@ -1562,8 +1566,10 @@ namespace TacticalGame.Equipment
                         int bootsCount = 0;
                         if (BattleDeckManager.Instance != null)
                         {
-                            bootsCount = BattleDeckManager.Instance.Hand
-                                .Count(c => c.category == RelicCategory.Boots);
+                            var dm = BattleDeckManager.Instance;
+                            bootsCount = dm.Deck.Count(c => c.category == RelicCategory.Boots)
+                                       + dm.Hand.Count(c => c.category == RelicCategory.Boots)
+                                       + dm.DiscardPile.Count(c => c.category == RelicCategory.Boots);
                         }
                         float bonus = bootsCount * effect.value1;
                         ExecuteAttackWithPercentBonus(caster, target, bonus);
@@ -1611,22 +1617,23 @@ namespace TacticalGame.Equipment
                     break;
                 case RelicEffectType.Totem_V2_DisableNonWeaponRelics:
                     {
-                        var enemies5 = GetEnemies(caster);
-                        foreach (var enemy in enemies5)
+                        foreach (var enemy in GetEnemies(caster))
                         {
-                            ApplyIncreaseCost(enemy, 99, effect.duration);
+                            var fx = GetStatusEffects(enemy);
+                            fx?.ApplyEffect(StatusEffect.CreateDisableNonWeaponRelics(effect.duration, null));
                         }
+                        Debug.Log($"<color=cyan>Navigator Totem V2: Disabled non-weapon relics on all enemies for {effect.duration} turns</color>");
                     }
                     break;
                 case RelicEffectType.Ultimate_MarkReflectToCaptain:
                     if (target != null)
                     {
-                        ExecuteAttack(caster, target);
-                        var enemyCaptain2 = GetEnemies(caster).FirstOrDefault(e => e.IsCaptain);
-                        if (enemyCaptain2 != null)
-                        {
-                            ApplyVulnerable(target, effect.value1, effect.duration);
-                        }
+                        // Mark target: any damage taken is also reflected to their captain
+                        var markEffect = StatusEffect.CreateMarked(effect.duration, 0f, caster.gameObject);
+                        markEffect.value2 = 1f; // Flag: reflect damage to captain
+                        var targetFx = GetStatusEffects(target);
+                        targetFx?.ApplyEffect(markEffect);
+                        Debug.Log($"<color=magenta>Navigator Ult V1: Marked {target.UnitName} — damage will reflect to their captain!</color>");
                     }
                     break;
                 case RelicEffectType.Ultimate_V2_SwapClosestFurthest:
@@ -2568,10 +2575,12 @@ namespace TacticalGame.Equipment
         private static void DrawBootsCard(UnitStatus unit)
         {
             var deckManager = BattleDeckManager.Instance;
-            if (deckManager != null)
-            {
-                deckManager.DrawCardByCategory(unit, RelicCategory.Boots);
-            }
+            if (deckManager == null) return;
+            
+            // Draw any boots card from any unit in the team
+            bool drawn = deckManager.DrawCardByCategoryAnyUnit(RelicCategory.Boots);
+            if (!drawn)
+                Debug.Log($"<color=yellow>Hat V2: No boots cards available in deck or discard</color>");
         }
         
         private static void AddHighQualityRum(UnitStatus unit, int count)

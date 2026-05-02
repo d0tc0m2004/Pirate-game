@@ -744,9 +744,27 @@ namespace TacticalGame.Combat
         /// </summary>
         public void OnHit(GameObject attacker, int damage)
         {
-            // Marked - consume
+            // Marked - consume and optionally reflect damage to captain
             if (HasEffect(StatusEffectType.Marked))
             {
+                StatusEffect marked = GetEffect(StatusEffectType.Marked);
+                
+                // value2 == 1 means "reflect damage to this unit's captain" (Navigator Ult V1)
+                if (marked != null && marked.value2 > 0)
+                {
+                    // Find this unit's captain and deal reflected damage
+                    var allUnits = UnityEngine.Object.FindObjectsByType<UnitStatus>(UnityEngine.FindObjectsSortMode.None);
+                    foreach (var u in allUnits)
+                    {
+                        if (u != null && u != unitStatus && u.Team == unitStatus.Team && u.IsCaptain && !u.HasSurrendered && u.CurrentHP > 0)
+                        {
+                            u.TakeDamage(damage, attacker, false);
+                            Debug.Log($"<color=magenta>Mark Reflect: {damage} damage reflected to captain {u.UnitName}!</color>");
+                            break;
+                        }
+                    }
+                }
+                
                 RemoveEffect(StatusEffectType.Marked);
             }
 

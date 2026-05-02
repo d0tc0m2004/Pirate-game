@@ -75,6 +75,14 @@ namespace TacticalGame.Equipment
             if (!hasEnergy)
                 return new Result { isPlayable = false, hasEnergy = false, reason = "Not enough energy" };
 
+            // Check if non-weapon relics are disabled on this unit
+            if (!card.IsWeaponCard && card.ownerUnit != null)
+            {
+                var statusEffects = card.ownerUnit.GetComponent<StatusEffectManager>();
+                if (statusEffects != null && statusEffects.AreNonWeaponRelicsDisabled())
+                    return new Result { isPlayable = false, hasEnergy = hasEnergy, reason = "Non-weapon relics disabled" };
+            }
+
             return Result.Playable;
         }
 

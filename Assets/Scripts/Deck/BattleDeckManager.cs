@@ -538,6 +538,34 @@ namespace TacticalGame.Equipment
         }
         
         /// <summary>
+        /// Draw a card of specific category from any unit (no owner filter).
+        /// Searches deck first, then discard pile.
+        /// </summary>
+        public bool DrawCardByCategoryAnyUnit(RelicCategory category)
+        {
+            var card = deck.FirstOrDefault(c => c.category == category);
+            if (card != null)
+            {
+                Debug.Log($"<color=green>Drew {category} card: {card.GetDisplayName()} (cost={card.energyCost})</color>");
+                return DrawSpecificCard(card);
+            }
+            
+            card = discardPile.FirstOrDefault(c => c.category == category);
+            if (card != null)
+            {
+                discardPile.Remove(card);
+                hand.Add(card);
+                OnCardDrawn?.Invoke(card);
+                OnHandChanged?.Invoke(hand);
+                Debug.Log($"<color=green>Drew {category} from discard: {card.GetDisplayName()} (cost={card.energyCost})</color>");
+                return true;
+            }
+            
+            Debug.Log($"No {category} card available in deck or discard");
+            return false;
+        }
+        
+        /// <summary>
         /// Discard all non-stowed cards from hand at end of turn.
         /// </summary>
         public void DiscardNonStowedCards()

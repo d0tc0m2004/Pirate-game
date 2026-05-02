@@ -31,6 +31,10 @@ namespace TacticalGame.Equipment
         // Tracking for conditional passives
         private bool knockbackAttackerUsedThisTurn = false;
         private int hullsDestroyedThisGame = 0;
+        
+        // Navigator V1 FreeMovement tracking
+        private int freeMovesRemaining = 0;
+        private bool isFreeMovementSelecting = false;
 
         #endregion
 
@@ -104,12 +108,28 @@ namespace TacticalGame.Equipment
         public void RegisterPassiveEffects()
         {
             activePassives.Clear();
-
-            // Prefer new slot-based equipment system
+            
+            // Re-fetch references in case components were added after Awake()
+            if (flexEquipment == null) flexEquipment = GetComponent<FlexibleUnitEquipment>();
+            if (equipment == null) equipment = GetComponent<UnitEquipmentUpdated>();
             List<EquippedRelic> passiveRelics = null;
+            
+            Debug.Log($"<color=yellow>[PassiveReg] {gameObject.name}: flexEquipment={flexEquipment != null}, equipment={equipment != null}</color>");
+            
             if (flexEquipment != null)
             {
                 passiveRelics = flexEquipment.GetPassiveRelics();
+                Debug.Log($"<color=yellow>[PassiveReg] {gameObject.name}: GetPassiveRelics returned {passiveRelics?.Count ?? -1} relics</color>");
+                
+                // Debug: check ultimate and passive slots directly
+                var ultSlot = flexEquipment.UltimateSlot;
+                var pasSlot = flexEquipment.PassiveSlot;
+                Debug.Log($"<color=yellow>[PassiveReg] {gameObject.name}: UltSlot empty={ultSlot?.IsEmpty}, PasSlot empty={pasSlot?.IsEmpty}</color>");
+                if (pasSlot?.categoryRelic != null)
+                {
+                    var pr = pasSlot.categoryRelic;
+                    Debug.Log($"<color=yellow>[PassiveReg] {gameObject.name}: PassiveSlot relic={pr.relicName}, cat={pr.category}, role={pr.roleTag}, effectType={pr.GetEffectType()}, isPassive={pr.IsPassive()}</color>");
+                }
             }
             else if (equipment != null)
             {
@@ -125,7 +145,14 @@ namespace TacticalGame.Equipment
             foreach (var relic in passiveRelics)
             {
                 activePassives.Add(relic.GetEffectType());
-                Debug.Log($"<color=magenta>{gameObject.name}: Registered passive {relic.relicName}</color>");
+                Debug.Log($"<color=magenta>{gameObject.name}: Registered passive {relic.relicName} -> {relic.GetEffectType()}</color>");
+            }
+            
+            // Initialize Navigator V1 free movement for first round
+            if (HasPassive(RelicEffectType.PassiveUnique_FreeMovement))
+            {
+                freeMovesRemaining = 3;
+                Debug.Log($"<color=cyan>{gameObject.name}: Free movement initialized to 3 tiles</color>");
             }
         }
 
@@ -232,7 +259,12 @@ namespace TacticalGame.Equipment
 
         private void OnRoundStart(int round)
         {
-            // Reset per-round trackers if any
+            // Reset per-round trackers
+            if (HasPassive(RelicEffectType.PassiveUnique_FreeMovement))
+            {
+                freeMovesRemaining = 3;
+                Debug.Log($"<color=cyan>{gameObject.name}: Free movement reset to {freeMovesRemaining} tiles</color>");
+            }
         }
 
         private void OnUnitDamaged(GameObject unit, int damage)
@@ -440,6 +472,74 @@ namespace TacticalGame.Equipment
         private void OnUnitMoved(GameObject unit, GridCell from, GridCell to)
         {
             // No movement-triggered passives currently
+        }
+
+        /// <summary>
+        /// Check for M key press to trigger free movement when Navigator is selected.
+        /// </summary>
+        private void Update()
+        {
+            if (!Input.GetKeyDown(KeyCode.M)) return;
+            
+            var dm = BattleDeckManager.Instance;
+            if (dm == null || dm.SelectedUnit != unitStatus) return;
+            
+            // Single comprehensive debug log
+            string pasSlotInfo = "no flexEquip";
+            if (flexEquipment != null)
+            {
+                var ps = flexEquipment.PassiveSlot;
+                if (ps == null) pasSlotInfo = "pasSlot=NULL";
+                else if (ps.IsEmpty) pasSlotInfo = "pasSlot=EMPTY";
+                else if (ps.categoryRelic != null)
+                    pasSlotInfo = $"pasSlot=[{ps.categoryRelic.relicName}, cat={ps.categoryRelic.category}, role={ps.categoryRelic.roleTag}, effect={ps.categoryRelic.GetEffectType()}, isPassive={ps.categoryRelic.IsPassive()}]";
+                else pasSlotInfo = "pasSlot=noRelic";
+            }
+            Debug.Log($"<color=yellow>[FreeMove] DIAG: unit={gameObject.name} | hasFreeMove={HasPassive(RelicEffectType.PassiveUnique_FreeMovement)} | movesLeft={freeMovesRemaining} | activePassives=[{string.Join(", ", activePassives)}] | {pasSlotInfo}</color>");
+            
+            if (!HasPassive(RelicEffectType.PassiveUnique_FreeMovement)) return;
+            if (freeMovesRemaining <= 0) return;
+            if (isFreeMovementSelecting) return;
+            if (RelicTargetSelector.Instance != null && RelicTargetSelector.Instance.IsSelecting) return;
+            
+            Debug.Log($"<color=green>[FreeMove] All checks passed! Starting free movement.</color>");
+            StartFreeMovement();
+        }
+
+        private void StartFreeMovement()
+        {
+            isFreeMovementSelecting = true;
+            
+            RelicTargetSelector.Instance.SelectTile(
+                $"Free Move ({freeMovesRemaining} steps remaining) — click adjacent tile",
+                (selectedCell) => {
+                    var gridManager = ServiceLocator.Get<GridManager>();
+                    if (gridManager == null) { isFreeMovementSelecting = false; return; }
+                    
+                    // Execute the move (always 1 tile)
+                    var currentCell = gridManager.GetCell(
+                        gridManager.WorldToGridPosition(transform.position).x,
+                        gridManager.WorldToGridPosition(transform.position).y);
+                    currentCell?.RemoveUnit();
+                    selectedCell.PlaceUnit(gameObject);
+                    transform.position = selectedCell.GetWorldPosition();
+                    
+                    freeMovesRemaining--;
+                    GameEvents.TriggerUnitMoved(gameObject, currentCell, selectedCell);
+                    Debug.Log($"<color=cyan>{unitStatus.UnitName}: Free moved 1 tile, {freeMovesRemaining} remaining</color>");
+                    
+                    isFreeMovementSelecting = false;
+                },
+                () => {
+                    Debug.Log("Free movement cancelled");
+                    isFreeMovementSelecting = false;
+                },
+                onlyEmpty: true,
+                maxRange: 1,
+                centerUnit: unitStatus,
+                playerSideOnly: false,
+                allowCancel: true
+            );
         }
 
         #endregion
@@ -730,12 +830,29 @@ namespace TacticalGame.Equipment
         /// </summary>
         public int GetAllyExtraMovement()
         {
-            // PassiveUnique_AllAlliesExtraMove not in current enum
-            // if (HasPassive(RelicEffectType.PassiveUnique_AllAlliesExtraMove))
-            // {
-            //     return 1; // +1 movement for all allies
-            // }
+            if (HasPassive(RelicEffectType.PassiveUnique_V2_AllyMovementBoost))
+            {
+                return 1; // +1 movement for all allies
+            }
             return 0;
+        }
+
+        /// <summary>
+        /// Static helper: Check if ANY player unit has the AllyMovementBoost passive.
+        /// Used by ExecuteMove to add +1 tile to all movement relics.
+        /// </summary>
+        public static int GetTeamMovementBonus()
+        {
+            int bonus = 0;
+            var allUnits = Object.FindObjectsByType<PassiveRelicManager>(FindObjectsSortMode.None);
+            foreach (var pm in allUnits)
+            {
+                if (pm.unitStatus != null && pm.unitStatus.Team == Team.Player)
+                {
+                    bonus += pm.GetAllyExtraMovement();
+                }
+            }
+            return bonus;
         }
 
         /// <summary>

@@ -238,6 +238,30 @@ namespace TacticalGame.Equipment
         }
 
         /// <summary>
+        /// Override the auto-assigned Ultimate relic (slot 5).
+        /// </summary>
+        public void SetUltimateRelic(EquippedRelic relic)
+        {
+            if (relic != null)
+            {
+                slots[ULTIMATE_SLOT].SetCategory(relic);
+                Debug.Log($"<color=cyan>[FlexibleEquipment] Ultimate overridden: {relic.relicName}</color>");
+            }
+        }
+
+        /// <summary>
+        /// Override the auto-assigned Passive relic (slot 6).
+        /// </summary>
+        public void SetPassiveRelic(EquippedRelic relic)
+        {
+            if (relic != null)
+            {
+                slots[PASSIVE_SLOT].SetCategory(relic);
+                Debug.Log($"<color=cyan>[FlexibleEquipment] Passive overridden: {relic.relicName}</color>");
+            }
+        }
+
+        /// <summary>
         /// Clear all flexible slots (0-4).
         /// </summary>
         public void ClearAllFlexible()

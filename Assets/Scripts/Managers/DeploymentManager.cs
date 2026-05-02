@@ -299,10 +299,13 @@ namespace TacticalGame.Managers
             SetupUnitEquipment(newUnit, data);
 
             // Add PassiveRelicManager if not present so passive relics register
-            if (newUnit.GetComponent<PassiveRelicManager>() == null)
+            PassiveRelicManager passiveManager = newUnit.GetComponent<PassiveRelicManager>();
+            if (passiveManager == null)
             {
-                newUnit.AddComponent<PassiveRelicManager>();
+                passiveManager = newUnit.AddComponent<PassiveRelicManager>();
             }
+            // Re-register passives now that equipment is fully set up
+            passiveManager.RegisterPassiveEffects();
             
             // Setup card deck
             SetupCardDeck(newUnit);
@@ -351,6 +354,21 @@ namespace TacticalGame.Managers
                     equipment.EquipCategory(i, categoryRelic);
                     Debug.Log($"<color=cyan>  Slot {i}: {categoryRelic.category} - {categoryRelic.relicName}</color>");
                 }
+            }
+            
+            // Also transfer Ultimate (slot 5) and Passive (slot 6) if explicitly set on UnitData
+            // This overrides the auto-assigned defaults from Initialize()
+            EquippedRelic ultRelic = data.GetCategoryRelic(5);
+            if (ultRelic != null)
+            {
+                equipment.SetUltimateRelic(ultRelic);
+                Debug.Log($"<color=cyan>  Slot 5 (ULT): {ultRelic.relicName}</color>");
+            }
+            EquippedRelic passiveRelic = data.GetCategoryRelic(6);
+            if (passiveRelic != null)
+            {
+                equipment.SetPassiveRelic(passiveRelic);
+                Debug.Log($"<color=cyan>  Slot 6 (PAS): {passiveRelic.relicName}</color>");
             }
 
             // Log final equipment state
