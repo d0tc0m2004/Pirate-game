@@ -588,7 +588,7 @@ namespace TacticalGame.Managers
             backButton.onClick.AddListener(() => onBackClicked?.Invoke());
             
             // ==================== ROW 3 (Y=120): Role Equip Buttons ====================
-            int btnW = 120; int btnSp = 5; int numBtns = 8;
+            int btnW = 120; int btnSp = 5; int numBtns = 9;
             float rowW = numBtns * btnW + (numBtns - 1) * btnSp;
             float sx = -rowW / 2f + btnW / 2f;
 
@@ -647,6 +647,13 @@ namespace TacticalGame.Managers
             maRt.pivot = new Vector2(0.5f, 0); maRt.anchoredPosition = new Vector2(sx + 7 * (btnW + btnSp), 120);
             equipMAButton.onClick.AddListener(OnEquipMasterAtArms);
             equipMAButton.GetComponent<Image>().color = new Color(0.5f, 0.5f, 0.5f);
+
+            Button equipMGButton = CreateButton(equipmentPanel.transform, "EquipMasterGunnerButton", "Equip MG", new Vector2(btnW, 40));
+            RectTransform mgRt = equipMGButton.GetComponent<RectTransform>();
+            mgRt.anchorMin = new Vector2(0.5f, 0); mgRt.anchorMax = new Vector2(0.5f, 0);
+            mgRt.pivot = new Vector2(0.5f, 0); mgRt.anchoredPosition = new Vector2(sx + 8 * (btnW + btnSp), 120);
+            equipMGButton.onClick.AddListener(OnEquipMasterGunner);
+            equipMGButton.GetComponent<Image>().color = new Color(0.6f, 0.3f, 0.6f);
             
             // Generate pool
             GenerateCategoryRelicPool();
@@ -1289,6 +1296,7 @@ namespace TacticalGame.Managers
         private void OnEquipCook() => EquipRoleDeck(UnitRole.Cook);
         private void OnEquipSwashbuckler() => EquipRoleDeck(UnitRole.Swashbuckler);
         private void OnEquipMasterAtArms() => EquipRoleDeck(UnitRole.MasterAtArms);
+        private void OnEquipMasterGunner() => EquipRoleDeck(UnitRole.MasterGunner);
 
         private void EquipRoleDeck(UnitRole role)
         {

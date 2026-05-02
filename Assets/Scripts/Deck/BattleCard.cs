@@ -158,6 +158,9 @@ namespace TacticalGame.Equipment
                 // === MA auto-cast effects ===
                 case RelicEffectType.Totem_DisableEnemyWeapons:      // Applies to ALL enemies, no target
                 case RelicEffectType.Totem_V2_EarthquakeHazard:      // Random enemy tiles, no target
+                // === MG auto-cast effects ===
+                case RelicEffectType.Totem_SummonExplodingBarrels:    // Random enemy tiles, no target
+                case RelicEffectType.Totem_CurseRangedWeapons:       // Applies to ALL enemies, no target
                     return CardTargetType.None;
 
                 // === Auto-cast / Random Target Effects (No UI Target Prompt) ===

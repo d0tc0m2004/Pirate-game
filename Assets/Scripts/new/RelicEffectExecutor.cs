@@ -527,7 +527,7 @@ namespace TacticalGame.Equipment
                     {
                         ExecuteAttack(caster, target);
                         ApplyStun(target, effect.duration);
-                        StunNearbyEnemies(target, effect.duration, 1);
+                        StunNearbyEnemies(caster, target, effect.duration, 1);
                     }
                     break;
                     
@@ -2260,8 +2260,26 @@ namespace TacticalGame.Equipment
         
         private static void ApplyReduceRangedCost(UnitStatus unit, int reduction)
         {
-            var effects = GetStatusEffects(unit);
-            effects?.ApplyEffect(StatusEffect.CreateReduceNextRangedCost(1, reduction, null));
+            var deckManager = BattleDeckManager.Instance;
+            if (deckManager == null) return;
+            
+            var hand = deckManager.Hand;
+            int reduced = 0;
+            foreach (var card in hand)
+            {
+                // Reduce cost of ANY ranged weapon card in hand
+                if (card.IsWeaponCard && card.ownerUnit != null && 
+                    card.ownerUnit.WeaponType == WeaponType.Ranged)
+                {
+                    if (card.originalEnergyCost < 0) // Not already reduced
+                        card.originalEnergyCost = card.energyCost;
+                    card.energyCost = Mathf.Max(0, card.energyCost - reduction);
+                    reduced++;
+                    Debug.Log($"<color=cyan>Boots V2: Reduced {card.GetDisplayName()} cost to {card.energyCost}</color>");
+                }
+            }
+            if (reduced > 0)
+                Debug.Log($"<color=cyan>Boots V2: Reduced cost of {reduced} ranged weapon cards by {reduction}</color>");
         }
         
         private static void ApplyFreeMove(UnitStatus unit)
@@ -2284,8 +2302,12 @@ namespace TacticalGame.Equipment
         
         private static void ApplyWeaponUseTwice(UnitStatus unit, int duration)
         {
-            var effects = GetStatusEffects(unit);
-            effects?.ApplyEffect(StatusEffect.CreateWeaponUseTwice(duration, null));
+            var deckManager = BattleDeckManager.Instance;
+            if (deckManager != null)
+            {
+                deckManager.weaponUseTwiceActive = true;
+                Debug.Log($"<color=magenta>Hat V1: Next weapon relic is FREE and stays in hand!</color>");
+            }
         }
         
         private static void ApplyDrawOnEnemyAttack(UnitStatus unit, int duration)
@@ -2308,8 +2330,12 @@ namespace TacticalGame.Equipment
         
         private static void ApplyFreeStows(UnitStatus unit, int count)
         {
-            var effects = GetStatusEffects(unit);
-            effects?.ApplyEffect(StatusEffect.CreateFreeStows(99, count, null));
+            var deckManager = BattleDeckManager.Instance;
+            if (deckManager != null)
+            {
+                deckManager.freeStowsRemaining += count;
+                Debug.Log($"<color=cyan>Coat V1: Next {count} stows are FREE! Total free stows: {deckManager.freeStowsRemaining}</color>");
+            }
         }
         
         private static void ApplyFreeRumUsage(UnitStatus unit, int count)
@@ -2442,11 +2468,22 @@ namespace TacticalGame.Equipment
             }
         }
         
-        private static void StunNearbyEnemies(UnitStatus center, int duration, int range)
+        private static void StunNearbyEnemies(UnitStatus caster, UnitStatus center, int duration, int range)
         {
-            foreach (var enemy in GetEnemiesInRange(center, range))
+            // Find enemies of CASTER that are near CENTER's position
+            var gridManager = ServiceLocator.Get<GridManager>();
+            if (gridManager == null) return;
+            
+            Vector2Int centerPos = gridManager.WorldToGridPosition(center.transform.position);
+            foreach (var enemy in GetEnemies(caster))
             {
-                ApplyStun(enemy, duration);
+                if (enemy == center) continue; // Already stunned directly
+                Vector2Int enemyPos = gridManager.WorldToGridPosition(enemy.transform.position);
+                int distance = Mathf.Max(Mathf.Abs(centerPos.x - enemyPos.x), Mathf.Abs(centerPos.y - enemyPos.y));
+                if (distance <= range)
+                {
+                    ApplyStun(enemy, duration);
+                }
             }
         }
         
@@ -2740,9 +2777,39 @@ namespace TacticalGame.Equipment
         private static void SummonExplodingBarrels(UnitStatus caster, int count, int delay)
         {
             var hazardManager = ServiceLocator.Get<HazardManager>();
-            if (hazardManager == null) return;
+            var gridManager = ServiceLocator.Get<GridManager>();
+            if (hazardManager == null || gridManager == null) return;
 
-            var emptyCells = hazardManager.FindEmptyCellsNear(caster.transform.position, count, 4);
+            // Find empty cells on the ENEMY side
+            int middleCol = gridManager.GetMiddleColumnIndex();
+            bool isPlayer = caster.Team == Team.Player;
+            var emptyCells = new List<GridCell>();
+
+            for (int x = 0; x < gridManager.GridWidth; x++)
+            {
+                // Player's enemies are on the right side (x > middleCol), enemy's enemies on left
+                bool isEnemySide = isPlayer ? (x > middleCol) : (x < middleCol);
+                if (!isEnemySide) continue;
+
+                for (int y = 0; y < gridManager.GridHeight; y++)
+                {
+                    var cell = gridManager.GetCell(x, y);
+                    if (cell != null && !cell.IsOccupied && !cell.IsBlocked && !cell.HasHazard && !cell.IsMiddleColumn)
+                    {
+                        emptyCells.Add(cell);
+                    }
+                }
+            }
+
+            // Shuffle and pick 'count' cells
+            for (int i = emptyCells.Count - 1; i > 0; i--)
+            {
+                int j = UnityEngine.Random.Range(0, i + 1);
+                var temp = emptyCells[i];
+                emptyCells[i] = emptyCells[j];
+                emptyCells[j] = temp;
+            }
+
             int placed = 0;
             foreach (var cell in emptyCells)
             {
@@ -2750,6 +2817,7 @@ namespace TacticalGame.Equipment
                 var barrel = hazardManager.CreateExplodingBarrel(cell, 150, delay);
                 if (barrel != null) placed++;
             }
+            Debug.Log($"<color=orange>MG Totem: Spawned {placed} exploding barrels on enemy side</color>");
         }
 
         private static void SummonHardObstacles(UnitStatus caster, int count, int duration)

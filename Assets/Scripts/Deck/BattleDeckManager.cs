@@ -6,6 +6,7 @@ using TacticalGame.Units;
 using TacticalGame.Core;
 using TacticalGame.Grid;
 using TacticalGame.Managers;
+using TacticalGame.Combat;
 
 namespace TacticalGame.Equipment
 {
@@ -84,6 +85,12 @@ namespace TacticalGame.Equipment
         // Hat V1 persistent ultimate cost reduction
         public bool ultimateCostReductionActive = false;
         public int ultimateCostReductionAmount = 0;
+        
+        // MG Coat V1: Free stows remaining this turn
+        public int freeStowsRemaining = 0;
+        
+        // MG Hat V1: Next weapon use is free and card stays in hand
+        public bool weaponUseTwiceActive = false;
         
         #endregion
         
@@ -237,6 +244,21 @@ namespace TacticalGame.Equipment
         public void ConsumeCard(BattleCard card)
         {
             if (card == null || !hand.Contains(card)) return; // Safety check
+
+            // === WEAPON USE TWICE CHECK ===
+            // If this is a weapon/gloves card and weaponUseTwice is active, make it free and keep in hand
+            if ((card.IsWeaponCard || card.category == RelicCategory.Gloves) && weaponUseTwiceActive)
+            {
+                // First use: free, card stays in hand
+                weaponUseTwiceActive = false;
+                Debug.Log($"<color=magenta>Hat V1: Weapon used for FREE and stays in hand! {card.GetDisplayName()}</color>");
+                
+                // Don't spend energy, don't remove from hand
+                selectedCard = null;
+                OnCardPlayed?.Invoke(card);
+                OnHandChanged?.Invoke(hand);
+                return; // Skip normal consumption
+            }
 
             // 1. Spend the Energy
             var energyManager = ServiceLocator.Get<EnergyManager>();
@@ -529,6 +551,10 @@ namespace TacticalGame.Equipment
                     card.originalEnergyCost = -1;
                 }
             }
+            
+            // Reset turn-scoped flags
+            freeStowsRemaining = 0;
+            weaponUseTwiceActive = false;
 
             var toDiscard = hand.Where(c => !c.isStowed).ToList();
             
@@ -584,7 +610,11 @@ namespace TacticalGame.Equipment
             
             // Validate energy (Check only, DO NOT SPEND YET)
             var energyManager = ServiceLocator.Get<EnergyManager>();
-            if (!energyManager.HasEnergy(card.energyCost)) return false;
+            
+            // Check if weapon card has free use via WeaponUseTwice
+            bool hasFreeUse = weaponUseTwiceActive && (card.IsWeaponCard || card.category == RelicCategory.Gloves);
+            
+            if (!hasFreeUse && !energyManager.HasEnergy(card.energyCost)) return false;
 
             // Start the execution/targeting phase
             ExecuteCard(card, target, targetCell); 
@@ -719,19 +749,32 @@ namespace TacticalGame.Equipment
             }
             
             var energyManager = ServiceLocator.Get<EnergyManager>();
-            if (!energyManager.HasEnergy(stowCost))
+            
+            // Check if free stows are available (from Coat_FreeStow)
+            bool freeStow = false;
+            if (freeStowsRemaining > 0)
             {
-                Debug.Log("Not enough energy to stow!");
-                return false;
+                freeStow = true;
+                freeStowsRemaining--;
+                Debug.Log($"<color=cyan>Free stow used! Remaining: {freeStowsRemaining}</color>");
             }
             
-            energyManager.TrySpendEnergy(stowCost);
+            if (!freeStow)
+            {
+                if (!energyManager.HasEnergy(stowCost))
+                {
+                    Debug.Log("Not enough energy to stow!");
+                    return false;
+                }
+                energyManager.TrySpendEnergy(stowCost);
+            }
+            
             card.isStowed = true;
             
             OnCardStowed?.Invoke(card);
             OnHandChanged?.Invoke(hand);
             
-            Debug.Log($"<color=blue>Stowed: {card.GetDisplayName()}</color>");
+            Debug.Log($"<color=blue>Stowed: {card.GetDisplayName()}{(freeStow ? " (FREE)" : "")}</color>");
             
             return true;
         }

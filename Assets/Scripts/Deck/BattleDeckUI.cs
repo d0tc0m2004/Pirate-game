@@ -1072,6 +1072,7 @@ namespace TacticalGame.Equipment
             }
             else
             {
+                ClearTileHighlights();
                 manager.PlayCard(card);
                 ClearTileHighlights();
                 DeselectCard();

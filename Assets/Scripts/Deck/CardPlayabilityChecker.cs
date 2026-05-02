@@ -5,6 +5,8 @@ using TacticalGame.Enums;
 using TacticalGame.Grid;
 using TacticalGame.Managers;
 using TacticalGame.Units;
+using TacticalGame.Combat;
+using System.Linq;
 
 namespace TacticalGame.Equipment
 {
@@ -57,6 +59,13 @@ namespace TacticalGame.Equipment
             if (card.effectType == RelicEffectType.Boots_FreeIfGrog && energyManager != null && energyManager.GrogTokens > 0)
             {
                 hasEnergy = true;
+            }
+            
+            // WeaponUseTwice: weapon/gloves cards are free when the buff is active
+            if (!hasEnergy && (card.IsWeaponCard || card.category == RelicCategory.Gloves))
+            {
+                if (BattleDeckManager.Instance != null && BattleDeckManager.Instance.weaponUseTwiceActive)
+                    hasEnergy = true;
             }
             // Per-effect conditions
             string effectReason = CheckEffectCondition(card);
