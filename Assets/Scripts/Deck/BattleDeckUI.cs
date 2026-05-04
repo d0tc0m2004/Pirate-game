@@ -1351,7 +1351,10 @@ namespace TacticalGame.Equipment
             }
             else
             {
-                UpdateTargetingPrompt(GetTargetingPrompt(card));
+                if (card.effectType == RelicEffectType.Totem_V2_PullNearbyToRow)
+                    UpdateTargetingPrompt($"Place totem on an enemy tile — enemies in 1-tile radius will be pulled to its row");
+                else
+                    UpdateTargetingPrompt(GetTargetingPrompt(card));
                 HighlightValidTargets(card);
             }
         }
@@ -1608,6 +1611,20 @@ namespace TacticalGame.Equipment
                                 var c = gridManager.GetCell(x, y);
                                 if (c == null || c.HasHazard || c.IsMiddleColumn) continue;
                                 result.Add(c);
+                            }
+                        }
+                    }
+                    // Deckhand Totem V2: Only empty enemy-side tiles
+                    else if (card.effectType == RelicEffectType.Totem_V2_PullNearbyToRow)
+                    {
+                        int middleCol2 = gridManager.GetMiddleColumnIndex();
+                        for (int x = middleCol2 + 1; x < gridManager.GridWidth; x++)
+                        {
+                            for (int y = 0; y < gridManager.GridHeight; y++)
+                            {
+                                var c = gridManager.GetCell(x, y);
+                                if (c != null && !c.IsOccupied && !c.HasHazard)
+                                    result.Add(c);
                             }
                         }
                     }

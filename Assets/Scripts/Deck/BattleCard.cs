@@ -147,6 +147,10 @@ namespace TacticalGame.Equipment
                     return CardTargetType.Ally;
 
 
+                // === Deckhand Totem V2: Player picks enemy tile ===
+                case RelicEffectType.Totem_V2_PullNearbyToRow:
+                    return CardTargetType.Tile;
+
                 // === Instant / Random effects ===
                 case RelicEffectType.Totem_V2_DisableEnemyPassives:
                 case RelicEffectType.Totem_SummonInvisibleTraps:
@@ -167,7 +171,6 @@ namespace TacticalGame.Equipment
                 case RelicEffectType.Coat_HullBonusDamage:           // Self + nearby allies, no target
                 case RelicEffectType.Coat_V2_BuffTileDamageExchange:  // Random tile, no target
                 case RelicEffectType.Totem_CreateSoftObstacles:      // Random tiles, no target
-                case RelicEffectType.Totem_V2_PullNearbyToRow:       // Nearby enemies, no target
                 case RelicEffectType.Ultimate_V2_ClearHazardsPlayerSide: // All player side, no target
                     return CardTargetType.None;
 

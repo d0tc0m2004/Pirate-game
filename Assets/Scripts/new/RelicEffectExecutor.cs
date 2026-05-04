@@ -1509,6 +1509,12 @@ namespace TacticalGame.Equipment
                                     ApplyVulnerable(unit, effect.value1, effect.duration);
                                     var effects6 = GetStatusEffects(unit);
                                     effects6?.ApplyEffect(StatusEffect.CreateDamageBoost(effect.duration, effect.value2, null));
+                                    
+                                    // Paint the tile green permanently so the player can see it
+                                    var cellRenderer = randomCell.GetComponent<Renderer>();
+                                    if (cellRenderer != null)
+                                        cellRenderer.material.color = new Color(0.2f, 0.85f, 0.3f, 1f); // Bright green
+                                    
                                     Debug.Log($"<color=cyan>Buffed tile at ({randomCell.XPosition},{randomCell.YPosition}): {unit.UnitName} takes +{effect.value1 * 100}% dmg, deals +{effect.value2 * 100}% dmg</color>");
                                 }
                             }
@@ -1523,7 +1529,7 @@ namespace TacticalGame.Equipment
                     break;
                 case RelicEffectType.Totem_CreateSoftObstacles:
                     {
-                        // Create 2 soft obstacles in random empty tiles
+                        // Create 2 soft obstacles in random empty tiles (auto-cast)
                         var hazardMgr2 = ServiceLocator.Get<HazardManager>();
                         var gridMgr2 = ServiceLocator.Get<GridManager>();
                         if (hazardMgr2 != null && gridMgr2 != null)
@@ -1551,29 +1557,77 @@ namespace TacticalGame.Equipment
                     break;
                 case RelicEffectType.Totem_V2_PullNearbyToRow:
                     {
-                        // Pull all nearby enemies to the same row as caster
-                        var gridMgr3 = ServiceLocator.Get<GridManager>();
-                        if (gridMgr3 != null)
+                        // Player selected an enemy-side tile — spawn a cube there and pull nearby enemies to its row
+                        var gridMgrT = ServiceLocator.Get<GridManager>();
+                        if (gridMgrT != null && targetCell != null)
                         {
-                            Vector2Int casterPos = gridMgr3.WorldToGridPosition(caster.transform.position);
-                            int casterRow = casterPos.y;
-                            var nearbyEnemies2 = GetEnemiesInRange(caster, effect.tileRange);
-                            foreach (var enemy in nearbyEnemies2)
+                            // 1. Spawn a cube (soft obstacle) at the selected tile
+                            var hazardMgrT = ServiceLocator.Get<HazardManager>();
+                            if (hazardMgrT != null)
                             {
-                                Vector2Int enemyPos = gridMgr3.WorldToGridPosition(enemy.transform.position);
-                                if (enemyPos.y == casterRow) continue; // Already same row
+                                hazardMgrT.CreateSoftObstacle(targetCell, 80, 99);
+                                Debug.Log($"<color=cyan>Deckhand Totem V2 placed at ({targetCell.XPosition},{targetCell.YPosition})</color>");
+                            }
+                            
+                            // 2. Find all enemies within 1-tile radius of the totem
+                            int totemX = targetCell.XPosition;
+                            int totemY = targetCell.YPosition;
+                            var allEnemies = Object.FindObjectsByType<UnitStatus>(FindObjectsSortMode.None);
+                            var nearbyEnemies = new System.Collections.Generic.List<UnitStatus>();
+                            
+                            foreach (var enemy in allEnemies)
+                            {
+                                if (enemy == null || enemy.Team == caster.Team || enemy.HasSurrendered || enemy.CurrentHP <= 0) continue;
+                                Vector2Int ePos = gridMgrT.WorldToGridPosition(enemy.transform.position);
+                                int dist = Mathf.Max(Mathf.Abs(ePos.x - totemX), Mathf.Abs(ePos.y - totemY)); // Chebyshev
+                                if (dist <= 1 && dist > 0)
+                                    nearbyEnemies.Add(enemy);
+                            }
+                            
+                            // 3. Pull each nearby enemy to the totem's row
+                            foreach (var enemy in nearbyEnemies)
+                            {
+                                Vector2Int ePos = gridMgrT.WorldToGridPosition(enemy.transform.position);
+                                if (ePos.y == totemY) continue; // Already on same row
                                 
-                                // Find empty tile in same row at enemy's column
-                                var targetTile = gridMgr3.GetCell(enemyPos.x, casterRow);
-                                if (targetTile != null && targetTile.CanPlaceUnit() && !targetTile.IsMiddleColumn)
+                                // Try same column, totem's row first
+                                GridCell dest = gridMgrT.GetCell(ePos.x, totemY);
+                                if (dest == null || !dest.CanPlaceUnit() || dest.IsMiddleColumn)
                                 {
-                                    var fromCell = gridMgr3.GetCell(enemyPos.x, enemyPos.y);
+                                    // Fallback: find nearest empty tile to the totem
+                                    dest = null;
+                                    int bestDist = int.MaxValue;
+                                    for (int sx = 0; sx < gridMgrT.GridWidth; sx++)
+                                    {
+                                        for (int sy = 0; sy < gridMgrT.GridHeight; sy++)
+                                        {
+                                            var candidate = gridMgrT.GetCell(sx, sy);
+                                            if (candidate == null || !candidate.CanPlaceUnit() || candidate.IsMiddleColumn) continue;
+                                            int d = Mathf.Abs(sx - totemX) + Mathf.Abs(sy - totemY);
+                                            if (d < bestDist)
+                                            {
+                                                bestDist = d;
+                                                dest = candidate;
+                                            }
+                                        }
+                                    }
+                                }
+                                
+                                if (dest != null)
+                                {
+                                    var fromCell = gridMgrT.GetCell(ePos.x, ePos.y);
                                     fromCell?.RemoveUnit();
-                                    targetTile.PlaceUnit(enemy.gameObject);
-                                    enemy.transform.position = targetTile.GetWorldPosition();
-                                    Debug.Log($"<color=cyan>Pulled {enemy.UnitName} to row {casterRow}</color>");
+                                    dest.PlaceUnit(enemy.gameObject);
+                                    enemy.transform.position = dest.GetWorldPosition();
+                                    Debug.Log($"<color=cyan>Pulled {enemy.UnitName} to ({dest.XPosition},{dest.YPosition})</color>");
                                 }
                             }
+                            
+                            Debug.Log($"<color=cyan>Totem V2: Pulled {nearbyEnemies.Count} enemies toward row {totemY}</color>");
+                        }
+                        else
+                        {
+                            Debug.LogWarning("Totem V2: No target cell provided!");
                         }
                     }
                     break;

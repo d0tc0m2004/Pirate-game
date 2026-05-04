@@ -6,6 +6,7 @@ using TacticalGame.Core;
 using TacticalGame.Combat;
 using TacticalGame.Grid;
 using TacticalGame.Equipment;
+using TacticalGame.UI;
 
 namespace TacticalGame.Units
 {
@@ -325,6 +326,15 @@ namespace TacticalGame.Units
                       $"<b>Morale Lost: {result.FinalMoraleDamage}</b>  [{result.MoraleBreakdown}]");
 
             RecordDamageHistory($"Took {finalHPDamage} HP dmg from {attackerName}");
+
+            // Floating damage popups
+            Vector3 popPos = transform.position;
+            if (finalHPDamage > 0)
+                DamagePopup.Create(popPos, finalHPDamage, PopupType.Damage);
+            if (hullAbsorbed > 0)
+                DamagePopup.Create(popPos + Vector3.right * 0.4f, hullAbsorbed, PopupType.HullDamage);
+            if (result.FinalMoraleDamage > 0)
+                DamagePopup.Create(popPos + Vector3.left * 0.4f, result.FinalMoraleDamage, PopupType.MoraleDamage);
             
             // Reduce curse charges
             if (curseCharges > 0) curseCharges--;
@@ -356,6 +366,9 @@ namespace TacticalGame.Units
 
             Debug.Log($"<color=orange>{gameObject.name} took {flatDamage} environmental damage from {sourceName}. HP: {currentHP}/{maxHP}</color>");
 
+            // Floating damage popup
+            DamagePopup.Create(transform.position, flatDamage, PopupType.Environmental);
+
             // Fire event
             GameEvents.TriggerUnitDamaged(gameObject, flatDamage);
 
@@ -382,6 +395,9 @@ namespace TacticalGame.Units
             RecordDamageHistory($"Lost {amount} Morale from {sourceName}");
 
             Debug.Log($"<color=yellow>{gameObject.name} lost {amount} morale from {sourceName}. Morale: {currentMorale}/{maxMorale}</color>");
+
+            // Floating morale popup
+            DamagePopup.Create(transform.position, amount, PopupType.MoraleDamage);
 
             GameEvents.TriggerMoraleDamaged(gameObject, amount);
             // NOTE: No CheckSurrenderCondition() — environmental morale damage
@@ -479,6 +495,7 @@ namespace TacticalGame.Units
             
             if (actualHeal > 0)
             {
+                DamagePopup.Create(transform.position, actualHeal, PopupType.Heal);
                 GameEvents.TriggerUnitHealed(gameObject, actualHeal);
             }
         }
