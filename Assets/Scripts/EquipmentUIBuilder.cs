@@ -661,6 +661,13 @@ namespace TacticalGame.Managers
             navRt.pivot = new Vector2(0.5f, 0); navRt.anchoredPosition = new Vector2(sx + 9 * (btnW + btnSp), 120);
             equipNavButton.onClick.AddListener(OnEquipNavigator);
             equipNavButton.GetComponent<Image>().color = new Color(0.2f, 0.6f, 0.6f);
+
+            Button equipDHButton = CreateButton(equipmentPanel.transform, "EquipDeckhandButton", "Equip DH", new Vector2(btnW, 40));
+            RectTransform dhRt = equipDHButton.GetComponent<RectTransform>();
+            dhRt.anchorMin = new Vector2(0.5f, 0); dhRt.anchorMax = new Vector2(0.5f, 0);
+            dhRt.pivot = new Vector2(0.5f, 0); dhRt.anchoredPosition = new Vector2(sx + 10 * (btnW + btnSp), 120);
+            equipDHButton.onClick.AddListener(OnEquipDeckhand);
+            equipDHButton.GetComponent<Image>().color = new Color(0.5f, 0.4f, 0.25f);
             
             // Generate pool
             GenerateCategoryRelicPool();
@@ -1305,6 +1312,7 @@ namespace TacticalGame.Managers
         private void OnEquipMasterAtArms() => EquipRoleDeck(UnitRole.MasterAtArms);
         private void OnEquipMasterGunner() => EquipRoleDeck(UnitRole.MasterGunner);
         private void OnEquipNavigator() => EquipRoleDeck(UnitRole.Navigator);
+        private void OnEquipDeckhand() => EquipRoleDeck(UnitRole.Deckhand);
 
         private void EquipRoleDeck(UnitRole role)
         {

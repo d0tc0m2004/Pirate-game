@@ -255,6 +255,17 @@ namespace TacticalGame.Equipment
                 unitStatus.Heal(heal);
                 Debug.Log($"<color=cyan>{gameObject.name}: Healed {heal} at turn end</color>");
             }
+            
+            // Trinket_HullFullRegen - Deckhand V1: If hull not fully destroyed, restore to full
+            if (HasPassive(RelicEffectType.Trinket_HullFullRegen))
+            {
+                if (unitStatus.CurrentHullPool > 0 && unitStatus.CurrentHullPool < unitStatus.MaxHullPool)
+                {
+                    int restored = unitStatus.MaxHullPool - unitStatus.CurrentHullPool;
+                    unitStatus.RestoreHull(restored);
+                    Debug.Log($"<color=cyan>{gameObject.name}: Hull fully regenerated! (+{restored})</color>");
+                }
+            }
         }
 
         private void OnRoundStart(int round)
@@ -324,6 +335,40 @@ namespace TacticalGame.Equipment
                 {
                     unitStatus.Heal(1); // Survive at 1 HP
                     Debug.Log($"<color=yellow>{gameObject.name}: Last Stand triggered! Survived at 1 HP</color>");
+                }
+            }
+            
+            // ==================== DECKHAND HULL PASSIVES ====================
+            
+            // Trinket_V2_HullDiscardOnSurvive - Deckhand: if hull survives attack, discard enemy card
+            if (HasPassive(RelicEffectType.Trinket_V2_HullDiscardOnSurvive))
+            {
+                if (unitStatus.CurrentHullPool > 0)
+                {
+                    // Hull survived! Discard a random enemy card
+                    var enemyDecks = Object.FindObjectsByType<CardDeckManager>(FindObjectsSortMode.None);
+                    foreach (var deck in enemyDecks)
+                    {
+                        var deckUnit = deck.GetComponent<UnitStatus>();
+                        if (deckUnit != null && deckUnit.Team == Team.Enemy)
+                        {
+                            deck.DiscardRandomCard();
+                            Debug.Log($"<color=cyan>{gameObject.name}: Hull survived! Discarded enemy card from {deckUnit.UnitName}</color>");
+                            break;
+                        }
+                    }
+                }
+            }
+            
+            // PassiveUnique_HullDestroyedRestoreHealth - Deckhand: when hull destroyed, restore health
+            if (HasPassive(RelicEffectType.PassiveUnique_HullDestroyedRestoreHealth))
+            {
+                // Check if hull was just destroyed (was > 0 before damage)
+                if (unitStatus.CurrentHullPool <= 0)
+                {
+                    int healAmount = Mathf.RoundToInt(unitStatus.MaxHP * 0.20f); // 20% HP restore
+                    unitStatus.Heal(healAmount);
+                    Debug.Log($"<color=cyan>{gameObject.name}: Hull destroyed! Restored {healAmount} health</color>");
                 }
             }
         }
@@ -589,11 +634,11 @@ namespace TacticalGame.Equipment
                 bonus += 0.2f; // +20% vs low HP
             }
 
-            // PassiveUnique_BonusDmgPerHullDestroyed - not in current enum
-            // if (HasPassive(RelicEffectType.PassiveUnique_BonusDmgPerHullDestroyed))
-            // {
-            //     bonus += hullsDestroyedThisGame * 0.3f; // +30% per hull destroyed
-            // }
+            // PassiveUnique_V2_HullDestroyedDamageBonus - Deckhand V2
+            if (HasPassive(RelicEffectType.PassiveUnique_V2_HullDestroyedDamageBonus))
+            {
+                bonus += hullsDestroyedThisGame * 0.3f; // +30% per hull destroyed
+            }
 
             // Trinket_RowEnemiesTakeMore - Deckhand V1
             if (HasPassive(RelicEffectType.Trinket_RowEnemiesTakeMore) && 
@@ -923,9 +968,7 @@ namespace TacticalGame.Equipment
         /// </summary>
         public bool ShouldDiscardOnHullSurvive()
         {
-            // Trinket_HullRegenOnSurvive not in current enum
-            // return HasPassive(RelicEffectType.Trinket_HullRegenOnSurvive);
-            return false;
+            return HasPassive(RelicEffectType.Trinket_V2_HullDiscardOnSurvive);
         }
 
         #endregion

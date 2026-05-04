@@ -1408,6 +1408,7 @@ namespace TacticalGame.Equipment
                 case RelicEffectType.Boots_V2_MoveRestoreHull:
                     ExecuteMove(caster, targetCell, (int)effect.value1);
                     caster.RestoreHull((int)effect.value2);
+                    Debug.Log($"{caster.UnitName} restored {(int)effect.value2} hull");
                     break;
                 case RelicEffectType.Gloves_AttackDrawOnHullDestroyed:
                     if (target != null)
@@ -1417,6 +1418,7 @@ namespace TacticalGame.Equipment
                         if (target.CurrentHullPool <= 0 && hullBefore > 0)
                         {
                             DrawCards(caster, 1);
+                            Debug.Log($"<color=cyan>Hull destroyed! Drawing 1 card</color>");
                         }
                     }
                     break;
@@ -1429,46 +1431,86 @@ namespace TacticalGame.Equipment
                         {
                             var energyMgr = ServiceLocator.Get<EnergyManager>();
                             energyMgr?.TrySpendEnergy(-1);
+                            Debug.Log($"<color=cyan>Hull destroyed! Gained 1 energy</color>");
                         }
                     }
                     break;
                 case RelicEffectType.Hat_NearbyHullIncrease:
                     {
+                        // Increase hull for self AND nearby allies in 1 tile radius
                         var nearbyAllies3 = GetAlliesInRange(caster, effect.tileRange);
+                        nearbyAllies3.Add(caster); // Include self
                         foreach (var ally in nearbyAllies3)
                         {
-                            ally.RestoreHull(Mathf.RoundToInt(ally.MaxHullPool * effect.value1));
+                            int hullBoost = Mathf.RoundToInt(ally.MaxHullPool * effect.value1);
+                            ally.RestoreHull(hullBoost);
+                            Debug.Log($"<color=cyan>{ally.UnitName} hull increased by {hullBoost} (+{effect.value1 * 100}%)</color>");
                         }
                     }
                     break;
                 case RelicEffectType.Hat_V2_DestroyObstaclesGainHull:
                     {
-                        caster.RestoreHull(Mathf.RoundToInt(caster.MaxHullPool * effect.value1));
+                        // Destroy ALL soft obstacles, gain +20% hull per obstacle
+                        var hazardMgr = ServiceLocator.Get<HazardManager>();
+                        if (hazardMgr != null)
+                        {
+                            int destroyed = hazardMgr.DestroyAllSoftObstacles();
+                            if (destroyed > 0)
+                            {
+                                int hullGain = Mathf.RoundToInt(caster.MaxHullPool * effect.value2 * destroyed);
+                                caster.RestoreHull(hullGain);
+                                Debug.Log($"<color=cyan>{caster.UnitName} destroyed {destroyed} obstacles, gained {hullGain} hull</color>");
+                            }
+                            else
+                            {
+                                Debug.Log($"<color=yellow>No soft obstacles to destroy</color>");
+                            }
+                        }
                     }
                     break;
                 case RelicEffectType.Coat_HullBonusDamage:
                     {
-                        float hullBonus = caster.CurrentHullPool * effect.value1;
+                        // Bonus weapon damage = 50% of hull shield for self and nearby allies
+                        float hullDmgBonus = caster.CurrentHullPool * effect.value2; // value2 = 0.50
                         var nearbyAllies4 = GetAlliesInRange(caster, effect.tileRange);
                         nearbyAllies4.Add(caster);
                         foreach (var ally in nearbyAllies4)
                         {
                             var effects5 = GetStatusEffects(ally);
-                            effects5?.ApplyEffect(StatusEffect.CreateDamageBoost(effect.duration, hullBonus / 100f, null));
+                            // Apply as flat damage bonus via DamageBoost (value represents flat bonus / base damage)
+                            float bonusPercent = ally.MaxHullPool > 0 ? hullDmgBonus / 100f : 0f;
+                            effects5?.ApplyEffect(StatusEffect.CreateDamageBoost(effect.duration, bonusPercent, caster.gameObject));
+                            Debug.Log($"<color=cyan>{ally.UnitName} gained +{hullDmgBonus:F0} weapon damage from hull</color>");
                         }
                     }
                     break;
                 case RelicEffectType.Coat_V2_BuffTileDamageExchange:
-                    if (targetCell != null)
                     {
-                        if (targetCell.IsOccupied && targetCell.OccupyingUnit != null)
+                        // Buff a random occupied tile - unit takes 15% more damage and does 15% more
+                        var gridMgr = ServiceLocator.Get<GridManager>();
+                        if (gridMgr != null)
                         {
-                            var unit = targetCell.OccupyingUnit.GetComponent<UnitStatus>();
-                            if (unit != null)
+                            var occupiedCells = new List<GridCell>();
+                            for (int x = 0; x < gridMgr.GridWidth; x++)
                             {
-                                ApplyVulnerable(unit, effect.value1, effect.duration);
-                                var effects6 = GetStatusEffects(unit);
-                                effects6?.ApplyEffect(StatusEffect.CreateDamageBoost(effect.duration, effect.value1, null));
+                                for (int y = 0; y < gridMgr.GridHeight; y++)
+                                {
+                                    var c = gridMgr.GetCell(x, y);
+                                    if (c != null && c.IsOccupied && c.OccupyingUnit != null && !c.IsMiddleColumn)
+                                        occupiedCells.Add(c);
+                                }
+                            }
+                            if (occupiedCells.Count > 0)
+                            {
+                                var randomCell = occupiedCells[Random.Range(0, occupiedCells.Count)];
+                                var unit = randomCell.OccupyingUnit.GetComponent<UnitStatus>();
+                                if (unit != null)
+                                {
+                                    ApplyVulnerable(unit, effect.value1, effect.duration);
+                                    var effects6 = GetStatusEffects(unit);
+                                    effects6?.ApplyEffect(StatusEffect.CreateDamageBoost(effect.duration, effect.value2, null));
+                                    Debug.Log($"<color=cyan>Buffed tile at ({randomCell.XPosition},{randomCell.YPosition}): {unit.UnitName} takes +{effect.value1 * 100}% dmg, deals +{effect.value2 * 100}% dmg</color>");
+                                }
                             }
                         }
                     }
@@ -1481,57 +1523,91 @@ namespace TacticalGame.Equipment
                     break;
                 case RelicEffectType.Totem_CreateSoftObstacles:
                     {
-                        var gridManager3 = ServiceLocator.Get<GridManager>();
-                        if (gridManager3 != null)
+                        // Create 2 soft obstacles in random empty tiles
+                        var hazardMgr2 = ServiceLocator.Get<HazardManager>();
+                        var gridMgr2 = ServiceLocator.Get<GridManager>();
+                        if (hazardMgr2 != null && gridMgr2 != null)
                         {
-                            int placed2 = 0;
-                            for (int attempt = 0; attempt < 20 && placed2 < (int)effect.value1; attempt++)
+                            int toPlace = (int)effect.value1; // 2
+                            int placed = 0;
+                            for (int attempt = 0; attempt < 30 && placed < toPlace; attempt++)
                             {
-                                int x = Random.Range(0, 8);
-                                int y = Random.Range(0, 8);
-                                var cell = gridManager3.GetCell(x, y);
-                                if (cell != null && !cell.IsOccupied)
+                                int x = Random.Range(0, gridMgr2.GridWidth);
+                                int y = Random.Range(0, gridMgr2.GridHeight);
+                                var cell = gridMgr2.GetCell(x, y);
+                                if (cell != null && !cell.IsOccupied && !cell.HasHazard && !cell.IsMiddleColumn)
                                 {
-                                    placed2++;
+                                    var obstacle = hazardMgr2.CreateSoftObstacle(cell, 50, 99);
+                                    if (obstacle != null)
+                                    {
+                                        placed++;
+                                        Debug.Log($"<color=cyan>Created soft obstacle at ({x},{y})</color>");
+                                    }
                                 }
                             }
+                            Debug.Log($"<color=cyan>Created {placed}/{toPlace} soft obstacles</color>");
                         }
                     }
                     break;
                 case RelicEffectType.Totem_V2_PullNearbyToRow:
                     {
-                        var nearbyEnemies2 = GetEnemiesInRange(caster, effect.tileRange);
-                        foreach (var enemy in nearbyEnemies2)
+                        // Pull all nearby enemies to the same row as caster
+                        var gridMgr3 = ServiceLocator.Get<GridManager>();
+                        if (gridMgr3 != null)
                         {
-                            PullUnit(caster, enemy, 1);
+                            Vector2Int casterPos = gridMgr3.WorldToGridPosition(caster.transform.position);
+                            int casterRow = casterPos.y;
+                            var nearbyEnemies2 = GetEnemiesInRange(caster, effect.tileRange);
+                            foreach (var enemy in nearbyEnemies2)
+                            {
+                                Vector2Int enemyPos = gridMgr3.WorldToGridPosition(enemy.transform.position);
+                                if (enemyPos.y == casterRow) continue; // Already same row
+                                
+                                // Find empty tile in same row at enemy's column
+                                var targetTile = gridMgr3.GetCell(enemyPos.x, casterRow);
+                                if (targetTile != null && targetTile.CanPlaceUnit() && !targetTile.IsMiddleColumn)
+                                {
+                                    var fromCell = gridMgr3.GetCell(enemyPos.x, enemyPos.y);
+                                    fromCell?.RemoveUnit();
+                                    targetTile.PlaceUnit(enemy.gameObject);
+                                    enemy.transform.position = targetTile.GetWorldPosition();
+                                    Debug.Log($"<color=cyan>Pulled {enemy.UnitName} to row {casterRow}</color>");
+                                }
+                            }
                         }
                     }
                     break;
                 case RelicEffectType.Ultimate_MassiveHullBuff:
                     if (target != null)
                     {
-                        int hullAmount = Mathf.RoundToInt(target.MaxHullPool * effect.value1);
+                        // Give target 300% hull for 2 turns (value2 = 3.0)
+                        int hullAmount = Mathf.RoundToInt(target.MaxHullPool * effect.value2);
                         target.RestoreHull(hullAmount);
+                        Debug.Log($"<color=cyan>{target.UnitName} gained {hullAmount} hull ({effect.value2 * 100}%)</color>");
                     }
                     break;
                 case RelicEffectType.Ultimate_V2_ClearHazardsPlayerSide:
                     {
-                        var hazardManager4 = ServiceLocator.Get<HazardManager>();
-                        var gridManager4 = ServiceLocator.Get<GridManager>();
-                        if (hazardManager4 != null && gridManager4 != null)
+                        // Clear all hazards on player side AND prevent new ones
+                        var hazardMgr3 = ServiceLocator.Get<HazardManager>();
+                        var gridMgr4 = ServiceLocator.Get<GridManager>();
+                        if (hazardMgr3 != null && gridMgr4 != null)
                         {
-                            for (int x = 0; x < 8; x++)
+                            for (int x = 0; x < gridMgr4.GridWidth; x++)
                             {
-                                for (int y = 0; y < 8; y++)
+                                for (int y = 0; y < gridMgr4.GridHeight; y++)
                                 {
-                                    if (gridManager4.IsPlayerSide(x))
+                                    if (gridMgr4.IsPlayerSide(x))
                                     {
-                                        var cell = gridManager4.GetCell(x, y);
+                                        var cell = gridMgr4.GetCell(x, y);
                                         if (cell != null)
-                                            hazardManager4.ClearHazard(cell);
+                                            hazardMgr3.ClearHazard(cell);
                                     }
                                 }
                             }
+                            // Prevent new hazards on player side
+                            hazardMgr3.SetPreventPlayerSideHazards(true);
+                            Debug.Log($"<color=cyan>Cleared all player-side hazards and preventing new ones</color>");
                         }
                     }
                     break;

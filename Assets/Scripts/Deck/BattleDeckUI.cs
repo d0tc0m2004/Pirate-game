@@ -817,6 +817,22 @@ namespace TacticalGame.Equipment
                 HighlightRadiusPreview(card.ownerUnit, 1, new Color(1f, 0.85f, 0.2f, 0.7f));
                 HighlightAlliesInRadius(card.ownerUnit, 1, new Color(0.3f, 1f, 0.3f, 1f));
             }
+            
+            // === DECKHAND HAT V1 PREVIEW: Highlight self + nearby allies in 1-tile radius ===
+            if (card.effectType == RelicEffectType.Hat_NearbyHullIncrease)
+            {
+                HighlightRadiusPreview(card.ownerUnit, 1, new Color(0.4f, 0.8f, 1f, 0.5f));
+                HighlightAlliesInRadius(card.ownerUnit, 1, new Color(0.3f, 1f, 0.8f, 1f));
+                HighlightTargetUnit(card.ownerUnit, new Color(0.3f, 1f, 0.8f, 1f)); // Include self
+            }
+            
+            // === DECKHAND COAT V1 PREVIEW: Highlight self + nearby allies in 1-tile radius ===
+            if (card.effectType == RelicEffectType.Coat_HullBonusDamage)
+            {
+                HighlightRadiusPreview(card.ownerUnit, 1, new Color(1f, 0.7f, 0.2f, 0.5f));
+                HighlightAlliesInRadius(card.ownerUnit, 1, new Color(1f, 0.85f, 0.3f, 1f));
+                HighlightTargetUnit(card.ownerUnit, new Color(1f, 0.85f, 0.3f, 1f)); // Include self
+            }
 
             // === TARGETED CARDS (Click required) ===
             bool isMovementCard = (targetType == CardTargetType.Tile && card.category == RelicCategory.Boots);
@@ -833,6 +849,10 @@ namespace TacticalGame.Equipment
                 else if (card.effectType == RelicEffectType.Boots_V2_MoveDestroyObstacle)
                 {
                     HighlightDestroyObstacleTiles(card.ownerUnit, 2);
+                }
+                else if (card.effectType == RelicEffectType.Boots_MoveColumnOnly)
+                {
+                    HighlightColumnMoveTiles(card.ownerUnit);
                 }
                 else
                 {
@@ -1232,6 +1252,35 @@ namespace TacticalGame.Equipment
             }
         }
 
+        /// <summary>
+        /// Deckhand Boots V1: Highlight any tile in same column + 1 tile left/right on row.
+        /// </summary>
+        private void HighlightColumnMoveTiles(UnitStatus owner)
+        {
+            var gridManager = ServiceLocator.Get<GridManager>();
+            if (gridManager == null || owner == null) return;
+            
+            var pos = gridManager.WorldToGridPosition(owner.transform.position);
+            int middleCol = gridManager.GetMiddleColumnIndex();
+            
+            for (int x = 0; x < middleCol; x++)
+            {
+                for (int y = 0; y < gridManager.GridHeight; y++)
+                {
+                    // Same column: any tile. Different column: only if same row and 1 tile away
+                    if (x == pos.x || (y == pos.y && Mathf.Abs(x - pos.x) == 1))
+                    {
+                        var cell = gridManager.GetCell(x, y);
+                        if (cell != null && cell.CanPlaceUnit() && !cell.IsMiddleColumn)
+                        {
+                            highlightedMoveCells.Add(cell);
+                            PaintCell(cell, new Color(0.3f, 0.8f, 1f, 1f));
+                        }
+                    }
+                }
+            }
+        }
+
         private void HighlightNeutralZoneTiles()
         {
             var gridManager = ServiceLocator.Get<GridManager>();
@@ -1286,6 +1335,13 @@ namespace TacticalGame.Equipment
                     initialMoveSteps = 1;
                     HighlightDestroyObstacleTiles(card.ownerUnit, 2);
                     UpdateTargetingPrompt($"Move {card.ownerUnit.UnitName} to any tile in 2-tile radius (destroys obstacles) — click tile");
+                }
+                else if (card.effectType == RelicEffectType.Boots_MoveColumnOnly)
+                {
+                    remainingMoveSteps = 1; // Single click direct move
+                    initialMoveSteps = 1;
+                    HighlightColumnMoveTiles(card.ownerUnit);
+                    UpdateTargetingPrompt($"Move {card.ownerUnit.UnitName} (same column or 1 tile on row) — click tile");
                 }
                 else
                 {

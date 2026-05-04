@@ -45,8 +45,19 @@ namespace TacticalGame.Hazards
 
         private GridManager gridManager;
         private List<RuntimeHazard> activeRuntimeHazards = new List<RuntimeHazard>();
+        private bool preventPlayerSideHazards = false;
 
         #endregion
+
+        /// <summary>
+        /// When true, no new hazards can be created on the player side.
+        /// Set by Deckhand Ultimate V2.
+        /// </summary>
+        public void SetPreventPlayerSideHazards(bool prevent)
+        {
+            preventPlayerSideHazards = prevent;
+            Debug.Log($"<color=cyan>Prevent player side hazards: {prevent}</color>");
+        }
 
         #region Unity Lifecycle
 
@@ -495,6 +506,30 @@ namespace TacticalGame.Hazards
             
             cell.ClearHazard();
         }
+
+        /// <summary>
+        /// Destroy all soft obstacles on the map. Returns count destroyed.
+        /// Used by Deckhand Hat V2.
+        /// </summary>
+        public int DestroyAllSoftObstacles()
+        {
+            var softObstacles = activeRuntimeHazards.FindAll(h => h.Type == RuntimeHazardType.SoftObstacle);
+            int count = softObstacles.Count;
+            
+            foreach (var obstacle in softObstacles)
+            {
+                if (obstacle.Cell != null)
+                {
+                    obstacle.Cell.hasHazardState = false;
+                    obstacle.Cell.isBlockedState = false;
+                }
+                obstacle.Destroy();
+                activeRuntimeHazards.Remove(obstacle);
+            }
+            
+            Debug.Log($"<color=cyan>Destroyed {count} soft obstacles</color>");
+            return count;
+        }
         
         #endregion
         
@@ -503,6 +538,13 @@ namespace TacticalGame.Hazards
         private RuntimeHazard CreateRuntimeHazard(GridCell cell, RuntimeHazardType type, int value, int duration, int extraValue = 0)
         {
             if (cell == null) return null;
+            
+            // Prevent player-side hazards if flag is set (Deckhand Ult V2)
+            if (preventPlayerSideHazards && gridManager != null && gridManager.IsPlayerSide(cell.XPosition))
+            {
+                Debug.Log($"<color=yellow>Hazard blocked on player side by prevention flag</color>");
+                return null;
+            }
             
             // Create visual
             GameObject visual;

@@ -146,9 +146,6 @@ namespace TacticalGame.Equipment
                 case RelicEffectType.Hat_V2_MoveForwardHeal:
                     return CardTargetType.Ally;
 
-                // === Coat effects that target tiles ===
-                case RelicEffectType.Coat_V2_BuffTileDamageExchange:
-                    return CardTargetType.Tile;
 
                 // === Instant / Random effects ===
                 case RelicEffectType.Totem_V2_DisableEnemyPassives:
@@ -164,6 +161,14 @@ namespace TacticalGame.Equipment
                 // === Navigator auto-cast effects ===
                 case RelicEffectType.Totem_DisableEnemyMovement:     // Applies to ALL enemies, no target
                 case RelicEffectType.Totem_V2_DisableNonWeaponRelics: // Applies to ALL enemies, no target
+                // === Deckhand auto-cast effects ===
+                case RelicEffectType.Hat_NearbyHullIncrease:         // Nearby allies, no target selection
+                case RelicEffectType.Hat_V2_DestroyObstaclesGainHull: // Destroys all soft obstacles, no target
+                case RelicEffectType.Coat_HullBonusDamage:           // Self + nearby allies, no target
+                case RelicEffectType.Coat_V2_BuffTileDamageExchange:  // Random tile, no target
+                case RelicEffectType.Totem_CreateSoftObstacles:      // Random tiles, no target
+                case RelicEffectType.Totem_V2_PullNearbyToRow:       // Nearby enemies, no target
+                case RelicEffectType.Ultimate_V2_ClearHazardsPlayerSide: // All player side, no target
                     return CardTargetType.None;
 
                 // === Auto-cast / Random Target Effects (No UI Target Prompt) ===
