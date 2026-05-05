@@ -27,11 +27,14 @@ public class UnitAttack : MonoBehaviour
     private WeaponRelic equippedWeaponRelic;
     private int attacksThisTurn = 0;
     private int comboCount = 0; // For skill-based combo system
+    private AttackAnimator attackAnimator;
 
     private void Start()
     {
         myStatus = GetComponent<UnitStatus>();
         myMovement = GetComponent<UnitMovement>();
+        attackAnimator = GetComponent<AttackAnimator>();
+        if (attackAnimator == null) attackAnimator = gameObject.AddComponent<AttackAnimator>();
         energyManager = FindFirstObjectByType<EnergyManager>();
         gridManager = FindFirstObjectByType<GridManager>();
     }
@@ -274,70 +277,87 @@ public class UnitAttack : MonoBehaviour
         // === CHECK COVER ===
         bool hasCover = CheckAdjacencyCover(target);
 
-        // === DEAL DAMAGE ===
-        // UnitStatus.TakeDamage will apply Grit DR, Hull, Cover, etc. and log those
-        target.TakeDamage(
-            finalDmg, 
-            this.gameObject, 
-            isMelee, 
-            bonuses.hp, 
-            bonuses.morale, 
-            bonuses.applyCurse,
-            isFirstAttack,
-            comboCount
-        );
-
-        // Check if target died
-        bool targetDied = target.CurrentHP <= 0 || target.HasSurrendered;
-
-        // === APPLY ON-HIT EFFECTS ===
-        if (relic != null)
+        // === DEAL DAMAGE (delayed until animation completes) ===
+        System.Action applyDamage = () =>
         {
-            Debug.Log($"<color=cyan>║ Applying Relic On-Hit Effect: {relic.effectData.effectName} ({relic.effectData.effectType})</color>");
-            WeaponRelicEffectHandler.ApplyOnHitEffect(
-                myStatus,
-                target,
-                relic,
-                finalDmg,
-                targetDied
+            target.TakeDamage(
+                finalDmg, 
+                this.gameObject, 
+                isMelee, 
+                bonuses.hp, 
+                bonuses.morale, 
+                bonuses.applyCurse,
+                isFirstAttack,
+                comboCount
             );
-        }
-        
-        // === APPLY WEAPON BASE EFFECT ===
-        if (relic?.baseWeaponData != null && relic.baseWeaponData.effectType != WeaponEffectType.None)
+
+            // Check if target died
+            bool targetDied = target.CurrentHP <= 0 || target.HasSurrendered;
+
+            // === APPLY ON-HIT EFFECTS ===
+            if (relic != null)
+            {
+                Debug.Log($"<color=cyan>║ Applying Relic On-Hit Effect: {relic.effectData.effectName} ({relic.effectData.effectType})</color>");
+                WeaponRelicEffectHandler.ApplyOnHitEffect(
+                    myStatus,
+                    target,
+                    relic,
+                    finalDmg,
+                    targetDied
+                );
+            }
+            
+            // === APPLY WEAPON BASE EFFECT ===
+            if (relic?.baseWeaponData != null && relic.baseWeaponData.effectType != WeaponEffectType.None)
+            {
+                Debug.Log($"<color=red>║ Applying Weapon Effect: {relic.baseWeaponData.effectType}</color>");
+                WeaponEffectHandler.ApplyPostAttackEffect(
+                    myStatus,
+                    target,
+                    relic.baseWeaponData,
+                    finalDmg,
+                    targetDied
+                );
+            }
+
+            // Final summary
+            string resultStr = targetDied ? "<color=red>TARGET KILLED!</color>" : $"Target HP: {target.CurrentHP}/{target.MaxHP}";
+            Debug.Log($"<color=green>══ ATTACK COMPLETE: {name} → {target.name} | {resultStr}</color>");
+        };
+
+        System.Action postAttack = () =>
         {
-            Debug.Log($"<color=red>║ Applying Weapon Effect: {relic.baseWeaponData.effectType}</color>");
-            WeaponEffectHandler.ApplyPostAttackEffect(
-                myStatus,
-                target,
-                relic.baseWeaponData,
-                finalDmg,
-                targetDied
-            );
-        }
+            // === POST-ATTACK CLEANUP ===
+            myStatus.ReduceBuzz(GameConfig.Instance.buzzDecayOnAttack);
+            
+            // Mark as attacked
+            if (myMovement != null)
+            {
+                myMovement.MarkAsAttacked();
+            }
 
-        // === POST-ATTACK CLEANUP ===
-        myStatus.ReduceBuzz(GameConfig.Instance.buzzDecayOnAttack);
-        
-        // Mark as attacked
-        if (myMovement != null)
+            // Fire event
+            GameEvents.TriggerUnitAttack(this.gameObject, target.gameObject);
+        };
+
+        // Play animation then apply damage
+        if (attackAnimator != null && target != null)
         {
-            myMovement.MarkAsAttacked();
+            if (isMelee)
+            {
+                attackAnimator.PlayMeleeAttack(target.transform, applyDamage, postAttack);
+            }
+            else
+            {
+                attackAnimator.PlayRangedAttack(target.transform, applyDamage, postAttack);
+            }
         }
-
-        // Visual feedback
-        MeshRenderer renderer = GetComponent<MeshRenderer>();
-        if (renderer != null)
+        else
         {
-            renderer.material.color = Color.gray;
+            // No animator — instant fallback
+            applyDamage();
+            postAttack();
         }
-
-        // Fire event
-        GameEvents.TriggerUnitAttack(this.gameObject, target.gameObject);
-
-        // Final summary
-        string resultStr = targetDied ? "<color=red>TARGET KILLED!</color>" : $"Target HP: {target.CurrentHP}/{target.MaxHP}";
-        Debug.Log($"<color=green>══ ATTACK COMPLETE: {name} → {target.name} | {resultStr}</color>");
     }
 
     #endregion
@@ -449,33 +469,53 @@ public class UnitAttack : MonoBehaviour
             baseDmg = DamageCalculator.GetRangedBaseDamage(myStatus);
         }
 
-        // Deal damage
-        target.TakeDamage(
-            baseDmg, 
-            this.gameObject, 
-            isMelee, 
-            bonuses.hp, 
-            bonuses.morale, 
-            bonuses.applyCurse,
-            isFirstAttack,
-            comboCount
-        );
-
-        // Post-attack cleanup
-        myStatus.ReduceBuzz(config.buzzDecayOnAttack);
-        
-        if (myMovement != null)
+        // Deal damage (delayed until animation completes)
+        System.Action doDamage = () =>
         {
-            myMovement.MarkAsAttacked();
-        }
+            target.TakeDamage(
+                baseDmg, 
+                this.gameObject, 
+                isMelee, 
+                bonuses.hp, 
+                bonuses.morale, 
+                bonuses.applyCurse,
+                isFirstAttack,
+                comboCount
+            );
+        };
 
-        MeshRenderer renderer = GetComponent<MeshRenderer>();
-        if (renderer != null)
+        System.Action doCleanup = () =>
         {
-            renderer.material.color = Color.gray;
-        }
+            // Post-attack cleanup
+            myStatus.ReduceBuzz(config.buzzDecayOnAttack);
+            
+            if (myMovement != null)
+            {
+                myMovement.MarkAsAttacked();
+            }
 
-        GameEvents.TriggerUnitAttack(this.gameObject, target.gameObject);
+            MeshRenderer renderer = GetComponent<MeshRenderer>();
+            if (renderer != null)
+            {
+                renderer.material.color = Color.gray;
+            }
+
+            GameEvents.TriggerUnitAttack(this.gameObject, target.gameObject);
+        };
+
+        // Play animation then apply damage
+        if (attackAnimator != null && target != null)
+        {
+            if (isMelee)
+                attackAnimator.PlayMeleeAttack(target.transform, doDamage, doCleanup);
+            else
+                attackAnimator.PlayRangedAttack(target.transform, doDamage, doCleanup);
+        }
+        else
+        {
+            doDamage();
+            doCleanup();
+        }
     }
 
     #endregion
