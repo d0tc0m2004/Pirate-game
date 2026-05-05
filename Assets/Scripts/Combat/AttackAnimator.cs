@@ -12,7 +12,7 @@ namespace TacticalGame.Combat
     {
         [Header("Melee Settings")]
         [SerializeField] private float dashSpeed = 12f;
-        [SerializeField] private float dashPauseAtTarget = 1.0f;
+        [SerializeField] private float dashPauseAtTarget = 0.35f;
 
         [Header("Ranged Settings")]
         [SerializeField] private float projectileSpeed = 15f;
