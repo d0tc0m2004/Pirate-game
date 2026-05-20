@@ -8,92 +8,92 @@ namespace TacticalGame.Config
         [Header("=== STAT GENERATION RANGES ===")]
         
         [Header("Health Ranges")]
-        public int healthLowMin = 510;
-        public int healthLowMax = 600;
-        public int healthMidMin = 600;
-        public int healthMidMax = 720;
-        public int healthHighMin = 720;
-        public int healthHighMax = 840;
+        public int healthLowMin = 18;
+        public int healthLowMax = 22;
+        public int healthMidMin = 23;
+        public int healthMidMax = 27;
+        public int healthHighMin = 28;
+        public int healthHighMax = 32;
 
         [Header("Morale Ranges")]
-        public int moraleLowMin = 765;
-        public int moraleLowMax = 900;
-        public int moraleMidMin = 900;
-        public int moraleMidMax = 1080;
-        public int moraleHighMin = 1080;
-        public int moraleHighMax = 1260;
+        public int moraleLowMin = 30;
+        public int moraleLowMax = 36;
+        public int moraleMidMin = 37;
+        public int moraleMidMax = 44;
+        public int moraleHighMin = 45;
+        public int moraleHighMax = 50;
 
         [Header("Buzz Ranges")]
-        public int buzzLowMin = 80;
-        public int buzzLowMax = 100;
-        public int buzzMidMin = 100;
-        public int buzzMidMax = 130;
-        public int buzzHighMin = 130;
-        public int buzzHighMax = 160;
+        public int buzzLowMin = 3;
+        public int buzzLowMax = 4;
+        public int buzzMidMin = 5;
+        public int buzzMidMax = 6;
+        public int buzzHighMin = 7;
+        public int buzzHighMax = 8;
 
         [Header("Power Ranges")]
-        public int powerLowMin = 15;
-        public int powerLowMax = 25;
-        public int powerMidMin = 26;
-        public int powerMidMax = 35;
-        public int powerHighMin = 36;
-        public int powerHighMax = 50;
+        public int powerLowMin = 1;
+        public int powerLowMax = 4;
+        public int powerMidMin = 5;
+        public int powerMidMax = 7;
+        public int powerHighMin = 8;
+        public int powerHighMax = 10;
 
         [Header("Aim Ranges")]
-        public int aimLowMin = 15;
-        public int aimLowMax = 25;
-        public int aimMidMin = 26;
-        public int aimMidMax = 35;
-        public int aimHighMin = 36;
-        public int aimHighMax = 50;
+        public int aimLowMin = 1;
+        public int aimLowMax = 4;
+        public int aimMidMin = 5;
+        public int aimMidMax = 7;
+        public int aimHighMin = 8;
+        public int aimHighMax = 10;
 
         [Header("Tactics Ranges")]
-        public int tacticsLowMin = 15;
-        public int tacticsLowMax = 25;
-        public int tacticsMidMin = 26;
-        public int tacticsMidMax = 35;
-        public int tacticsHighMin = 36;
-        public int tacticsHighMax = 50;
+        public int tacticsLowMin = 1;
+        public int tacticsLowMax = 4;
+        public int tacticsMidMin = 5;
+        public int tacticsMidMax = 7;
+        public int tacticsHighMin = 8;
+        public int tacticsHighMax = 10;
 
         [Header("Skill Ranges")]
-        public int skillLowMin = 15;
-        public int skillLowMax = 25;
-        public int skillMidMin = 26;
-        public int skillMidMax = 35;
-        public int skillHighMin = 36;
-        public int skillHighMax = 50;
+        public int skillLowMin = 1;
+        public int skillLowMax = 4;
+        public int skillMidMin = 5;
+        public int skillMidMax = 7;
+        public int skillHighMin = 8;
+        public int skillHighMax = 10;
 
-        [Header("Proficiency Ranges (as percentage, e.g., 105 = 1.05x)")]
-        public int proficiencyLowMin = 105;
-        public int proficiencyLowMax = 125;
-        public int proficiencyMidMin = 125;
-        public int proficiencyMidMax = 150;
-        public int proficiencyHighMin = 150;
-        public int proficiencyHighMax = 200;
+        [Header("Proficiency Ranges")]
+        public int proficiencyLowMin = 1;
+        public int proficiencyLowMax = 4;
+        public int proficiencyMidMin = 5;
+        public int proficiencyMidMax = 7;
+        public int proficiencyHighMin = 8;
+        public int proficiencyHighMax = 10;
 
         [Header("Grit Ranges")]
-        public int gritLowMin = 15;
-        public int gritLowMax = 25;
-        public int gritMidMin = 26;
-        public int gritMidMax = 35;
-        public int gritHighMin = 36;
-        public int gritHighMax = 50;
+        public int gritLowMin = 1;
+        public int gritLowMax = 4;
+        public int gritMidMin = 5;
+        public int gritMidMax = 7;
+        public int gritHighMin = 8;
+        public int gritHighMax = 10;
 
         [Header("Hull Ranges")]
-        public int hullLowMin = 15;
-        public int hullLowMax = 25;
-        public int hullMidMin = 26;
-        public int hullMidMax = 35;
-        public int hullHighMin = 36;
-        public int hullHighMax = 50;
+        public int hullLowMin = 0;
+        public int hullLowMax = 3;
+        public int hullMidMin = 4;
+        public int hullMidMax = 6;
+        public int hullHighMin = 7;
+        public int hullHighMax = 10;
 
         [Header("Speed Ranges")]
-        public int speedLowMin = 15;
-        public int speedLowMax = 25;
-        public int speedMidMin = 26;
-        public int speedMidMax = 35;
-        public int speedHighMin = 36;
-        public int speedHighMax = 50;
+        public int speedLowMin = 1;
+        public int speedLowMax = 4;
+        public int speedMidMin = 5;
+        public int speedMidMax = 7;
+        public int speedHighMin = 8;
+        public int speedHighMax = 10;
 
         [Header("=== COMBAT BALANCE ===")]
         
@@ -140,12 +140,12 @@ namespace TacticalGame.Config
         public float[] focusFireMultipliers = { 0f, 0f, 0.10f, 0.25f, 0.45f, 0.65f };
 
         [Header("=== BUZZ/RUM SYSTEM ===")]
-        public int buzzPerDrink = 30;
-        public int healthRumRestore = 20;
-        public int moraleRumRestore = 20;
-        public int buzzDecayPerTurn = 15;
-        public int buzzDecayOnAttack = 25;
-        public int maxBuzz = 100;
+        public int buzzPerDrink = 2;
+        public int healthRumRestore = 4;
+        public int moraleRumRestore = 6;
+        public int buzzDecayPerTurn = 1;
+        public int buzzDecayOnAttack = 1;
+        public int maxBuzz = 8;
 
         [Header("=== SWAP SYSTEM ===")]
         public int swapEnergyCost = 1;
@@ -180,10 +180,10 @@ namespace TacticalGame.Config
         public float gritPerPointPercent = 0.01f;  // Each Grit adds 1% of GritFactor to DR
         
         [Header("=== HULL SYSTEM ===")]
-        public int baseHull = 50;
-        public int hullPerPoint = 10;
-        [Range(0.1f, 0.5f)]
-        public float hullAbsorbPercent = 0.30f; // Absorbs up to 30% of incoming damage
+        public int baseHull = 0;
+        public int hullPerPoint = 1;
+        [Range(0.1f, 1f)]
+        public float hullAbsorbPercent = 1.00f; // Hull absorbs damage fully before HP now
         
         [Header("=== OBSTACLE SYSTEM ===")]
         public int obstacleBlockDamage = 100;

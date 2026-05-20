@@ -26,7 +26,7 @@ MonoBehaviour:
   effect2Value1: 0.02
   effect2Value2: 0
   effect2Duration: 0
-  effect2BonusDamage: 0.2
+  effect2BonusDamage: 1
   effect3Name: Disorienting Blow
   effect3Description: 'On-hit: Applies a debuff for 2 turns causing 50% chance for
     attacks to miss'
@@ -34,4 +34,4 @@ MonoBehaviour:
   effect3Value1: 0.5
   effect3Value2: 0
   effect3Duration: 2
-  effect3BonusDamage: 0.4
+  effect3BonusDamage: 2

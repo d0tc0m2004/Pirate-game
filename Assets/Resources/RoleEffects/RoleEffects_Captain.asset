@@ -26,7 +26,7 @@ MonoBehaviour:
   effect2Value1: 0.2
   effect2Value2: 0
   effect2Duration: 0
-  effect2BonusDamage: 0.2
+  effect2BonusDamage: 1
   effect3Name: Mark & Strike
   effect3Description: 'On-hit: Marks target for that round, if another unit hits
     it restores 1 energy'
@@ -34,4 +34,4 @@ MonoBehaviour:
   effect3Value1: 1
   effect3Value2: 0
   effect3Duration: 1
-  effect3BonusDamage: 0.4
+  effect3BonusDamage: 2

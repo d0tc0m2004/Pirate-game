@@ -26,7 +26,7 @@ MonoBehaviour:
   effect2Value1: 0.01
   effect2Value2: 0
   effect2Duration: 0
-  effect2BonusDamage: 0.2
+  effect2BonusDamage: 1
   effect3Name: Fortified Strike
   effect3Description: 'On-hit: Gets 50% of unit grit for 2 turns and does damage
     based on gained Grit amount'
@@ -34,4 +34,4 @@ MonoBehaviour:
   effect3Value1: 0.5
   effect3Value2: 0
   effect3Duration: 2
-  effect3BonusDamage: 0.4
+  effect3BonusDamage: 2

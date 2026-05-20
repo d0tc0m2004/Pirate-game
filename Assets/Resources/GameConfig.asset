@@ -12,72 +12,72 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ebbe5cbe5f238bd4c89fb3aa27829c63, type: 3}
   m_Name: GameConfig
   m_EditorClassIdentifier: Assembly-CSharp::TacticalGame.Config.GameConfig
-  healthLowMin: 510
-  healthLowMax: 600
-  healthMidMin: 600
-  healthMidMax: 720
-  healthHighMin: 720
-  healthHighMax: 840
-  moraleLowMin: 765
-  moraleLowMax: 900
-  moraleMidMin: 900
-  moraleMidMax: 1080
-  moraleHighMin: 1080
-  moraleHighMax: 1260
-  buzzLowMin: 80
-  buzzLowMax: 100
-  buzzMidMin: 100
-  buzzMidMax: 130
-  buzzHighMin: 130
-  buzzHighMax: 160
-  powerLowMin: 15
-  powerLowMax: 25
-  powerMidMin: 26
-  powerMidMax: 35
-  powerHighMin: 36
-  powerHighMax: 50
-  aimLowMin: 15
-  aimLowMax: 25
-  aimMidMin: 26
-  aimMidMax: 35
-  aimHighMin: 36
-  aimHighMax: 50
-  tacticsLowMin: 15
-  tacticsLowMax: 25
-  tacticsMidMin: 26
-  tacticsMidMax: 35
-  tacticsHighMin: 36
-  tacticsHighMax: 50
-  skillLowMin: 15
-  skillLowMax: 25
-  skillMidMin: 26
-  skillMidMax: 35
-  skillHighMin: 36
-  skillHighMax: 50
-  proficiencyLowMin: 105
-  proficiencyLowMax: 125
-  proficiencyMidMin: 125
-  proficiencyMidMax: 150
-  proficiencyHighMin: 150
-  proficiencyHighMax: 200
-  gritLowMin: 15
-  gritLowMax: 25
-  gritMidMin: 26
-  gritMidMax: 35
-  gritHighMin: 36
-  gritHighMax: 50
-  hullLowMin: 15
-  hullLowMax: 25
-  hullMidMin: 26
-  hullMidMax: 35
-  hullHighMin: 36
-  hullHighMax: 50
-  speedLowMin: 15
-  speedLowMax: 25
-  speedMidMin: 26
-  speedMidMax: 35
-  speedHighMin: 36
-  speedHighMax: 50
+  healthLowMin: 18
+  healthLowMax: 22
+  healthMidMin: 23
+  healthMidMax: 27
+  healthHighMin: 28
+  healthHighMax: 32
+  moraleLowMin: 30
+  moraleLowMax: 36
+  moraleMidMin: 37
+  moraleMidMax: 44
+  moraleHighMin: 45
+  moraleHighMax: 50
+  buzzLowMin: 3
+  buzzLowMax: 4
+  buzzMidMin: 5
+  buzzMidMax: 6
+  buzzHighMin: 7
+  buzzHighMax: 8
+  powerLowMin: 1
+  powerLowMax: 4
+  powerMidMin: 5
+  powerMidMax: 7
+  powerHighMin: 8
+  powerHighMax: 10
+  aimLowMin: 1
+  aimLowMax: 4
+  aimMidMin: 5
+  aimMidMax: 7
+  aimHighMin: 8
+  aimHighMax: 10
+  tacticsLowMin: 1
+  tacticsLowMax: 4
+  tacticsMidMin: 5
+  tacticsMidMax: 7
+  tacticsHighMin: 8
+  tacticsHighMax: 10
+  skillLowMin: 1
+  skillLowMax: 4
+  skillMidMin: 5
+  skillMidMax: 7
+  skillHighMin: 8
+  skillHighMax: 10
+  proficiencyLowMin: 1
+  proficiencyLowMax: 4
+  proficiencyMidMin: 5
+  proficiencyMidMax: 7
+  proficiencyHighMin: 8
+  proficiencyHighMax: 10
+  gritLowMin: 1
+  gritLowMax: 4
+  gritMidMin: 5
+  gritMidMax: 7
+  gritHighMin: 8
+  gritHighMax: 10
+  hullLowMin: 0
+  hullLowMax: 3
+  hullMidMin: 4
+  hullMidMax: 6
+  hullHighMin: 7
+  hullHighMax: 10
+  speedLowMin: 1
+  speedLowMax: 4
+  speedMidMin: 5
+  speedMidMax: 7
+  speedHighMin: 8
+  speedHighMax: 10
   meleeBaseDamage: 10
   rangedBaseDamage: 8
   powerScalingPercent: 0.03
@@ -101,18 +101,18 @@ MonoBehaviour:
   - 0.25
   - 0.45
   - 0.65
-  buzzPerDrink: 30
-  healthRumRestore: 20
-  moraleRumRestore: 20
-  buzzDecayPerTurn: 15
-  buzzDecayOnAttack: 25
-  maxBuzz: 100
+  buzzPerDrink: 2
+  healthRumRestore: 4
+  moraleRumRestore: 6
+  buzzDecayPerTurn: 1
+  buzzDecayOnAttack: 1
+  maxBuzz: 8
   swapEnergyCost: 1
   swapCooldownTurns: 3
   maxSwapsPerRound: 1
   swapMoralePenalty: 0.15
   minHPPercentToSwap: 0.2
-  surrenderThreshold: 0.2
+  surrenderThreshold: 20
   energyPerTurn: 3
   attackEnergyCost: 1
   speedToInitiative: 1
@@ -122,9 +122,9 @@ MonoBehaviour:
   gritMoraleWeight: 0.4
   gritDRCap: 0.4
   gritPerPointPercent: 0.01
-  baseHull: 50
-  hullPerPoint: 10
-  hullAbsorbPercent: 0.3
+  baseHull: 0
+  hullPerPoint: 1
+  hullAbsorbPercent: 1
   obstacleBlockDamage: 100
   enemyTurnDelay: 1.5
   moveAnimationSpeed: 5

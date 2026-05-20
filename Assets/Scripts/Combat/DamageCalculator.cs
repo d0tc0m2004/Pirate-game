@@ -6,9 +6,8 @@ using TacticalGame.Equipment;
 namespace TacticalGame.Combat
 {
     /// <summary>
-    /// Handles all damage calculations.
-    /// Integrates with StatusEffectManager for buff/debuff modifiers.
-    /// Integrates with PassiveRelicManager for passive relic modifiers.
+    /// Handles all damage calculations according to v3 Combat Numbers Rework.
+    /// RAW -> MOD -> APPLY pipeline.
     /// </summary>
     public static class DamageCalculator
     {
@@ -23,7 +22,7 @@ namespace TacticalGame.Combat
         }
 
         public static DamageResult Calculate(
-            int baseDamage,
+            int baseDamage, // Already includes Stat scaling (RAW step 1)
             bool isMelee,
             UnitStatus attackerStatus,
             UnitStatus targetStatus,
@@ -33,258 +32,51 @@ namespace TacticalGame.Combat
             int flatBonusHP = 0,
             int flatBonusMorale = 0)
         {
-            var config = GameConfig.Instance;
             var result = new DamageResult();
             
-            string logHP = $"{baseDamage} Base";
-            string logMorale = $"{baseDamage} Base";
+            // --- STEP 1: RAW ---
+            int skill = attackerStatus != null ? attackerStatus.Skill : 0;
+            int comboBonus = Mathf.Min(Mathf.Max(0, comboCount - 1), skill);
             
-            // === HP DAMAGE CALCULATION ===
-            float hpDamageMod = 1.0f;
+            int rawDamage = baseDamage + comboBonus;
             
-            // First-action bonus (Speed)
-            if (isFirstAction && attackerStatus != null)
-            {
-                float firstBonus = Mathf.Min(
-                    config.firstActionBonusCap, 
-                    attackerStatus.Speed * config.firstActionBonusPerSpeed
-                );
-                if (firstBonus > 0)
-                {
-                    hpDamageMod += firstBonus;
-                    logHP += $" +{Mathf.RoundToInt(firstBonus * 100)}%(FirstAction)";
-                }
-            }
+            // --- STEP 2: MOD ---
+            int modDamage = rawDamage;
+            string breakdown = $"{baseDamage} Base";
             
-            // Combo bonus (Skill)
-            if (comboCount > 1 && attackerStatus != null)
-            {
-                float comboMult = GetComboMultiplier(attackerStatus.Skill, comboCount, config);
-                if (comboMult > 1f)
-                {
-                    hpDamageMod *= comboMult;
-                    logHP += $" x{comboMult:F2}(Combo x{comboCount})";
-                }
-            }
-            
-            // Cover reduction
+            if (comboBonus > 0)
+                breakdown += $" +{comboBonus}(Combo)";
+                
             if (hasCover)
             {
-                hpDamageMod -= config.adjacencyCoverReduction;
-                logHP += $" -{Mathf.RoundToInt(config.adjacencyCoverReduction * 100)}%(Cover)";
+                modDamage -= 1;
+                breakdown += " -1(Cover)";
             }
             
-            // === STATUS EFFECT OUTGOING DAMAGE MODIFIER (attacker buffs) ===
-            if (attackerStatus != null)
-            {
-                var attackerEffects = attackerStatus.GetComponent<StatusEffectManager>();
-                if (attackerEffects != null)
-                {
-                    // Damage boost buff
-                    float outgoingMod = attackerEffects.GetOutgoingDamageModifier();
-                    if (outgoingMod != 0f)
-                    {
-                        hpDamageMod += outgoingMod;
-                        logHP += $" +{Mathf.RoundToInt(outgoingMod * 100)}%(DamageBuff)";
-                    }
-                    
-                    // Stat buffs applied to scaling
-                    float powerMod = attackerEffects.GetPowerModifier();
-                    float aimMod = attackerEffects.GetAimModifier();
-                    float statBonus = isMelee ? powerMod * 0.03f : aimMod * 0.03f;
-                    if (statBonus != 0f)
-                    {
-                        hpDamageMod += statBonus;
-                        logHP += $" +{Mathf.RoundToInt(statBonus * 100)}%(StatBuff)";
-                    }
-                }
-            }
+            // Identity riders
+            int hpDmg = modDamage;
+            int moraleRider = 0;
             
-            // === PASSIVE RELIC OUTGOING DAMAGE MODIFIER ===
-            if (attackerStatus != null)
-            {
-                var attackerPassive = attackerStatus.GetComponent<PassiveRelicManager>();
-                if (attackerPassive != null)
-                {
-                    float passiveOutgoing = attackerPassive.GetOutgoingDamageModifier(targetStatus);
-                    if (passiveOutgoing != 1f)
-                    {
-                        hpDamageMod *= passiveOutgoing;
-                        logHP += $" x{passiveOutgoing:F2}(PassiveRelic)";
-                    }
-                }
-            }
-            
-            // === STATUS EFFECT INCOMING DAMAGE MODIFIER (target debuffs/buffs) ===
-            if (targetStatus != null)
-            {
-                var targetEffects = targetStatus.GetComponent<StatusEffectManager>();
-                if (targetEffects != null)
-                {
-                    // Vulnerable/Protected
-                    float incomingMod = targetEffects.GetIncomingDamageModifier();
-                    if (incomingMod != 0f)
-                    {
-                        hpDamageMod += incomingMod;
-                        if (incomingMod > 0)
-                            logHP += $" +{Mathf.RoundToInt(incomingMod * 100)}%(Vulnerable)";
-                        else
-                            logHP += $" {Mathf.RoundToInt(incomingMod * 100)}%(Protected)";
-                    }
-                    
-                    // Marked bonus
-                    float markedBonus = targetEffects.GetMarkedBonus();
-                    if (markedBonus > 0f)
-                    {
-                        hpDamageMod += markedBonus;
-                        logHP += $" +{Mathf.RoundToInt(markedBonus * 100)}%(Marked)";
-                    }
-                    
-                    // Ranged damage reduction
-                    if (!isMelee)
-                    {
-                        float rangedReduction = targetEffects.GetRangedDamageReduction();
-                        if (rangedReduction > 0f)
-                        {
-                            hpDamageMod -= rangedReduction;
-                            logHP += $" -{Mathf.RoundToInt(rangedReduction * 100)}%(RangedShield)";
-                        }
-                    }
-                }
-            }
-            
-            // === PASSIVE RELIC INCOMING DAMAGE MODIFIER ===
-            if (targetStatus != null)
-            {
-                var targetPassive = targetStatus.GetComponent<PassiveRelicManager>();
-                if (targetPassive != null)
-                {
-                    float passiveIncoming = targetPassive.GetIncomingDamageModifier(attackerStatus);
-                    if (passiveIncoming != 1f)
-                    {
-                        hpDamageMod *= passiveIncoming;
-                        logHP += $" x{passiveIncoming:F2}(DefensiveRelic)";
-                    }
-                }
-            }
-            
-            // Ranged bonus to HP (+10%)
-            float hpTypeMultiplier = isMelee ? 1.0f : config.rangedHPMultiplier;
-            if (!isMelee)
-            {
-                logHP += $" +{Mathf.RoundToInt((config.rangedHPMultiplier - 1) * 100)}%(Ranged)";
-            }
-            
-            // Curse multiplier
-            float curseMultiplier = targetStatus.IsCursed ? targetStatus.CurseMultiplier : 1.0f;
-            if (targetStatus.IsCursed)
-            {
-                logHP += $" x{curseMultiplier}(Curse)";
-            }
-            
-            // Exposed multiplier
-            float exposedMultiplier = targetStatus.IsExposed ? config.exposedDamageMultiplier : 1.0f;
-            if (targetStatus.IsExposed)
-            {
-                logHP += $" +{Mathf.RoundToInt((config.exposedDamageMultiplier - 1) * 100)}%(Exposed)";
-            }
-            
-            // Calculate HP damage before DR
-            int calculatedHPDamage = Mathf.RoundToInt(baseDamage * hpDamageMod * hpTypeMultiplier * curseMultiplier * exposedMultiplier);
-            calculatedHPDamage += flatBonusHP;
-            
-            if (flatBonusHP > 0)
-            {
-                logHP += $" +{flatBonusHP}(HazardBonus)";
-            }
-            
-            result.HPBreakdown = logHP;
-            result.FinalHPDamage = Mathf.Max(0, calculatedHPDamage);
-            
-            // === MORALE DAMAGE CALCULATION ===
-            float moraleDamageMod = 1.0f;
-            
-            // First-action bonus applies to morale too
-            if (isFirstAction && attackerStatus != null)
-            {
-                float firstBonus = Mathf.Min(
-                    config.firstActionBonusCap, 
-                    attackerStatus.Speed * config.firstActionBonusPerSpeed
-                );
-                if (firstBonus > 0)
-                {
-                    moraleDamageMod += firstBonus;
-                    logMorale += $" +{Mathf.RoundToInt(firstBonus * 100)}%(FirstAction)";
-                }
-            }
-            
-            // Combo bonus applies to morale too
-            if (comboCount > 1 && attackerStatus != null)
-            {
-                float comboMult = GetComboMultiplier(attackerStatus.Skill, comboCount, config);
-                if (comboMult > 1f)
-                {
-                    moraleDamageMod *= comboMult;
-                    logMorale += $" x{comboMult:F2}(Combo x{comboCount})";
-                }
-            }
-            
-            // Cover reduction
-            if (hasCover)
-            {
-                moraleDamageMod -= config.adjacencyCoverReduction;
-                logMorale += $" -{Mathf.RoundToInt(config.adjacencyCoverReduction * 100)}%(Cover)";
-            }
-            
-            // === STATUS EFFECT MORALE DAMAGE REDUCTION ===
-            if (targetStatus != null)
-            {
-                var targetEffects = targetStatus.GetComponent<StatusEffectManager>();
-                if (targetEffects != null)
-                {
-                    float moraleReduction = targetEffects.GetMoraleDamageReduction();
-                    if (moraleReduction > 0f)
-                    {
-                        moraleDamageMod -= moraleReduction;
-                        logMorale += $" -{Mathf.RoundToInt(moraleReduction * 100)}%(MoraleShield)";
-                    }
-                }
-            }
-            
-            // Melee bonus to morale (+10%)
-            float moraleTypeMultiplier = isMelee ? config.meleeMoraleMultiplier : 1.0f;
             if (isMelee)
             {
-                logMorale += $" +{Mathf.RoundToInt((config.meleeMoraleMultiplier - 1) * 100)}%(Melee)";
+                moraleRider += 1;
+                breakdown += " +1(Melee Morale Rider)";
             }
-            
-            // Focus fire bonus
-            int stackIndex = Mathf.Clamp(targetStatus.FocusFireStacks, 0, config.focusFireMultipliers.Length - 1);
-            float focusFireBonus = config.focusFireMultipliers[stackIndex];
-            if (focusFireBonus > 0)
+            else
             {
-                logMorale += $" +{Mathf.RoundToInt(focusFireBonus * 100)}%(FocusFire x{targetStatus.FocusFireStacks})";
+                hpDmg += 1;
+                breakdown += " +1(Ranged HP Rider)";
             }
             
-            // Exposed multiplier
-            if (targetStatus.IsExposed)
-            {
-                logMorale += $" +{Mathf.RoundToInt((config.exposedDamageMultiplier - 1) * 100)}%(Exposed)";
-            }
+            hpDmg = Mathf.Max(0, hpDmg + flatBonusHP);
+            moraleRider += flatBonusMorale;
             
-            // Calculate final morale damage
-            int calculatedMoraleDamage = Mathf.RoundToInt(
-                baseDamage * moraleDamageMod * moraleTypeMultiplier * (1.0f + focusFireBonus) * exposedMultiplier
-            );
-            calculatedMoraleDamage += flatBonusMorale;
-            
-            if (flatBonusMorale > 0)
-            {
-                logMorale += $" +{flatBonusMorale}(HazardBonus)";
-            }
-            
-            result.MoraleBreakdown = logMorale;
-            result.FinalMoraleDamage = Mathf.Max(0, calculatedMoraleDamage);
+            // We pass the RAW/MOD HP damage and the flat morale riders back.
+            // The APPLY step (Hull -> HP -> Morale) happens in UnitStatus.
+            result.FinalHPDamage = hpDmg;
+            result.FinalMoraleDamage = moraleRider; // This represents flat riders to be added AFTER HP->Morale conversion
+            result.HPBreakdown = breakdown + (flatBonusHP > 0 ? $" +{flatBonusHP}(Bonus)" : "");
+            result.MoraleBreakdown = (flatBonusMorale > 0 || moraleRider > 0) ? $"+{moraleRider}(Riders)" : "";
             
             return result;
         }
@@ -302,111 +94,72 @@ namespace TacticalGame.Combat
 
         public static int GetMeleeBaseDamage(UnitStatus attacker, int weaponBaseDamage = 0)
         {
-            var config = GameConfig.Instance;
+            int baseDmg = weaponBaseDamage > 0 ? weaponBaseDamage : 5; // new default 5
             
-            int baseDmg = weaponBaseDamage > 0 ? weaponBaseDamage : config.meleeBaseDamage;
-            
-            // Get effective Power with status effect modifier
+            // Flat stat scaling: +Power
             float effectivePower = attacker.Power;
             var effects = attacker.GetComponent<StatusEffectManager>();
             if (effects != null)
             {
-                effectivePower += effects.GetPowerModifier();
+                // Assuming modifiers will be updated to return flat ints in the future
+                effectivePower += Mathf.RoundToInt(effects.GetPowerModifier());
             }
             
-            float powerMultiplier = 1f + (effectivePower * config.powerScalingPercent);
-            int scaledDamage = Mathf.RoundToInt(baseDmg * powerMultiplier);
-            
-            // Apply drunk penalty (unless buzz downside is disabled)
-            float drunkMod = 1.0f;
-            if (attacker.IsTooDrunk && !HasNoBuzzDownside(attacker))
-            {
-                drunkMod = config.drunkDamageMultiplier;
-            }
-            
-            return Mathf.RoundToInt(scaledDamage * drunkMod);
+            return baseDmg + Mathf.RoundToInt(effectivePower);
         }
 
         public static int GetRangedBaseDamage(UnitStatus attacker, int weaponBaseDamage = 0)
         {
-            var config = GameConfig.Instance;
+            int baseDmg = weaponBaseDamage > 0 ? weaponBaseDamage : 5; // new default 5
             
-            int baseDmg = weaponBaseDamage > 0 ? weaponBaseDamage : config.rangedBaseDamage;
-            
-            // Get effective Aim with status effect modifier
+            // Flat stat scaling: +Aim
             float effectiveAim = attacker.Aim;
             var effects = attacker.GetComponent<StatusEffectManager>();
             if (effects != null)
             {
-                effectiveAim += effects.GetAimModifier();
+                effectiveAim += Mathf.RoundToInt(effects.GetAimModifier());
             }
             
-            float aimMultiplier = 1f + (effectiveAim * config.aimScalingPercent);
-            int scaledDamage = Mathf.RoundToInt(baseDmg * aimMultiplier);
-            
-            // Apply drunk penalty (unless buzz downside is disabled)
-            float drunkMod = 1.0f;
-            if (attacker.IsTooDrunk && !HasNoBuzzDownside(attacker))
-            {
-                drunkMod = config.drunkDamageMultiplier;
-            }
-            
-            return Mathf.RoundToInt(scaledDamage * drunkMod);
+            return baseDmg + Mathf.RoundToInt(effectiveAim);
         }
 
         public static float GetComboMultiplier(int skill, int comboCount, GameConfig config = null)
         {
-            if (config == null) config = GameConfig.Instance;
-            
-            int n = Mathf.Clamp(comboCount, 1, config.maxComboChain);
-            
-            if (n <= 1) return 1f;
-            
-            float comboStep = Mathf.Clamp(
-                skill * config.skillComboMultiplier,
-                config.comboStepMin,
-                config.comboStepMax
-            );
-            
-            float comboMult = 1f + ((n - 1) * comboStep);
-            
-            return comboMult;
+            // Deprecated - replaced by flat combo scaling
+            return 1f;
         }
 
         public static float GetGritDamageReduction(UnitStatus target, GameConfig config = null)
         {
-            if (config == null) config = GameConfig.Instance;
-            
-            float hpPercent = target.HPPercent;
-            float moralePercent = target.MoralePercent;
-            
-            // Get effective Grit with status effect modifier
-            float effectiveGrit = target.Grit;
-            var effects = target.GetComponent<StatusEffectManager>();
-            if (effects != null)
+            // Deprecated - replaced by flat Grit subtraction
+            return 0f;
+        }
+        
+        public static int GetFlatGritReduction(UnitStatus target)
+        {
+            if (target.HPPercent < 0.5f)
             {
-                effectiveGrit += effects.GetGritModifier();
+                return Mathf.Max(0, target.Grit / 2); // Round down, min 0
             }
-            
-            float gritFactor = ((1f - hpPercent) * config.gritLowHPWeight) + 
-                               (moralePercent * config.gritMoraleWeight);
-            
-            float dr = gritFactor * (effectiveGrit * config.gritPerPointPercent);
-            
-            return Mathf.Min(dr, config.gritDRCap);
+            return 0;
         }
 
         public static float GetTacticsPotencyMultiplier(int tactics, GameConfig config = null)
         {
-            if (config == null) config = GameConfig.Instance;
-            
-            return 1f + (tactics * config.tacticsScalingPercent);
+            // Deprecated - replaced by flat tactics
+            return 1f;
         }
 
         public static int ApplyTacticsScaling(int baseValue, int tactics)
         {
-            float multiplier = GetTacticsPotencyMultiplier(tactics);
-            return Mathf.RoundToInt(baseValue * multiplier);
+            // Tactics: +Tactics÷2 (round down) for buff/debuff strength
+            return baseValue + Mathf.FloorToInt(tactics / 2f);
+        }
+        
+        public static int ApplyTacticsHealScaling(int baseValue, int tactics)
+        {
+            // Heal/Shield: +Tactics flat
+            return baseValue + tactics;
         }
 
         /// <summary>

@@ -163,95 +163,33 @@ public class UnitAttack : MonoBehaviour
         damageLog.AppendLine($"<color=yellow>╠══════════════════════════════════════════════════════════════╣</color>");
 
         // === BASE DAMAGE CALCULATION ===
-        int baseDmg = 0;
-
-        // Get weapon's base damage
-        if (relic?.baseWeaponData != null)
-        {
-            baseDmg = relic.baseWeaponData.baseDamage;
-        }
-        else
-        {
-            // Fallback to config defaults
-            baseDmg = isMelee ? config.meleeBaseDamage : config.rangedBaseDamage;
-        }
-        damageLog.AppendLine($"<color=white>║ [1] Base Weapon Damage: {baseDmg}</color>");
+        int weaponBaseDmg = relic?.baseWeaponData != null ? relic.baseWeaponData.baseDamage : (isMelee ? config.meleeBaseDamage : config.rangedBaseDamage);
+        damageLog.AppendLine($"<color=white>║ [1] Base Weapon Damage: {weaponBaseDmg}</color>");
 
         // === STAT SCALING ===
-        float statMultiplier;
-        int statValue;
-        string statName;
-        if (isMelee)
-        {
-            statValue = myStatus.Power;
-            statName = "Power";
-            statMultiplier = 1f + (statValue * config.powerScalingPercent);
-        }
-        else
-        {
-            statValue = myStatus.Aim;
-            statName = "Aim";
-            statMultiplier = 1f + (statValue * config.aimScalingPercent);
-        }
-
-        int scaledDamage = Mathf.RoundToInt(baseDmg * statMultiplier);
-        damageLog.AppendLine($"<color=white>║ [2] {statName} Scaling: {baseDmg} × (1 + {statValue} × {(isMelee ? config.powerScalingPercent : config.aimScalingPercent)}) = {baseDmg} × {statMultiplier:F2} = {scaledDamage}</color>");
-
-        // === RELIC RARITY BONUS ===
-        float rarityBonus = 0f;
-        string rarityName = "Common";
-        if (relic != null)
-        {
-            rarityBonus = relic.effectData.bonusDamagePercent;
-            rarityName = relic.effectData.rarity.ToString();
-        }
-        damageLog.AppendLine($"<color=magenta>║ [3] Relic Rarity ({rarityName}): +{rarityBonus * 100:F0}%</color>");
+        int scaledDamage = isMelee ? DamageCalculator.GetMeleeBaseDamage(myStatus, weaponBaseDmg) : DamageCalculator.GetRangedBaseDamage(myStatus, weaponBaseDmg);
+        damageLog.AppendLine($"<color=white>║ [2] Stat Scaling (Flat): +{(isMelee ? myStatus.Power : myStatus.Aim)} = {scaledDamage}</color>");
 
         // === RELIC EFFECT BONUS ===
-        float effectMultiplier = 1.0f;
-        string effectName = "None";
-        if (relic != null)
-        {
-            effectName = relic.effectData.effectName;
-            effectMultiplier = WeaponRelicEffectHandler.CalculateBonusDamageMultiplier(
-                myStatus,
-                target,
-                relic,
-                isFirstAttack,
-                false, // TODO: track if attacker moved last turn
-                false  // TODO: track if target moved last turn
-            );
-        }
-        float effectBonusPercent = (effectMultiplier - 1f) * 100f;
-        damageLog.AppendLine($"<color=cyan>║ [4] Relic Effect ({effectName}): ×{effectMultiplier:F2} (+{effectBonusPercent:F0}%)</color>");
+        int effectFlatBonus = 0; // Temporarily 0 until RelicEffectHandler is updated to flat
+        string effectName = relic != null ? relic.effectData.effectName : "None";
+        damageLog.AppendLine($"<color=cyan>║ [3] Relic Effect ({effectName}): +{effectFlatBonus} (Flat)</color>");
 
         // === WEAPON BASE EFFECT BONUS ===
-        float weaponEffectBonus = 1.0f;
-        string weaponEffectName = "None";
-        if (relic?.baseWeaponData != null && relic.baseWeaponData.effectType != WeaponEffectType.None)
-        {
-            weaponEffectName = relic.baseWeaponData.effectType.ToString();
-            weaponEffectBonus = WeaponEffectHandler.CalculatePreAttackBonus(myStatus, target, relic.baseWeaponData, isFirstAttack);
-        }
-        if (weaponEffectBonus > 1f)
-        {
-            damageLog.AppendLine($"<color=red>║ [4b] Weapon Effect ({weaponEffectName}): ×{weaponEffectBonus:F2}</color>");
-        }
+        int weaponEffectFlat = 0;
+        string weaponEffectName = relic?.baseWeaponData != null && relic.baseWeaponData.effectType != WeaponEffectType.None ? relic.baseWeaponData.effectType.ToString() : "None";
+        damageLog.AppendLine($"<color=red>║ [4] Weapon Effect ({weaponEffectName}): +{weaponEffectFlat} (Flat)</color>");
 
         // === PROFICIENCY BONUS (if role matches) ===
-        float proficiencyBonus = 1.0f;
+        int proficiencyBonus = 0;
         bool roleMatches = relic != null && relic.MatchesRole(myStatus.Role);
-        if (roleMatches)
-        {
-            proficiencyBonus = myStatus.ProficiencyMultiplier;
-        }
-        string matchStr = roleMatches ? $"★ YES (Proficiency: {myStatus.Proficiency}%)" : "No";
-        damageLog.AppendLine($"<color=green>║ [5] Role Match: {matchStr} → ×{proficiencyBonus:F2}</color>");
+        string matchStr = roleMatches ? $"★ YES (Proficiency: {myStatus.Proficiency})" : "No";
+        damageLog.AppendLine($"<color=green>║ [5] Role Match: {matchStr} -> +{proficiencyBonus}</color>");
 
         // === DRUNK PENALTY ===
-        float drunkMod = myStatus.IsTooDrunk ? config.drunkDamageMultiplier : 1.0f;
-        string drunkStr = myStatus.IsTooDrunk ? $"YES (Buzz: {myStatus.CurrentBuzz}/{myStatus.MaxBuzz})" : "No";
-        damageLog.AppendLine($"<color=orange>║ [6] Too Drunk: {drunkStr} → ×{drunkMod:F2}</color>");
+        int drunkMod = myStatus.IsTooDrunk && !DamageCalculator.HasNoBuzzDownside(myStatus) ? -1 : 0;
+        string drunkStr = myStatus.IsTooDrunk ? $"YES" : "No";
+        damageLog.AppendLine($"<color=orange>║ [6] Too Drunk: {drunkStr} -> {drunkMod} (Flat penalty)</color>");
 
         // === FIRST ATTACK / COMBO ===
         damageLog.AppendLine($"<color=white>║ [7] First Attack This Turn: {(isFirstAttack ? "Yes" : "No")} | Combo Count: {comboCount}</color>");
@@ -263,13 +201,12 @@ public class UnitAttack : MonoBehaviour
         }
 
         // === CALCULATE FINAL DAMAGE ===
-        float totalMultiplier = (1f + rarityBonus) * effectMultiplier * weaponEffectBonus * drunkMod * proficiencyBonus;
-        int finalDmg = Mathf.RoundToInt(scaledDamage * totalMultiplier);
+        int finalDmg = Mathf.Max(0, scaledDamage + effectFlatBonus + weaponEffectFlat + proficiencyBonus + drunkMod);
 
         damageLog.AppendLine($"<color=yellow>╠══════════════════════════════════════════════════════════════╣</color>");
         damageLog.AppendLine($"<color=yellow>║ FINAL CALCULATION:</color>");
-        damageLog.AppendLine($"<color=yellow>║ {scaledDamage} × (1+{rarityBonus:F2}) × {effectMultiplier:F2} × {weaponEffectBonus:F2} × {drunkMod:F2} × {proficiencyBonus:F2}</color>");
-        damageLog.AppendLine($"<color=yellow>║ = {scaledDamage} × {totalMultiplier:F2} = <b>{finalDmg} RAW DAMAGE</b></color>");
+        damageLog.AppendLine($"<color=yellow>║ {scaledDamage} + {effectFlatBonus} + {weaponEffectFlat} + {proficiencyBonus} + {drunkMod}</color>");
+        damageLog.AppendLine($"<color=yellow>║ = <b>{finalDmg} RAW DAMAGE</b></color>");
         damageLog.AppendLine($"<color=yellow>╚══════════════════════════════════════════════════════════════╝</color>");;
 
         Debug.Log(damageLog.ToString());

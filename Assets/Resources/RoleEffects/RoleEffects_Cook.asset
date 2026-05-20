@@ -26,7 +26,7 @@ MonoBehaviour:
   effect2Value1: 0.1
   effect2Value2: 0
   effect2Duration: 0
-  effect2BonusDamage: 0.2
+  effect2BonusDamage: 1
   effect3Name: Toxic Strike
   effect3Description: 'On-hit: Applies a debuff, if the target moves or is moved
     in the next 2 turns it will take 30% of current health damage'
@@ -34,4 +34,4 @@ MonoBehaviour:
   effect3Value1: 0.3
   effect3Value2: 0
   effect3Duration: 2
-  effect3BonusDamage: 0.4
+  effect3BonusDamage: 2

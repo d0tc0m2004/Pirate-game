@@ -66,7 +66,29 @@ namespace TacticalGame.Combat
         private void Start()
         {
             gridManager = ServiceLocator.Get<GridManager>();
-            tributeQuota = GameConfig.Instance.lockerTributeQuota;
+            tributeQuota = GameConfig.Instance.lockerTributeQuota; // Initial fallback
+        }
+
+        /// <summary>
+        /// Calculate tribute quota based on Enemy squad total HP * 0.25
+        /// </summary>
+        public void CalculateTributeQuota()
+        {
+            float totalEnemyHP = 0;
+            var allUnits = FindObjectsByType<UnitStatus>(FindObjectsSortMode.None);
+            foreach (var unit in allUnits)
+            {
+                if (unit.Team == Team.Enemy)
+                {
+                    totalEnemyHP += unit.MaxHP;
+                }
+            }
+            
+            if (totalEnemyHP > 0)
+            {
+                tributeQuota = totalEnemyHP * 0.25f;
+                Debug.Log($"<color=cyan>[LockerManager] Calculated Tribute Quota: {tributeQuota} (25% of {totalEnemyHP} Enemy HP)</color>");
+            }
         }
 
         private void Update()
@@ -366,6 +388,11 @@ namespace TacticalGame.Combat
         /// </summary>
         public float GetTributeQuota()
         {
+            // If still using default config, try to calculate it from spawned enemies
+            if (tributeQuota == GameConfig.Instance.lockerTributeQuota)
+            {
+                CalculateTributeQuota();
+            }
             return tributeQuota;
         }
 

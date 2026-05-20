@@ -26,11 +26,11 @@ MonoBehaviour:
   effect2Value1: 0.4
   effect2Value2: 0
   effect2Duration: 0
-  effect2BonusDamage: 0.2
+  effect2BonusDamage: 1
   effect3Name: Hazard Creation
   effect3Description: 'On-hit: Creates a random hazard at target location'
   effect3Type: 24
   effect3Value1: 0
   effect3Value2: 0
   effect3Duration: 0
-  effect3BonusDamage: 0.4
+  effect3BonusDamage: 2

@@ -26,7 +26,7 @@ MonoBehaviour:
   effect2Value1: 1
   effect2Value2: 0
   effect2Duration: 1
-  effect2BonusDamage: 0.2
+  effect2BonusDamage: 1
   effect3Name: Exposed Target
   effect3Description: 'On-hit: Does bonus 40% increased damage to targets with no
     hull shield'
@@ -34,4 +34,4 @@ MonoBehaviour:
   effect3Value1: 0.4
   effect3Value2: 0
   effect3Duration: 0
-  effect3BonusDamage: 0.4
+  effect3BonusDamage: 2

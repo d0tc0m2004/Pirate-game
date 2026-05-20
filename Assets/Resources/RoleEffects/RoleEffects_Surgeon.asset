@@ -26,7 +26,7 @@ MonoBehaviour:
   effect2Value1: 0
   effect2Value2: 0
   effect2Duration: 2
-  effect2BonusDamage: 0.2
+  effect2BonusDamage: 1
   effect3Name: Team Synergy
   effect3Description: 'On-hit: Does 20% increased damage for each allied unit in
     1 tile radius'
@@ -34,4 +34,4 @@ MonoBehaviour:
   effect3Value1: 0.2
   effect3Value2: 1
   effect3Duration: 0
-  effect3BonusDamage: 0.4
+  effect3BonusDamage: 2

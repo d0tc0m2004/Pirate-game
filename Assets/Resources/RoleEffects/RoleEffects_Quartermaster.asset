@@ -26,7 +26,7 @@ MonoBehaviour:
   effect2Value1: 0.2
   effect2Value2: 0
   effect2Duration: 0
-  effect2BonusDamage: 0.2
+  effect2BonusDamage: 1
   effect3Name: Rally Cry
   effect3Description: 'On-hit: Restores morale to all allied units based on 20% from
     this unit''s current morale'
@@ -34,4 +34,4 @@ MonoBehaviour:
   effect3Value1: 0.2
   effect3Value2: 0
   effect3Duration: 0
-  effect3BonusDamage: 0.4
+  effect3BonusDamage: 2

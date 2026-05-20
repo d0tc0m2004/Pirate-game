@@ -33,9 +33,9 @@ namespace TacticalGame.Units
         [SerializeField] private bool hasTwoPrimaryStats;
 
         [Header("Health & Morale")]
-        [SerializeField] private int maxHP = 600;
+        [SerializeField] private int maxHP = 32;
         [SerializeField] private int currentHP;
-        [SerializeField] private int maxMorale = 900;
+        [SerializeField] private int maxMorale = 50;
         [SerializeField] private int currentMorale;
 
         [Header("Core Stats")]
@@ -49,7 +49,7 @@ namespace TacticalGame.Units
         [SerializeField] private int speed;
 
         [Header("Buzz System")]
-        [SerializeField] private int maxBuzz = 100; // Buzz capacity from stats
+        [SerializeField] private int maxBuzz = 8; // Buzz capacity from stats
         [SerializeField] private int currentBuzz = 0;
 
         [Header("Ammo")]
@@ -292,9 +292,9 @@ namespace TacticalGame.Units
                 flatBonusMorale
             );
 
-            // Apply Grit damage reduction
-            float gritDR = CalculateGritDamageReduction();
-            int damageAfterGrit = Mathf.RoundToInt(result.FinalHPDamage * (1f - gritDR));
+            // Apply Grit damage reduction (flat)
+            int gritDR = DamageCalculator.GetFlatGritReduction(this);
+            int damageAfterGrit = Mathf.Max(0, result.FinalHPDamage - gritDR);
 
             // Apply Hull absorption
             int hullAbsorbed = 0;
@@ -303,7 +303,7 @@ namespace TacticalGame.Units
             if (currentHullPool > 0)
             {
                 var config = GameConfig.Instance;
-                // Hull absorbs up to X% of incoming damage
+                // Hull absorbs damage fully before HP (hullAbsorbPercent is 1.0)
                 int maxAbsorb = Mathf.RoundToInt(damageAfterGrit * config.hullAbsorbPercent);
                 hullAbsorbed = Mathf.Min(currentHullPool, maxAbsorb);
                 currentHullPool -= hullAbsorbed;
@@ -313,8 +313,12 @@ namespace TacticalGame.Units
             // Apply HP damage
             currentHP -= finalHPDamage;
 
-            // Apply morale damage
-            ApplyMoraleDamage(result.FinalMoraleDamage);
+            // Apply derived morale damage
+            float attackMult = isMelee ? 1.10f : 1.00f;
+            int derivedMoraleDmg = Mathf.RoundToInt(finalHPDamage * 0.60f * attackMult);
+            int totalMoraleDmg = derivedMoraleDmg + result.FinalMoraleDamage; // add flat riders
+            
+            ApplyMoraleDamage(totalMoraleDmg);
 
             // Log damage report
             string attackerName = source != null ? source.name : "Unknown Source";
@@ -322,8 +326,8 @@ namespace TacticalGame.Units
             string comboInfo = comboCount > 1 ? $" [Combo x{comboCount}]" : "";
             Debug.Log($"<color=red><b>DAMAGE REPORT: {gameObject.name}</b></color>\n" +
                       $"<b>Attacker:</b> {attackerName}{comboInfo}\n" +
-                      $"<b>HP Lost: {finalHPDamage}</b> (Grit DR: {gritDR:P0}){hullInfo} [{result.HPBreakdown}]\n" +
-                      $"<b>Morale Lost: {result.FinalMoraleDamage}</b>  [{result.MoraleBreakdown}]");
+                      $"<b>HP Lost: {finalHPDamage}</b> (Grit Blocked: {gritDR}){hullInfo} [{result.HPBreakdown}]\n" +
+                      $"<b>Morale Lost: {totalMoraleDmg}</b>  [{result.MoraleBreakdown}]");
 
             RecordDamageHistory($"Took {finalHPDamage} HP dmg from {attackerName}");
 
@@ -333,8 +337,8 @@ namespace TacticalGame.Units
                 DamagePopup.Create(popPos, finalHPDamage, PopupType.Damage);
             if (hullAbsorbed > 0)
                 DamagePopup.Create(popPos + Vector3.right * 0.4f, hullAbsorbed, PopupType.HullDamage);
-            if (result.FinalMoraleDamage > 0)
-                DamagePopup.Create(popPos + Vector3.left * 0.4f, result.FinalMoraleDamage, PopupType.MoraleDamage);
+            if (totalMoraleDmg > 0)
+                DamagePopup.Create(popPos + Vector3.left * 0.4f, totalMoraleDmg, PopupType.MoraleDamage);
             
             // Reduce curse charges
             if (curseCharges > 0) curseCharges--;
@@ -407,13 +411,11 @@ namespace TacticalGame.Units
 
         /// <summary>
         /// Calculate Grit-based damage reduction.
-        /// Formula: GritFactor = ((1 - HP%) × 0.50 + Morale% × 0.40)
-        /// DR = min(DRCap, GritFactor × (Grit / 100))
+        /// (Deprecated logic, now uses DamageCalculator flat reduction)
         /// </summary>
         private float CalculateGritDamageReduction()
         {
-            // Use the centralized calculation from DamageCalculator
-            return DamageCalculator.GetGritDamageReduction(this);
+            return 0f;
         }
 
         /// <summary>
@@ -436,6 +438,7 @@ namespace TacticalGame.Units
 
             // Calculate dynamic surrender threshold
             float thresholdPercent = GameConfig.Instance.surrenderThreshold;
+            if (thresholdPercent >= 1f) thresholdPercent /= 100f;
 
             if (team == Team.Player || team == Team.Enemy)
             {
