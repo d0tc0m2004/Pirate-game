@@ -122,7 +122,7 @@ namespace TacticalGame.Units
             if (passiveManager != null)
             {
                 // Check if any ally has the movement bonus passive
-                var allies = GameObject.FindGameObjectsWithTag("Unit");
+                var allies = UnityEngine.Object.FindObjectsByType<TacticalGame.Units.UnitStatus>(UnityEngine.FindObjectsSortMode.None).Select(u => u.gameObject).ToArray();
                 foreach (var allyObj in allies)
                 {
                     if (allyObj == gameObject) continue;
@@ -146,7 +146,7 @@ namespace TacticalGame.Units
             // Check if enemies have movement limit passive (Swashbuckler V2 - EnemyBootsLimited)
             if (status != null && status.Team == Team.Enemy)
             {
-                var playerUnits = GameObject.FindGameObjectsWithTag("Unit");
+                var playerUnits = UnityEngine.Object.FindObjectsByType<TacticalGame.Units.UnitStatus>(UnityEngine.FindObjectsSortMode.None).Select(u => u.gameObject).ToArray();
                 foreach (var playerObj in playerUnits)
                 {
                     var playerStatus = playerObj.GetComponent<UnitStatus>();
@@ -311,9 +311,17 @@ namespace TacticalGame.Units
             if (!CanMove()) return false;
             if (targetCell == null) return false;
             if (!targetCell.CanPlaceUnit()) return false;
+            if (targetCell.IsMiddleColumn) return false; // Nobody can move to the middle column
             
             GridManager gridManager = ServiceLocator.Get<GridManager>();
             if (gridManager == null) return false;
+            
+            var status = GetComponent<UnitStatus>();
+            if (status != null)
+            {
+                if (status.Team == Team.Player && !targetCell.IsPlayerSide) return false;
+                if (status.Team == Team.Enemy && targetCell.IsPlayerSide) return false;
+            }
             
             Vector2Int currentPos = gridManager.WorldToGridPosition(transform.position);
             Vector2Int targetPos = new Vector2Int(targetCell.XPosition, targetCell.YPosition);
@@ -336,7 +344,7 @@ namespace TacticalGame.Units
             }
             
             // Check if any nearby ally has the passive that grants it to us
-            var allies = GameObject.FindGameObjectsWithTag("Unit");
+            var allies = UnityEngine.Object.FindObjectsByType<TacticalGame.Units.UnitStatus>(UnityEngine.FindObjectsSortMode.None).Select(u => u.gameObject).ToArray();
             foreach (var allyObj in allies)
             {
                 if (allyObj == gameObject) continue;

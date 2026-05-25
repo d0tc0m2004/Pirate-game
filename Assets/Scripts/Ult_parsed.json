@@ -1,0 +1,93 @@
+[
+    {
+        "role":  "Captain",
+        "v1_name":  "Broadside — Ship cannon fires 3 times at 3 random enemy",
+        "v1_desc":  "side tiles. 6 dmg each + fire hazard",
+        "v2_name":  "Captain\u0027s Mark — Default",
+        "v2_desc":  "weapon attack vs enemy captain. Mark target this round: anyone hitting it reflects damage back to enemy captain"
+    },
+    {
+        "role":  "Quartermaster",
+        "v1_name":  "Decisive Order — Default",
+        "v1_desc":  "weapon attack vs enemy captain. +8 dmg. Marks them: any damage they take reflects to allies",
+        "v2_name":  "Last Stand Rally — Revive a dead allied OR surrendered unit at ~8 HP / ~12 morale",
+        "v2_desc":  "**Last Stand Rally** — Revive a dead allied OR surrendered unit at ~8 HP / ~12 morale"
+    },
+    {
+        "role":  "Helmsmaster",
+        "v1_name":  "Mirror Tide — During next round: any morale your team loses is mirrored to enemy team",
+        "v1_desc":  "**Mirror Tide** — During next round: any morale your team loses is mirrored to enemy team",
+        "v2_name":  "Tide",
+        "v2_desc":  "Drunk** — Attacks target with default weapon and makes target\u0027s Buzz meter completely full for 2 turns"
+    },
+    {
+        "role":  "Boatswain",
+        "v1_name":  "Throw Rum Bottle — At target tile: 8 dmg + fully Buzz everyone in 1",
+        "v1_desc":  "tile radius for 3 turns",
+        "v2_name":  "Defensive Anchor — Summons 3 hard obstacles in front row covering 3 columns. Last 2 turns",
+        "v2_desc":  "**Defensive Anchor** — Summons 3 hard obstacles in front row covering 3 columns. Last 2 turns"
+    },
+    {
+        "role":  "Shipwright",
+        "v1_name":  "Brace Hard — This turn: highest",
+        "v1_desc":  "HP enemy besides the captain is ignored (cannot attack/be attacked)",
+        "v2_name":  "Repair Wave — Default",
+        "v2_desc":  "weapon attack. Knock back the target to the last column"
+    },
+    {
+        "role":  "Master Gunner",
+        "v1_name":  "Sniper Bolt — Default",
+        "v1_desc":  "weapon attack vs highest-HP enemy that isn\u0027t captain. Ignores all defenses",
+        "v2_name":  "Volley — Default",
+        "v2_desc":  "weapon attack. Nearby enemies in 1 tile radius are knocked back 1 tile"
+    },
+    {
+        "role":  "Master-at-Arms",
+        "v1_name":  "Cleave — Default",
+        "v1_desc":  "weapon attack vs target and all nearby enemies in 1 tile radius (for next turn)",
+        "v2_name":  "Marshal\u0027s Strike — Default",
+        "v2_desc":  "weapon attack, +Skill bonus dmg if no other nearby enemies in 1 tile of target"
+    },
+    {
+        "role":  "Navigator",
+        "v1_name":  "Hazard Path — Default attack: stuns target and all nearby enemies in 1 tile, and does default weapon damage + 4 to all units in same row",
+        "v1_desc":  "**Hazard Path** — Default attack: stuns target and all nearby enemies in 1 tile, and does default weapon damage + 4 to all units in same row",
+        "v2_name":  "Marked Target — Marks a target for that round: any damage that the target will suffer is reflected on the captain",
+        "v2_desc":  "**Marked Target** — Marks a target for that round: any damage that the target will suffer is reflected on the captain"
+    },
+    {
+        "role":  "Surgeon",
+        "v1_name":  "Surgical Knockout — Default attack + knockback all enemies within 1 tile of target to back row",
+        "v1_desc":  "**Surgical Knockout** — Default attack + knockback all enemies within 1 tile of target to back row",
+        "v2_name":  "Battlefield Triage — Swap position of closest enemy with furthest enemy",
+        "v2_desc":  "**Battlefield Triage** — Swap position of closest enemy with furthest enemy"
+    },
+    {
+        "role":  "Cook",
+        "v1_name":  "Banquet Brawl — Default attack on target and nearby enemies in 1 tile, all of them deal +5 next turn",
+        "v1_desc":  "**Banquet Brawl** — Default attack on target and nearby enemies in 1 tile, all of them deal +5 next turn",
+        "v2_name":  "Last Meal — Prevent a unit from dying or surrendering next enemy turn",
+        "v2_desc":  "**Last Meal** — Prevent a unit from dying or surrendering next enemy turn"
+    },
+    {
+        "role":  "Swashbuckler",
+        "v1_name":  "Duelist\u0027s Mark — Mark enemy this round: anyone hitting it reflects damage to enemy captain",
+        "v1_desc":  "**Duelist\u0027s Mark** — Mark enemy this round: anyone hitting it reflects damage to enemy captain",
+        "v2_name":  "Spitfire — Restore the HP of any ally unit fully (full heal)",
+        "v2_desc":  "**Spitfire** — Restore the HP of any ally unit fully (full heal)"
+    },
+    {
+        "role":  "Deckhand",
+        "v1_name":  "Position Swap Ult — Swap positions of closest enemy and furthest enemy",
+        "v1_desc":  "**Position Swap Ult** — Swap positions of closest enemy and furthest enemy",
+        "v2_name":  "Position Swap Self — Swap this unit\u0027s HP with the closest enemy\u0027s HP",
+        "v2_desc":  "**Position Swap Self** — Swap this unit\u0027s HP with the closest enemy\u0027s HP"
+    },
+    {
+        "role":  "Captain Neutral",
+        "v1_name":  "Sets on Fire — Sets on fire the closest target whole column (fire hazard for 2 turns)",
+        "v1_desc":  "**Sets on Fire** — Sets on fire the closest target whole column (fire hazard for 2 turns)",
+        "v2_name":  "Forced Duel — Makes the lowest",
+        "v2_desc":  "HP unit and the captain attack each other 1 time with their default weapons"
+    }
+]

@@ -48,6 +48,7 @@ namespace TacticalGame.Core
         public static event Action<bool> OnGameEnd; // true = player won
         public static event Action OnDeploymentStart;
         public static event Action OnDeploymentEnd;
+        public static event Action OnBoardStateChanged; // Triggered when grid/units change dynamically
 
         // === DEAD MAN'S LOCKER EVENTS ===
         public static event Action<GameObject, int> OnLockerHit; // locker, remaining pips
@@ -71,13 +72,13 @@ namespace TacticalGame.Core
         // Unit Events
         public static void TriggerUnitSelected(GameObject unit) => OnUnitSelected?.Invoke(unit);
         public static void TriggerUnitDeselected() => OnUnitDeselected?.Invoke();
-        public static void TriggerUnitDeath(GameObject unit) => OnUnitDeath?.Invoke(unit);
-        public static void TriggerUnitSurrender(GameObject unit) => OnUnitSurrender?.Invoke(unit);
-        public static void TriggerUnitDamaged(GameObject unit, int damage) => OnUnitDamaged?.Invoke(unit, damage);
-        public static void TriggerUnitHealed(GameObject unit, int amount) => OnUnitHealed?.Invoke(unit, amount);
-        public static void TriggerMoraleDamaged(GameObject unit, int damage) => OnMoraleDamaged?.Invoke(unit, damage);
-        public static void TriggerUnitAttack(GameObject attacker, GameObject target) => OnUnitAttack?.Invoke(attacker, target);
-        public static void TriggerUnitMoved(GameObject unit, GridCell from, GridCell to) => OnUnitMoved?.Invoke(unit, from, to);
+        public static void TriggerUnitDeath(GameObject unit) { OnUnitDeath?.Invoke(unit); TriggerBoardStateChanged(); }
+        public static void TriggerUnitSurrender(GameObject unit) { OnUnitSurrender?.Invoke(unit); TriggerBoardStateChanged(); }
+        public static void TriggerUnitDamaged(GameObject unit, int damageAmount) { OnUnitDamaged?.Invoke(unit, damageAmount); TriggerBoardStateChanged(); }
+        public static void TriggerUnitHealed(GameObject unit, int healAmount) { OnUnitHealed?.Invoke(unit, healAmount); TriggerBoardStateChanged(); }
+        public static void TriggerMoraleDamaged(GameObject unit, int amount) { OnMoraleDamaged?.Invoke(unit, amount); TriggerBoardStateChanged(); }
+        public static void TriggerUnitAttack(GameObject attacker, GameObject target) { OnUnitAttack?.Invoke(attacker, target); TriggerBoardStateChanged(); }
+        public static void TriggerUnitMoved(GameObject unit, GridCell from, GridCell to) { OnUnitMoved?.Invoke(unit, from, to); TriggerBoardStateChanged(); }
 
         // Status Effect Events
         public static void TriggerUnitStunned(GameObject unit) => OnUnitStunned?.Invoke(unit);
@@ -99,6 +100,7 @@ namespace TacticalGame.Core
         public static void TriggerGameEnd(bool playerWon) => OnGameEnd?.Invoke(playerWon);
         public static void TriggerDeploymentStart() => OnDeploymentStart?.Invoke();
         public static void TriggerDeploymentEnd() => OnDeploymentEnd?.Invoke();
+        public static void TriggerBoardStateChanged() => OnBoardStateChanged?.Invoke();
 
         // Dead Man's Locker Events
         public static void TriggerLockerHit(GameObject locker, int remainingPips) => OnLockerHit?.Invoke(locker, remainingPips);
@@ -142,6 +144,7 @@ namespace TacticalGame.Core
             OnGameEnd = null;
             OnDeploymentStart = null;
             OnDeploymentEnd = null;
+            OnBoardStateChanged = null;
             OnLockerHit = null;
             OnLockerDestroyed = null;
             OnLockerTributeChanged = null;

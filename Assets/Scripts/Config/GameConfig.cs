@@ -211,6 +211,8 @@ namespace TacticalGame.Config
         public float lockerHitTributeLeak = 0.10f;
         [Tooltip("Base tribute quota per battle")]
         public float lockerTributeQuota = 100f;
+        public Difficulty currentDifficulty = Difficulty.Normal;
+        public TributeConfig tributeConfig = new TributeConfig();
 
         [Header("=== ARROWS ===")]
         public int defaultMaxArrows = 10;

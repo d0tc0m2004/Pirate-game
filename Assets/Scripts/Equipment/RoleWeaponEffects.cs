@@ -115,70 +115,24 @@ namespace TacticalGame.Equipment
     }
 
     /// <summary>
-    /// Types of weapon relic effects (on-hit effects).
+    /// Types of weapon relic effects (on-hit effects) per v5 specs.
     /// </summary>
     public enum WeaponRelicEffectType
     {
         None,
 
-        // Captain Effects
-        RestoreEnergyOnKill,        // Effect 1: Restore 1 energy on kill/surrender
-        BonusDamagePerUnspentEnergy, // Effect 2: +20% damage per unspent energy
-        MarkTargetRestoreEnergy,    // Effect 3: Mark target, if hit again restore 1 energy
-
-        // Quartermaster Effects
-        StealMorale,                // Effect 1: Steal 50 morale
-        BonusDamageIfLowerMorale,   // Effect 2: +20% if target has lower morale
-        RestoreMoraleToAllies,      // Effect 3: Restore morale to all allies (20% of current)
-
-        // Helmsmaster Effects
-        IncreaseBuzzMeter,          // Effect 1: Increase enemy Buzz by 25%
-        BonusDamageByBuzzState,     // Effect 2: Bonus damage based on enemy buzz
-        ApplyMissDebuff,            // Effect 3: 50% miss chance for 2 turns
-
-        // Boatswain Effects
-        StealHealth,                // Effect 1: Steal 10% health
-        BonusDamageByProximity,     // Effect 2: Bonus damage based on distance
-        DamageBasedOnHealthPercent, // Effect 3: +20% damage from total health
-
-        // Shipwright Effects
-        ReduceEnemyGrit,            // Effect 1: Reduce enemy Grit on hit
-        BonusDamageByMissingHealth, // Effect 2: Bonus based on own missing health
-        GainGritDealBonusDamage,    // Effect 3: Gain 50% of unit grit, deal bonus damage
-
-        // Master Gunner Effects
-        GainPrimaryStatOnKill,      // Effect 1: Gain 10% primary stat on kill
-        ReuseAbilityOnKill,         // Effect 2: Can re-use ability if unit dies
-        BonusDamagePerStowedWeapon, // Effect 3: +20% per time weapon was stowed
-
-        // Master-at-Arms Effects
-        ReduceWeaponRelicCost,      // Effect 1: Reduce other weapon relic cost by 1
-        BonusDamageIfNotMoved,      // Effect 2: +20% if unit didn't move last turn
-        ExecuteLowHealth,           // Effect 3: Execute targets below 15% health
-
-        // Navigator Effects
-        BonusDamageSameRow,         // Effect 1: +20% to targets on same row
-        BonusDamageIfTargetMoved,   // Effect 2: +40% if target moved last turn
-        CreateHazardAtTarget,       // Effect 3: Create random hazard at target
-
-        // Surgeon Effects
-        HealClosestAlly,            // Effect 1: Restore 150 health to closest ally
-        ApplyHealBlock,             // Effect 2: Target can't heal for 2 turns
-        BonusDamagePerAllyInRadius, // Effect 3: +20% per allied unit in 1 tile
-
-        // Cook Effects
-        ApplyFireDebuff,            // Effect 1: Set target on fire for 4 turns
-        BonusDamagePerDebuff,       // Effect 2: +10% per unique debuff on target
-        ApplyDebuffWithHealthDamage, // Effect 3: Debuff + 30% current health damage if moved
-
-        // Swashbuckler Effects
-        FreeCostIfFirst,            // Effect 1: Cost is 0 if first attack in turn
-        BonusDamageIfLowerSpeed,    // Effect 2: +20% if target has lower speed
-        BonusDamageIfFirstAttack,   // Effect 3: +50% if first attack in turn
-
-        // Deckhand Effects
-        RestoreHull,                // Effect 1: Restore 30 Hull
-        ReduceEnemyEnergyOnHullBreak, // Effect 2: Enemy loses 1 energy if hull breaks
-        BonusDamageNoHull           // Effect 3: +40% to targets with no hull
+        // V5 Spec Unified Role Effects
+        SurgeonHealAlly,         // Surgeon: Restore HP to lowest-HP ally
+        CookReduceTactics,       // Cook: -Tactics to enemy next turn
+        NavigatorAddMove,        // Navigator: +Move next turn
+        CaptainAddMorale,        // Captain: +Morale to all allies
+        QuartermasterStealMorale,// Quartermaster: Steal Morale
+        SwashbucklerAddSpeed,    // Swashbuckler: +Speed next turn
+        BoatswainAddThreat,      // Boatswain: +Grid Threat generation
+        MasterAtArmsAddCombo,    // Master-at-Arms: +Combo multiplier next turn
+        MasterGunnerReduceAim,   // Master Gunner: -Aim to enemy next turn
+        HelmsmasterAddBuzz,      // Helmsmaster: +Buzz to self
+        ShipwrightRestoreHull,   // Shipwright: Restore Hull to self
+        DeckhandReduceMove       // Deckhand: -Move to enemy next turn
     }
 }

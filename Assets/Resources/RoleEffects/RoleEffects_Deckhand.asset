@@ -15,23 +15,23 @@ MonoBehaviour:
   role: 11
   effect1Name: Hull Repair
   effect1Description: 'On-hit: Restore 30 Hull'
-  effect1Type: 34
-  effect1Value1: 30
+  effect1Type: 12
+  effect1Value1: 1
   effect1Value2: 0
   effect1Duration: 0
   effect2Name: Hull Breaker
   effect2Description: 'On-hit: If the attack destroys enemy hull shield next turn
     the enemy has 1 less energy'
-  effect2Type: 35
-  effect2Value1: 1
+  effect2Type: 12
+  effect2Value1: 2
   effect2Value2: 0
   effect2Duration: 1
   effect2BonusDamage: 1
   effect3Name: Exposed Target
   effect3Description: 'On-hit: Does bonus 40% increased damage to targets with no
     hull shield'
-  effect3Type: 36
-  effect3Value1: 0.4
+  effect3Type: 12
+  effect3Value1: 3
   effect3Value2: 0
   effect3Duration: 0
   effect3BonusDamage: 2

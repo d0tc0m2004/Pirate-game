@@ -27,6 +27,7 @@ namespace TacticalGame.Combat
             UnitStatus attackerStatus,
             UnitStatus targetStatus,
             bool hasCover,
+            bool hasFog,
             bool isFirstAction = false,
             int comboCount = 1,
             int flatBonusHP = 0,
@@ -36,9 +37,16 @@ namespace TacticalGame.Combat
             
             // --- STEP 1: RAW ---
             int skill = attackerStatus != null ? attackerStatus.Skill : 0;
-            int comboBonus = Mathf.Min(Mathf.Max(0, comboCount - 1), skill);
+            // V5: Combo cap is fixed at 4 (hand size limit)
+            int comboBonus = Mathf.Min(Mathf.Max(0, comboCount - 1), 4);
             
             int rawDamage = baseDamage + comboBonus;
+            
+            // V5: Opener bonus (+Skill if first action)
+            if (isFirstAction && skill > 0)
+            {
+                rawDamage += skill;
+            }
             
             // --- STEP 2: MOD ---
             int modDamage = rawDamage;
@@ -47,10 +55,34 @@ namespace TacticalGame.Combat
             if (comboBonus > 0)
                 breakdown += $" +{comboBonus}(Combo)";
                 
+            if (isFirstAction && skill > 0)
+                breakdown += $" +{skill}(Opener)";
+                
+            // Neutral Zone Modifier
+            if (attackerStatus != null)
+            {
+                var grid = TacticalGame.Core.ServiceLocator.Get<TacticalGame.Grid.GridManager>();
+                if (grid != null)
+                {
+                    var pos = grid.WorldToGridPosition(attackerStatus.transform.position);
+                    if (grid.IsInNeutralZone(pos.x))
+                    {
+                        modDamage = Mathf.RoundToInt(modDamage * 1.10f);
+                        breakdown += " *1.1(NeutralZone)";
+                    }
+                }
+            }
+                
             if (hasCover)
             {
                 modDamage -= 1;
                 breakdown += " -1(Cover)";
+            }
+            
+            if (hasFog)
+            {
+                modDamage -= 1;
+                breakdown += " -1(Fog)";
             }
             
             // Identity riders
@@ -86,10 +118,11 @@ namespace TacticalGame.Combat
             bool isMelee,
             UnitStatus targetStatus,
             bool hasCover,
+            bool hasFog,
             int flatBonusHP = 0,
             int flatBonusMorale = 0)
         {
-            return Calculate(baseDamage, isMelee, null, targetStatus, hasCover, false, 1, flatBonusHP, flatBonusMorale);
+            return Calculate(baseDamage, isMelee, null, targetStatus, hasCover, hasFog, false, 1, flatBonusHP, flatBonusMorale);
         }
 
         public static int GetMeleeBaseDamage(UnitStatus attacker, int weaponBaseDamage = 0)

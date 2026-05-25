@@ -149,7 +149,7 @@ namespace TacticalGame.Equipment
             }
             
             // Initialize Navigator V1 free movement for first round
-            if (HasPassive(RelicEffectType.PassiveUnique_FreeMovement))
+            if (HasPassive(RelicEffectType.PassiveUnique_V1_Navigator))
             {
                 freeMovesRemaining = 3;
                 Debug.Log($"<color=cyan>{gameObject.name}: Free movement initialized to 3 tiles</color>");
@@ -179,7 +179,7 @@ namespace TacticalGame.Equipment
             knockbackAttackerUsedThisTurn = false;
             
             // PassiveUnique_ExtraEnergy - Captain V1 (+1 energy per turn)
-            if (HasPassive(RelicEffectType.PassiveUnique_ExtraEnergy))
+            if (HasPassive(RelicEffectType.PassiveUnique_V1_Captain))
             {
                 var energyManager = ServiceLocator.Get<EnergyManager>();
                 energyManager?.AddEnergy(1);
@@ -187,7 +187,15 @@ namespace TacticalGame.Equipment
             }
             
             // PassiveUnique_ExtraCards - Quartermaster V1
-            if (HasPassive(RelicEffectType.PassiveUnique_ExtraCards))
+            
+            // Trinket_V1_Shipwright - Taunt first attack once per enemy turn (applied on player turn start to last through enemy turn)
+            if (HasPassive(RelicEffectType.Trinket_V1_Shipwright))
+            {
+                var effects = GetComponent<TacticalGame.Combat.StatusEffectManager>();
+                effects?.ApplyEffect(new TacticalGame.Combat.StatusEffect(TacticalGame.Combat.StatusEffectType.Taunt, "Taunt", 1, 0f, 0f, gameObject));
+            }
+
+            if (HasPassive(RelicEffectType.PassiveUnique_V1_Quartermaster))
             {
                 DrawFromSharedDeck(2);
                 Debug.Log($"<color=cyan>{gameObject.name}: +2 cards from passive</color>");
@@ -206,7 +214,7 @@ namespace TacticalGame.Equipment
             }
             
             // Trinket_DrawIfHighHP - Navigator V1
-            if (HasPassive(RelicEffectType.Trinket_DrawIfHighHP))
+            if (HasPassive(RelicEffectType.Trinket_V2_Boatswain))
             {
                 if (unitStatus.HPPercent > 0.6f)
                 {
@@ -229,7 +237,7 @@ namespace TacticalGame.Equipment
             }
             
             // Trinket_V2_DrawExtraBelow50 - Cook V2
-            if (HasPassive(RelicEffectType.Trinket_V2_DrawExtraBelow50))
+            if (HasPassive(RelicEffectType.Trinket_V2_Cook))
             {
                 if (unitStatus.HPPercent < 0.5f)
                 {
@@ -257,7 +265,7 @@ namespace TacticalGame.Equipment
             }
             
             // Trinket_HullFullRegen - Deckhand V1: If hull not fully destroyed, restore to full
-            if (HasPassive(RelicEffectType.Trinket_HullFullRegen))
+            if (HasPassive(RelicEffectType.Trinket_V1_Deckhand))
             {
                 if (unitStatus.CurrentHullPool > 0 && unitStatus.CurrentHullPool < unitStatus.MaxHullPool)
                 {
@@ -271,7 +279,7 @@ namespace TacticalGame.Equipment
         private void OnRoundStart(int round)
         {
             // Reset per-round trackers
-            if (HasPassive(RelicEffectType.PassiveUnique_FreeMovement))
+            if (HasPassive(RelicEffectType.PassiveUnique_V1_Navigator))
             {
                 freeMovesRemaining = 3;
                 Debug.Log($"<color=cyan>{gameObject.name}: Free movement reset to {freeMovesRemaining} tiles</color>");
@@ -308,14 +316,14 @@ namespace TacticalGame.Equipment
         private void HandleDamageTaken(int damage)
         {
             // Trinket_KnockbackAttacker - Cook V1
-            if (HasPassive(RelicEffectType.Trinket_KnockbackAttacker) && !knockbackAttackerUsedThisTurn)
+            if (HasPassive(RelicEffectType.Trinket_V2_Shipwright) && !knockbackAttackerUsedThisTurn)
             {
                 // Would need attacker reference - handled by StatusEffectManager
                 knockbackAttackerUsedThisTurn = true;
             }
 
             // Totem_HealLowestOnDamage - Cook V1
-            if (HasPassive(RelicEffectType.Totem_HealLowestOnDamage))
+            if (HasPassive(RelicEffectType.Totem_V1_Cook))
             {
                 var lowestAlly = GetAllies().OrderBy(a => a.HPPercent).FirstOrDefault();
                 if (lowestAlly != null)
@@ -341,7 +349,7 @@ namespace TacticalGame.Equipment
             // ==================== DECKHAND HULL PASSIVES ====================
             
             // Trinket_V2_HullDiscardOnSurvive - Deckhand: if hull survives attack, discard enemy card
-            if (HasPassive(RelicEffectType.Trinket_V2_HullDiscardOnSurvive))
+            if (HasPassive(RelicEffectType.Trinket_V2_Deckhand))
             {
                 if (unitStatus.CurrentHullPool > 0)
                 {
@@ -376,7 +384,7 @@ namespace TacticalGame.Equipment
         private void HandleAllyDamaged(GameObject ally, int damage)
         {
             // PassiveUnique_CounterAttack - Navigator V1
-            if (HasPassive(RelicEffectType.PassiveUnique_CounterAttack))
+            if (HasPassive(RelicEffectType.Trinket_V1_MasterAtArms))
             {
                 // Attack the enemy that damaged ally
                 if (unitAttack != null)
@@ -435,7 +443,7 @@ namespace TacticalGame.Equipment
             }
 
             // Totem_EnemyDeathMoraleSwing - Boatswain V1
-            if (HasPassive(RelicEffectType.Totem_EnemyDeathMoraleSwing))
+            if (HasPassive(RelicEffectType.Totem_V2_Quartermaster))
             {
                 // Enemies lose morale, allies gain
                 var enemies = GetEnemies();
@@ -470,7 +478,7 @@ namespace TacticalGame.Equipment
 
         private void OnUnitAttack(GameObject attacker, GameObject target)
         {
-            if (attacker == gameObject && HasPassive(RelicEffectType.PassiveUnique_DisplaceOnWeaponUse))
+            if (attacker == gameObject && HasPassive(RelicEffectType.PassiveUnique_V1_Cook))
             {
                 var hazardManager = ServiceLocator.Get<HazardManager>();
                 var gridManager = ServiceLocator.Get<GridManager>();
@@ -491,7 +499,7 @@ namespace TacticalGame.Equipment
             }
 
             // Ultimate_V2_SurrenderOn4Weapons - Swashbuckler V2
-            if (attacker == gameObject && HasPassive(RelicEffectType.Ultimate_V2_SurrenderOn4Weapons))
+            if (attacker == gameObject && HasPassive(RelicEffectType.Ultimate_V2_Swashbuckler))
             {
                 var targetEffects = target?.GetComponent<StatusEffectManager>();
                 var targetStatus = target?.GetComponent<UnitStatus>();
@@ -540,9 +548,9 @@ namespace TacticalGame.Equipment
                     pasSlotInfo = $"pasSlot=[{ps.categoryRelic.relicName}, cat={ps.categoryRelic.category}, role={ps.categoryRelic.roleTag}, effect={ps.categoryRelic.GetEffectType()}, isPassive={ps.categoryRelic.IsPassive()}]";
                 else pasSlotInfo = "pasSlot=noRelic";
             }
-            Debug.Log($"<color=yellow>[FreeMove] DIAG: unit={gameObject.name} | hasFreeMove={HasPassive(RelicEffectType.PassiveUnique_FreeMovement)} | movesLeft={freeMovesRemaining} | activePassives=[{string.Join(", ", activePassives)}] | {pasSlotInfo}</color>");
+            Debug.Log($"<color=yellow>[FreeMove] DIAG: unit={gameObject.name} | hasFreeMove={HasPassive(RelicEffectType.PassiveUnique_V1_Navigator)} | movesLeft={freeMovesRemaining} | activePassives=[{string.Join(", ", activePassives)}] | {pasSlotInfo}</color>");
             
-            if (!HasPassive(RelicEffectType.PassiveUnique_FreeMovement)) return;
+            if (!HasPassive(RelicEffectType.PassiveUnique_V1_Navigator)) return;
             if (freeMovesRemaining <= 0) return;
             if (isFreeMovementSelecting) return;
             if (RelicTargetSelector.Instance != null && RelicTargetSelector.Instance.IsSelecting) return;
@@ -599,21 +607,21 @@ namespace TacticalGame.Equipment
             float bonus = 0f;
 
             // Trinket_BonusDamagePerCard - Captain V1
-            if (HasPassive(RelicEffectType.Trinket_BonusDamagePerCard))
+            if (HasPassive(RelicEffectType.Trinket_V1_Captain))
             {
                 int cardsInHand = CardsInHand;
                 bonus += cardsInHand * 0.2f; // +20% per card
             }
 
             // Trinket_BonusVsCaptain - Captain V2 (+20% damage vs enemy captain)
-            if (HasPassive(RelicEffectType.Trinket_BonusVsCaptain) &&
+            if (HasPassive(RelicEffectType.Trinket_V2_Captain) &&
                 target != null && target.IsCaptain)
             {
                 bonus += 0.2f; // +20% vs captain
             }
 
             // Trinket_DamageByBuzz - Shipwright V1
-            if (HasPassive(RelicEffectType.Trinket_DamageByBuzz))
+            if (HasPassive(RelicEffectType.Trinket_V1_Helmsmaster))
             {
                 float buzzPercent = unitStatus.MaxBuzz > 0 ? 
                     (float)unitStatus.CurrentBuzz / unitStatus.MaxBuzz : 0f;
@@ -621,34 +629,34 @@ namespace TacticalGame.Equipment
             }
 
             // PassiveUnique_BonusVsLowGrit - Cook V1
-            if (HasPassive(RelicEffectType.PassiveUnique_BonusVsLowGrit) && 
+            if (HasPassive(RelicEffectType.PassiveUnique_V2_Shipwright) && 
                 target != null && target.Grit < unitStatus.Grit)
             {
                 bonus += 0.2f; // +20% vs lower grit
             }
 
             // PassiveUnique_BonusVsLowHP - Deckhand V1
-            if (HasPassive(RelicEffectType.PassiveUnique_BonusVsLowHP) && 
+            if (HasPassive(RelicEffectType.PassiveUnique_V1_Deckhand) && 
                 target != null && target.HPPercent < 0.5f)
             {
                 bonus += 0.2f; // +20% vs low HP
             }
 
             // PassiveUnique_V2_HullDestroyedDamageBonus - Deckhand V2
-            if (HasPassive(RelicEffectType.PassiveUnique_V2_HullDestroyedDamageBonus))
+            if (HasPassive(RelicEffectType.PassiveUnique_V2_Deckhand))
             {
                 bonus += hullsDestroyedThisGame * 0.3f; // +30% per hull destroyed
             }
 
             // Trinket_RowEnemiesTakeMore - Deckhand V1
-            if (HasPassive(RelicEffectType.Trinket_RowEnemiesTakeMore) && 
+            if (HasPassive(RelicEffectType.Trinket_V2_MasterGunner) && 
                 target != null && IsSameRow(target))
             {
                 bonus += 0.1f; // +10% vs same row enemies
             }
 
             // Trinket_BonusDamageIfAlone - Swashbuckler V1 (+20% damage if no nearby allies)
-            if (HasPassive(RelicEffectType.Trinket_BonusDamageIfAlone))
+            if (HasPassive(RelicEffectType.Trinket_V1_Swashbuckler))
             {
                 if (GetNearbyAllies(1).Count == 0)
                 {
@@ -683,7 +691,7 @@ namespace TacticalGame.Equipment
             }
             
             // PassiveUnique_V2_Sniper - Deckhand V2 (+20% at max range)
-            if (HasPassive(RelicEffectType.PassiveUnique_V2_Sniper) && target != null)
+            if (HasPassive(RelicEffectType.PassiveUnique_V2_MasterGunner) && target != null)
             {
                 float dist = Vector3.Distance(transform.position, target.transform.position);
                 if (dist >= 5f) // Max range assumed 5 tiles
@@ -714,14 +722,14 @@ namespace TacticalGame.Equipment
             float reduction = 0f;
 
             // Trinket_ReduceDamageFromClosest - MasterAtArms V1
-            if (HasPassive(RelicEffectType.Trinket_ReduceDamageFromClosest) && 
+            if (HasPassive(RelicEffectType.Trinket_V1_Boatswain) && 
                 attacker != null && IsClosestEnemy(attacker))
             {
                 reduction += 0.2f; // -20% from closest enemy
             }
 
             // Trinket_RowEnemiesLessDamage - Swashbuckler V1
-            if (HasPassive(RelicEffectType.Trinket_RowEnemiesLessDamage) && 
+            if (HasPassive(RelicEffectType.Trinket_V1_MasterGunner) && 
                 attacker != null && IsSameRow(attacker))
             {
                 reduction += 0.1f; // -10% from same row enemies
@@ -775,7 +783,7 @@ namespace TacticalGame.Equipment
         /// </summary>
         public bool IsImmuneTOMoraleFocus()
         {
-            return HasPassive(RelicEffectType.Trinket_ImmuneMoraleFocusFire);
+            return HasPassive(RelicEffectType.Trinket_V1_Quartermaster);
         }
 
         /// <summary>
@@ -792,7 +800,7 @@ namespace TacticalGame.Equipment
         public float GetEnemySurrenderThreshold()
         {
             // Trinket_EnemySurrenderEarly - Boatswain V1
-            if (HasPassive(RelicEffectType.Trinket_EnemySurrenderEarly))
+            if (HasPassive(RelicEffectType.Trinket_V2_Quartermaster))
             {
                 return 0.3f; // Enemies surrender at 30%
             }
@@ -805,7 +813,7 @@ namespace TacticalGame.Equipment
         public float GetAllySurrenderThreshold()
         {
             // PassiveUnique_LowerSurrenderThreshold - Boatswain V1
-            if (HasPassive(RelicEffectType.PassiveUnique_LowerSurrenderThreshold))
+            if (HasPassive(RelicEffectType.PassiveUnique_V2_Quartermaster))
             {
                 return 0.1f; // Allies surrender at 10%
             }
@@ -826,7 +834,7 @@ namespace TacticalGame.Equipment
         /// </summary>
         public bool IsBuzzPenaltyDisabled()
         {
-            return HasPassive(RelicEffectType.PassiveUnique_NoBuzzDownside);
+            return HasPassive(RelicEffectType.PassiveUnique_V1_Helmsmaster);
         }
 
         /// <summary>
@@ -850,7 +858,7 @@ namespace TacticalGame.Equipment
         /// </summary>
         public int GetEnemyHazardSizeIncrease()
         {
-            if (HasPassive(RelicEffectType.Trinket_HazardSizeIncrease))
+            if (HasPassive(RelicEffectType.Trinket_V1_Cook))
             {
                 return 1;
             }
@@ -863,7 +871,7 @@ namespace TacticalGame.Equipment
         public int GetEnemyMovementLimit()
         {
             // PassiveUnique_V2_EnemyBootsLimit - Swashbuckler V2 (Enemies limited to 3 tiles)
-            if (HasPassive(RelicEffectType.PassiveUnique_V2_EnemyBootsLimit))
+            if (HasPassive(RelicEffectType.PassiveUnique_V2_Swashbuckler))
             {
                 return 3;
             }
@@ -875,7 +883,7 @@ namespace TacticalGame.Equipment
         /// </summary>
         public int GetAllyExtraMovement()
         {
-            if (HasPassive(RelicEffectType.PassiveUnique_V2_AllyMovementBoost))
+            if (HasPassive(RelicEffectType.PassiveUnique_V2_Navigator))
             {
                 return 1; // +1 movement for all allies
             }
@@ -905,7 +913,7 @@ namespace TacticalGame.Equipment
         /// </summary>
         public bool KnockbackIncreasesBuzz()
         {
-            return HasPassive(RelicEffectType.Trinket_KnockbackIncreasesBuzz);
+            return HasPassive(RelicEffectType.Trinket_V2_Helmsmaster);
         }
 
         /// <summary>
@@ -913,9 +921,7 @@ namespace TacticalGame.Equipment
         /// </summary>
         public bool NearbyAlliesIgnoreObstacles()
         {
-            // Trinket_NearbyIgnoreObstacles not in current enum
-            // return HasPassive(RelicEffectType.Trinket_NearbyIgnoreObstacles);
-            return false;
+            return HasPassive(RelicEffectType.Trinket_V2_Navigator);
         }
 
         /// <summary>
@@ -923,9 +929,7 @@ namespace TacticalGame.Equipment
         /// </summary>
         public bool IsNearbyRadiusGlobal()
         {
-            // Trinket_GlobalAllyRadius not in current enum
-            // return HasPassive(RelicEffectType.Trinket_GlobalAllyRadius);
-            return false;
+            return HasPassive(RelicEffectType.Trinket_V2_Surgeon);
         }
 
         /// <summary>
@@ -933,11 +937,10 @@ namespace TacticalGame.Equipment
         /// </summary>
         public float GetNearbyAllyPowerBonus()
         {
-            // Trinket_NearbyAlliesPowerBuff not in current enum
-            // if (HasPassive(RelicEffectType.Trinket_NearbyAlliesPowerBuff))
-            // {
-            //     return 0.3f; // +30% power to nearby
-            // }
+            if (HasPassive(RelicEffectType.Trinket_V1_Navigator))
+            {
+                return 0.3f; // +30% power to nearby
+            }
             return 0f;
         }
 
@@ -946,11 +949,10 @@ namespace TacticalGame.Equipment
         /// </summary>
         public float GetEnemySpeedReduction()
         {
-            // Trinket_EnemiesLoseSpeed not in current enum
-            // if (HasPassive(RelicEffectType.Trinket_EnemiesLoseSpeed))
-            // {
-            //     return 0.1f; // -10% speed to all enemies
-            // }
+            if (HasPassive(RelicEffectType.Trinket_V2_Swashbuckler))
+            {
+                return 0.1f; // -10% speed to all enemies
+            }
             return 0f;
         }
 
@@ -968,7 +970,7 @@ namespace TacticalGame.Equipment
         /// </summary>
         public bool ShouldDiscardOnHullSurvive()
         {
-            return HasPassive(RelicEffectType.Trinket_V2_HullDiscardOnSurvive);
+            return HasPassive(RelicEffectType.Trinket_V2_Deckhand);
         }
 
         #endregion
@@ -980,7 +982,7 @@ namespace TacticalGame.Equipment
         /// </summary>
         public float GetGritAuraBonus()
         {
-            if (HasPassive(RelicEffectType.PassiveUnique_GritAura))
+            if (HasPassive(RelicEffectType.PassiveUnique_V1_Shipwright))
             {
                 return unitStatus.Grit * 0.05f; // 5% of this unit's grit
             }
@@ -1023,7 +1025,7 @@ namespace TacticalGame.Equipment
 
         private List<UnitStatus> GetAllies()
         {
-            return GameObject.FindGameObjectsWithTag("Unit")
+            return UnityEngine.Object.FindObjectsByType<TacticalGame.Units.UnitStatus>(UnityEngine.FindObjectsSortMode.None).Select(u => u.gameObject).ToArray()
                 .Select(go => go.GetComponent<UnitStatus>())
                 .Where(u => u != null && u.Team == unitStatus.Team && u != unitStatus && !u.HasSurrendered)
                 .ToList();
@@ -1031,7 +1033,7 @@ namespace TacticalGame.Equipment
 
         private List<UnitStatus> GetEnemies()
         {
-            return GameObject.FindGameObjectsWithTag("Unit")
+            return UnityEngine.Object.FindObjectsByType<TacticalGame.Units.UnitStatus>(UnityEngine.FindObjectsSortMode.None).Select(u => u.gameObject).ToArray()
                 .Select(go => go.GetComponent<UnitStatus>())
                 .Where(u => u != null && u.Team != unitStatus.Team && !u.HasSurrendered)
                 .ToList();
@@ -1093,7 +1095,7 @@ namespace TacticalGame.Equipment
         /// </summary>
         public bool ShouldIgnoreRoles()
         {
-            return HasPassive(RelicEffectType.PassiveUnique_IgnoreRoles);
+            return HasPassive(RelicEffectType.PassiveUnique_V1_MasterGunner);
         }
         
         // ==================== V2 PASSIVE METHODS ====================
@@ -1115,7 +1117,7 @@ namespace TacticalGame.Equipment
         /// </summary>
         public float GetHealEffectivenessMultiplier()
         {
-            if (HasPassive(RelicEffectType.PassiveUnique_V2_Medic))
+            if (HasPassive(RelicEffectType.PassiveUnique_V2_Surgeon))
             {
                 return 1.25f; // Heals are 25% more effective
             }
@@ -1127,7 +1129,7 @@ namespace TacticalGame.Equipment
         /// </summary>
         public bool ShouldHalveGrogConsumption()
         {
-            if (HasPassive(RelicEffectType.PassiveUnique_V2_Efficient))
+            if (HasPassive(RelicEffectType.PassiveUnique_V2_Cook))
             {
                 return UnityEngine.Random.value < 0.5f; // 50% chance not consumed
             }
@@ -1139,7 +1141,7 @@ namespace TacticalGame.Equipment
         /// </summary>
         public bool BuzzGivesBonuses()
         {
-            return HasPassive(RelicEffectType.PassiveUnique_V2_DrunkMaster);
+            return HasPassive(RelicEffectType.PassiveUnique_V2_Helmsmaster);
         }
         
         /// <summary>
@@ -1147,7 +1149,7 @@ namespace TacticalGame.Equipment
         /// </summary>
         public bool IsUnstoppable()
         {
-            return HasPassive(RelicEffectType.PassiveUnique_V2_Unstoppable);
+            return HasPassive(RelicEffectType.PassiveUnique_V2_Boatswain);
         }
         
         /// <summary>
@@ -1188,7 +1190,7 @@ namespace TacticalGame.Equipment
         public bool NoBuzzPenalty()
         {
             return HasPassive(RelicEffectType.Trinket_V2_NoBuzzPenalty) || 
-                   HasPassive(RelicEffectType.PassiveUnique_NoBuzzDownside);
+                   HasPassive(RelicEffectType.PassiveUnique_V1_Helmsmaster);
         }
         
         /// <summary>
@@ -1208,7 +1210,7 @@ namespace TacticalGame.Equipment
         /// </summary>
         public bool ShouldRiposte()
         {
-            if (HasPassive(RelicEffectType.PassiveUnique_V2_Riposte))
+            if (HasPassive(RelicEffectType.PassiveUnique_V2_MasterAtArms))
             {
                 return UnityEngine.Random.value < 0.3f; // 30% chance
             }
@@ -1239,7 +1241,7 @@ namespace TacticalGame.Equipment
         /// </summary>
         public void ApplyTeamLeaderAura()
         {
-            if (HasPassive(RelicEffectType.PassiveUnique_V2_TeamLeader))
+            if (HasPassive(RelicEffectType.PassiveUnique_V2_Captain))
             {
                 var allies = GetNearbyAllies(2); // 2 tile radius
                 foreach (var ally in allies)

@@ -16,6 +16,9 @@ namespace TacticalGame.Equipment
     /// </summary>
     public class BattleDeckManager : MonoBehaviour
     {
+        public int CardsPlayedThisTurn { get; set; } = 0;
+        public int MasterGunnerRelicsUsed { get; set; } = 0;
+        
         #region Singleton
         
         private static BattleDeckManager _instance;
@@ -308,7 +311,7 @@ namespace TacticalGame.Equipment
         /// </summary>
         public void BuildDeckFromScene()
         {
-            var playerUnits = GameObject.FindGameObjectsWithTag("Unit")
+            var playerUnits = UnityEngine.Object.FindObjectsByType<TacticalGame.Units.UnitStatus>(UnityEngine.FindObjectsSortMode.None).Select(u => u.gameObject).ToArray()
                 .Select(go => go.GetComponent<UnitStatus>())
                 .Where(u => u != null && u.Team == Team.Player && !u.HasSurrendered)
                 .ToList();
@@ -571,8 +574,15 @@ namespace TacticalGame.Equipment
         public void DiscardNonStowedCards()
         {
             // Revert any temporary cost reductions before discarding
-            foreach (var card in hand)
+            for (int i = hand.Count - 1; i >= 0; i--)
             {
+                var card = hand[i];
+                if (card == null)
+                {
+                    hand.RemoveAt(i);
+                    continue;
+                }
+                
                 if (card.originalEnergyCost >= 0)
                 {
                     card.energyCost = card.originalEnergyCost;
@@ -584,19 +594,28 @@ namespace TacticalGame.Equipment
             freeStowsRemaining = 0;
             weaponUseTwiceActive = false;
 
-            var toDiscard = hand.Where(c => !c.isStowed).ToList();
+            var toDiscard = hand.Where(c => c != null && !c.isStowed).ToList();
             
             foreach (var card in toDiscard)
             {
                 hand.Remove(card);
-                discardPile.Add(card);
-                OnCardDiscarded?.Invoke(card);
+                if (discardPile != null) discardPile.Add(card);
+                
+                try {
+                    OnCardDiscarded?.Invoke(card);
+                } catch (System.Exception e) {
+                    UnityEngine.Debug.LogError($"Error invoking OnCardDiscarded: {e.Message}");
+                }
             }
             
-            Debug.Log($"<color=yellow>Discarded {toDiscard.Count} cards, {hand.Count} stowed remain</color>");
+            UnityEngine.Debug.Log($"<color=yellow>Discarded {toDiscard.Count} cards, {hand.Count} stowed remain</color>");
             
-            OnHandChanged?.Invoke(hand);
-            OnTurnEndDiscard?.Invoke();
+            try {
+                OnHandChanged?.Invoke(hand);
+                OnTurnEndDiscard?.Invoke();
+            } catch (System.Exception e) {
+                UnityEngine.Debug.LogError($"Error invoking hand changed events: {e.Message}");
+            }
         }
         
         #endregion
@@ -730,7 +749,7 @@ namespace TacticalGame.Equipment
             if (target == null)
             {
                 // Auto-target closest enemy
-                var enemies = GameObject.FindGameObjectsWithTag("Unit")
+                var enemies = UnityEngine.Object.FindObjectsByType<TacticalGame.Units.UnitStatus>(UnityEngine.FindObjectsSortMode.None).Select(u => u.gameObject).ToArray()
                     .Select(go => go.GetComponent<UnitStatus>())
                     .Where(u => u != null && u.Team != card.ownerUnit.Team && !u.HasSurrendered)
                     .ToList();

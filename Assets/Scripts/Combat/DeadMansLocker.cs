@@ -116,16 +116,23 @@ namespace TacticalGame.Combat
 
         /// <summary>
         /// Apply Morale Shock when a pip is lost.
-        /// ShockPerUnit = TotalPlayerMorale * (1/N) split among living units.
-        /// N = total number of surviving lockers.
+        /// ShockTeam = TotalMorale / TotalPipsRemaining
+        /// ShockPerUnit = ShockTeam / U split among living units.
         /// </summary>
         private void ApplyMoraleShock()
         {
             var lockerManager = ServiceLocator.Get<DeadMansLockerManager>();
             if (lockerManager == null) return;
 
-            int survivingLockers = lockerManager.GetSurvivingLockerCount();
-            if (survivingLockers <= 0) return;
+            var survivingLockersList = lockerManager.GetSurvivingLockers();
+            if (survivingLockersList.Count == 0) return;
+
+            int totalPipsRemaining = 0;
+            foreach (var locker in survivingLockersList)
+            {
+                totalPipsRemaining += locker.CurrentPips;
+            }
+            if (totalPipsRemaining <= 0) return;
 
             // Gather all living player units
             var playerUnits = GetLivingPlayerUnits();
@@ -138,8 +145,8 @@ namespace TacticalGame.Combat
                 totalMorale += unit.CurrentMorale;
             }
 
-            // ShockTeam = TotalMorale * (1/N)
-            float shockTeam = totalMorale * (1f / survivingLockers);
+            // ShockTeam = TotalMorale / TotalPipsRemaining
+            float shockTeam = (float)totalMorale / totalPipsRemaining;
 
             // Split among living units
             int shockPerUnit = Mathf.RoundToInt(shockTeam / playerUnits.Count);

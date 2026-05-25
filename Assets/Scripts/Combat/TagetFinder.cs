@@ -1,3 +1,4 @@
+using System.Linq;
 using UnityEngine;
 using System.Collections.Generic;
 using TacticalGame.Enums;
@@ -15,7 +16,7 @@ namespace TacticalGame.Combat
         /// </summary>
         public static UnitStatus FindNearestEnemy(UnitStatus attacker)
         {
-            GameObject[] allUnits = GameObject.FindGameObjectsWithTag("Unit");
+            GameObject[] allUnits = UnityEngine.Object.FindObjectsByType<TacticalGame.Units.UnitStatus>(UnityEngine.FindObjectsSortMode.None).Select(u => u.gameObject).ToArray();
             UnitStatus nearest = null;
             float minDistance = float.MaxValue;
             Team attackerTeam = attacker.Team;
@@ -57,7 +58,7 @@ namespace TacticalGame.Combat
         public static List<UnitStatus> GetAllEnemies(Team myTeam)
         {
             List<UnitStatus> enemies = new List<UnitStatus>();
-            GameObject[] allUnits = GameObject.FindGameObjectsWithTag("Unit");
+            GameObject[] allUnits = UnityEngine.Object.FindObjectsByType<TacticalGame.Units.UnitStatus>(UnityEngine.FindObjectsSortMode.None).Select(u => u.gameObject).ToArray();
 
             foreach (GameObject unitObj in allUnits)
             {
@@ -86,7 +87,7 @@ namespace TacticalGame.Combat
         public static List<UnitStatus> GetAllAllies(Team myTeam, bool includeSelf = true, UnitStatus self = null)
         {
             List<UnitStatus> allies = new List<UnitStatus>();
-            GameObject[] allUnits = GameObject.FindGameObjectsWithTag("Unit");
+            GameObject[] allUnits = UnityEngine.Object.FindObjectsByType<TacticalGame.Units.UnitStatus>(UnityEngine.FindObjectsSortMode.None).Select(u => u.gameObject).ToArray();
 
             foreach (GameObject unitObj in allUnits)
             {
@@ -114,7 +115,7 @@ namespace TacticalGame.Combat
         public static List<UnitStatus> GetAllUnits(bool includeSurrendered = false)
         {
             List<UnitStatus> units = new List<UnitStatus>();
-            GameObject[] allUnits = GameObject.FindGameObjectsWithTag("Unit");
+            GameObject[] allUnits = UnityEngine.Object.FindObjectsByType<TacticalGame.Units.UnitStatus>(UnityEngine.FindObjectsSortMode.None).Select(u => u.gameObject).ToArray();
 
             foreach (GameObject unitObj in allUnits)
             {

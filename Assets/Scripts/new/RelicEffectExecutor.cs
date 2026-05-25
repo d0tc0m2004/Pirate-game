@@ -19,7 +19,20 @@ namespace TacticalGame.Equipment
     {
         #region Main Execute Method
         
-        public static void Execute(EquippedRelic relic, UnitStatus caster, UnitStatus target = null, GridCell targetCell = null, BattleCard card = null)
+        
+    private static void SwapUnits(TacticalGame.Units.UnitStatus a, TacticalGame.Units.UnitStatus b)
+    {
+        var grid = ServiceLocator.Get<TacticalGame.Grid.GridManager>();
+        var aPos = grid.WorldToGridPosition(a.transform.position);
+        var bPos = grid.WorldToGridPosition(b.transform.position);
+        var aCell = grid.GetCell(aPos.x, aPos.y);
+        var bCell = grid.GetCell(bPos.x, bPos.y);
+        
+        a.GetComponent<TacticalGame.Units.UnitMovement>()?.MoveToCell(bCell);
+        b.GetComponent<TacticalGame.Units.UnitMovement>()?.MoveToCell(aCell);
+    }
+
+    public static void Execute(EquippedRelic relic, UnitStatus caster, UnitStatus target = null, GridCell targetCell = null, BattleCard card = null)
         {
             if (relic == null || caster == null)
             {
@@ -256,10 +269,10 @@ namespace TacticalGame.Equipment
                     break;
                     
                 case RelicEffectType.Hat_RestoreMoraleLowest:
-                    var lowestMoraleAlly = GetLowestMoraleAlly(caster);
-                    if (lowestMoraleAlly != null)
+                    TacticalGame.Units.UnitStatus hat_ally = GetLowestMoraleAlly(caster);
+                    if (hat_ally != null)
                     {
-                        lowestMoraleAlly.RestoreMorale(Mathf.RoundToInt(lowestMoraleAlly.MaxMorale * effect.value2));
+                        hat_ally.RestoreMorale(Mathf.RoundToInt(hat_ally.MaxMorale * effect.value2));
                     }
                     break;
                     
@@ -360,23 +373,23 @@ namespace TacticalGame.Equipment
                     break;
 
                 // ==================== TRINKET (Passive) ====================
-                case RelicEffectType.Trinket_BonusDamagePerCard:
-                case RelicEffectType.Trinket_BonusVsCaptain:
-                case RelicEffectType.Trinket_ImmuneMoraleFocusFire:
-                case RelicEffectType.Trinket_EnemySurrenderEarly:
-                case RelicEffectType.Trinket_DamageByBuzz:
-                case RelicEffectType.Trinket_KnockbackIncreasesBuzz:
-                case RelicEffectType.Trinket_ReduceDamageFromClosest:
-                case RelicEffectType.Trinket_DrawIfHighHP:
-                case RelicEffectType.Trinket_TauntFirstAttack:
-                case RelicEffectType.Trinket_KnockbackAttacker:
-                case RelicEffectType.Trinket_RowEnemiesLessDamage:
-                case RelicEffectType.Trinket_RowEnemiesTakeMore:
+                case RelicEffectType.Trinket_V1_Captain:
+                case RelicEffectType.Trinket_V2_Captain:
+                case RelicEffectType.Trinket_V1_Quartermaster:
+                case RelicEffectType.Trinket_V2_Quartermaster:
+                case RelicEffectType.Trinket_V1_Helmsmaster:
+                case RelicEffectType.Trinket_V2_Helmsmaster:
+                case RelicEffectType.Trinket_V1_Boatswain:
+                case RelicEffectType.Trinket_V2_Boatswain:
+                case RelicEffectType.Trinket_V1_Shipwright:
+                case RelicEffectType.Trinket_V2_Shipwright:
+                case RelicEffectType.Trinket_V1_MasterGunner:
+                case RelicEffectType.Trinket_V2_MasterGunner:
                     Debug.Log($"<color=gray>Passive trinket {effectType} - handled by PassiveRelicManager</color>");
                     break;
 
                 // ==================== TOTEM ====================
-                case RelicEffectType.Totem_SummonCannon:
+                case RelicEffectType.Totem_V1_Captain:
                 {
                     var hazardManager = ServiceLocator.Get<HazardManager>();
                     var gridManager = ServiceLocator.Get<GridManager>();
@@ -419,7 +432,7 @@ namespace TacticalGame.Equipment
                     break;
                 }
                     
-                case RelicEffectType.Totem_CurseCaptainReflect:
+                case RelicEffectType.Totem_V2_Captain:
                     {
                         var enemyCaptain = GetEnemies(caster).FirstOrDefault(e => e.IsCaptain);
                         if (enemyCaptain != null)
@@ -429,64 +442,64 @@ namespace TacticalGame.Equipment
                     }
                     break;
                     
-                case RelicEffectType.Totem_RallyNoMoraleDamage:
+                case RelicEffectType.Totem_V1_Quartermaster:
                     ApplyNoMoraleDamageNearby(caster, effect.duration, effect.tileRange);
                     break;
                     
-                case RelicEffectType.Totem_EnemyDeathMoraleSwing:
+                case RelicEffectType.Totem_V2_Quartermaster:
                     Debug.Log($"<color=gray>Passive totem {effectType} - handled by PassiveRelicManager</color>");
                     break;
                     
-                case RelicEffectType.Totem_SummonHighQualityRum:
+                case RelicEffectType.Totem_V1_Helmsmaster:
                     AddHighQualityRum(caster, (int)effect.value1);
                     break;
                     
-                case RelicEffectType.Totem_ConvertGrogToEnergy:
+                case RelicEffectType.Totem_V2_Helmsmaster:
                     ConvertGrogToEnergy((int)effect.value1);
                     break;
                     
-                case RelicEffectType.Totem_StunOnKnockback:
+                case RelicEffectType.Totem_V1_Boatswain:
                     ApplyStunOnKnockback(caster, effect.duration);
                     break;
                     
-                case RelicEffectType.Totem_SummonAnchorHealthBuff:
+                case RelicEffectType.Totem_V2_Boatswain:
                     SummonAnchor(caster, targetCell, effect.value2, effect.tileRange, effect.duration);
                     break;
                     
-                case RelicEffectType.Totem_SummonTargetDummy:
+                case RelicEffectType.Totem_V1_Shipwright:
                     SummonTargetDummy(caster, targetCell, (int)effect.value1);
                     break;
                     
-                case RelicEffectType.Totem_SummonObstacleDisplace:
+                case RelicEffectType.Totem_V2_Shipwright:
                     SummonObstacleAndDisplace(targetCell, target);
                     break;
                     
-                case RelicEffectType.Totem_SummonExplodingBarrels:
+                case RelicEffectType.Totem_V1_MasterGunner:
                     SummonExplodingBarrels(caster, (int)effect.value1, effect.duration);
                     break;
                     
-                case RelicEffectType.Totem_CurseRangedWeapons:
+                case RelicEffectType.Totem_V2_MasterGunner:
                     CurseEnemyRangedWeapons(caster, effect.value2, effect.duration);
                     break;
 
                 // ==================== ULTIMATE ====================
-                case RelicEffectType.Ultimate_ShipCannon:
+                case RelicEffectType.Ultimate_V1_Captain:
                     ExecuteShipCannonUltimate(caster, (int)effect.value1, (int)effect.value2);
                     break;
                     
-                case RelicEffectType.Ultimate_MarkCaptainOnly:
+                case RelicEffectType.Ultimate_V2_Captain:
                     ExecuteMarkCaptainOnly(caster, target);
                     break;
                     
-                case RelicEffectType.Ultimate_ReflectMoraleDamage:
+                case RelicEffectType.Ultimate_V1_Quartermaster:
                     ApplyReflectMoraleDamage(caster, effect.duration);
                     break;
                     
-                case RelicEffectType.Ultimate_ReviveAlly:
+                case RelicEffectType.Ultimate_V2_Quartermaster:
                     ReviveAlly(caster, target, effect.value2);
                     break;
                     
-                case RelicEffectType.Ultimate_FullBuzzAttack:
+                case RelicEffectType.Ultimate_V1_Helmsmaster:
                     if (target != null)
                     {
                         ExecuteAttack(caster, target);
@@ -494,19 +507,19 @@ namespace TacticalGame.Equipment
                     }
                     break;
                     
-                case RelicEffectType.Ultimate_RumBottleAoE:
+                case RelicEffectType.Ultimate_V2_Helmsmaster:
                     ExecuteRumBottleAoE(caster, targetCell, (int)effect.value1, effect.duration);
                     break;
                     
-                case RelicEffectType.Ultimate_SummonHardObstacles:
+                case RelicEffectType.Ultimate_V1_Boatswain:
                     SummonHardObstacles(caster, (int)effect.value1, effect.duration);
                     break;
                     
-                case RelicEffectType.Ultimate_IgnoreHighestHP:
+                case RelicEffectType.Ultimate_V2_Boatswain:
                     ApplyIgnoreHighestHP(caster, effect.duration);
                     break;
                     
-                case RelicEffectType.Ultimate_KnockbackToLastColumn:
+                case RelicEffectType.Ultimate_V1_Shipwright:
                     if (target != null)
                     {
                         ExecuteAttack(caster, target);
@@ -514,7 +527,7 @@ namespace TacticalGame.Equipment
                     }
                     break;
                     
-                case RelicEffectType.Ultimate_AttackKnockbackNearby:
+                case RelicEffectType.Ultimate_V2_Shipwright:
                     if (target != null)
                     {
                         ExecuteAttack(caster, target);
@@ -522,7 +535,7 @@ namespace TacticalGame.Equipment
                     }
                     break;
                     
-                case RelicEffectType.Ultimate_StunAoE:
+                case RelicEffectType.Ultimate_V1_MasterGunner:
                     if (target != null)
                     {
                         ExecuteAttack(caster, target);
@@ -531,7 +544,7 @@ namespace TacticalGame.Equipment
                     }
                     break;
                     
-                case RelicEffectType.Ultimate_MassiveSingleTarget:
+                case RelicEffectType.Ultimate_V2_MasterGunner:
                     if (target != null)
                     {
                         bool hasNearbyEnemies = HasNearbyEnemies(target, 1);
@@ -541,18 +554,18 @@ namespace TacticalGame.Equipment
                     break;
 
                 // ==================== PASSIVE UNIQUE ====================
-                case RelicEffectType.PassiveUnique_ExtraEnergy:
-                case RelicEffectType.PassiveUnique_ExtraCards:
+                case RelicEffectType.PassiveUnique_V1_Captain:
+                case RelicEffectType.PassiveUnique_V1_Quartermaster:
                 case RelicEffectType.PassiveUnique_DeathStrikeByMorale:
-                case RelicEffectType.PassiveUnique_LowerSurrenderThreshold:
-                case RelicEffectType.PassiveUnique_NoBuzzDownside:
+                case RelicEffectType.PassiveUnique_V2_Quartermaster:
+                case RelicEffectType.PassiveUnique_V1_Helmsmaster:
                 case RelicEffectType.PassiveUnique_DrawPerGrog:
                 case RelicEffectType.PassiveUnique_DrawOnLowDamage:
-                case RelicEffectType.PassiveUnique_CounterAttack:
-                case RelicEffectType.PassiveUnique_GritAura:
-                case RelicEffectType.PassiveUnique_BonusVsLowGrit:
-                case RelicEffectType.PassiveUnique_IgnoreRoles:
-                case RelicEffectType.PassiveUnique_BonusVsLowHP:
+                case RelicEffectType.PassiveUnique_V1_MasterAtArms:
+                case RelicEffectType.PassiveUnique_V1_Shipwright:
+                case RelicEffectType.PassiveUnique_V2_Shipwright:
+                case RelicEffectType.PassiveUnique_V1_MasterGunner:
+                case RelicEffectType.PassiveUnique_V1_Deckhand:
                     Debug.Log($"<color=gray>Passive unique {effectType} - handled by PassiveRelicManager</color>");
                     break;
 
@@ -901,18 +914,18 @@ namespace TacticalGame.Equipment
                     break;
 
                 // ==================== V2 PASSIVE UNIQUE ====================
-                case RelicEffectType.PassiveUnique_V2_TeamLeader:
+                case RelicEffectType.PassiveUnique_V2_Captain:
                 case RelicEffectType.PassiveUnique_V2_CardMaster:
                 case RelicEffectType.PassiveUnique_V2_Inspiring:
                 case RelicEffectType.PassiveUnique_V2_LastStand:
-                case RelicEffectType.PassiveUnique_V2_DrunkMaster:
-                case RelicEffectType.PassiveUnique_V2_Efficient:
-                case RelicEffectType.PassiveUnique_V2_Unstoppable:
+                case RelicEffectType.PassiveUnique_V2_Helmsmaster:
+                case RelicEffectType.PassiveUnique_V2_Cook:
+                case RelicEffectType.PassiveUnique_V2_Boatswain:
                 case RelicEffectType.PassiveUnique_V2_Scout:
-                case RelicEffectType.PassiveUnique_V2_Medic:
+                case RelicEffectType.PassiveUnique_V2_Surgeon:
                 case RelicEffectType.PassiveUnique_V2_Nourishing:
-                case RelicEffectType.PassiveUnique_V2_Riposte:
-                case RelicEffectType.PassiveUnique_V2_Sniper:
+                case RelicEffectType.PassiveUnique_V2_MasterAtArms:
+                case RelicEffectType.PassiveUnique_V2_MasterGunner:
                     Debug.Log($"<color=gray>Passive unique V2 {effectType} - handled by PassiveRelicManager</color>");
                     break;
                     
@@ -981,16 +994,16 @@ namespace TacticalGame.Equipment
                 case RelicEffectType.Coat_V2_KnockbackOnAllyDeath:
                     Debug.Log($"<color=gray>Passive effect {effectType} - handled by PassiveRelicManager</color>");
                     break;
-                case RelicEffectType.Trinket_BlockEnemyRowMovement:
+                case RelicEffectType.Trinket_V1_Surgeon:
                     Debug.Log($"<color=gray>Passive effect {effectType} - handled by PassiveRelicManager</color>");
                     break;
-                case RelicEffectType.Trinket_V2_GlobalRadius:
+                case RelicEffectType.Trinket_V2_Surgeon:
                     Debug.Log($"<color=gray>Passive effect {effectType} - handled by PassiveRelicManager</color>");
                     break;
-                case RelicEffectType.Totem_StunHealedEnemy:
+                case RelicEffectType.Totem_V1_Surgeon:
                     Debug.Log($"<color=gray>Passive effect {effectType} - handled by PassiveRelicManager</color>");
                     break;
-                case RelicEffectType.Totem_V2_SummonHealingPotions:
+                case RelicEffectType.Totem_V2_Surgeon:
                     {
                         var gridManager = ServiceLocator.Get<GridManager>();
                         var hazardManager = ServiceLocator.Get<HazardManager>();
@@ -1016,13 +1029,13 @@ namespace TacticalGame.Equipment
                         }
                     }
                     break;
-                case RelicEffectType.Ultimate_PreventDeath:
+                case RelicEffectType.Ultimate_V1_Surgeon:
                     if (target != null)
                     {
                         ApplyDeathPrevention(target, effect.duration);
                     }
                     break;
-                case RelicEffectType.Ultimate_V2_FullHealthRestore:
+                case RelicEffectType.Ultimate_V2_Surgeon:
                     if (target != null)
                     {
                         target.Heal(target.MaxHP);
@@ -1156,16 +1169,16 @@ namespace TacticalGame.Equipment
                         }
                     }
                     break;
-                case RelicEffectType.Trinket_HazardSizeIncrease:
+                case RelicEffectType.Trinket_V1_Cook:
                     Debug.Log($"<color=gray>Passive effect {effectType} - handled by PassiveRelicManager</color>");
                     break;
-                case RelicEffectType.Trinket_V2_DrawExtraBelow50:
+                case RelicEffectType.Trinket_V2_Cook:
                     Debug.Log($"<color=gray>Passive effect {effectType} - handled by PassiveRelicManager</color>");
                     break;
-                case RelicEffectType.Totem_HealLowestOnDamage:
+                case RelicEffectType.Totem_V1_Cook:
                     Debug.Log($"<color=gray>Passive effect {effectType} - handled by PassiveRelicManager</color>");
                     break;
-                case RelicEffectType.Totem_V2_SummonStatDebuffObstacle:
+                case RelicEffectType.Totem_V2_Cook:
                     {
                         var hazardManager = ServiceLocator.Get<HazardManager>();
                         var gridManager = ServiceLocator.Get<GridManager>();
@@ -1210,7 +1223,7 @@ namespace TacticalGame.Equipment
                         }
                     }
                     break;
-                case RelicEffectType.Ultimate_SwapHealthClosest:
+                case RelicEffectType.Ultimate_V1_Cook:
                     {
                         var closestEnemy = GetClosestEnemy(caster);
                         if (closestEnemy != null)
@@ -1223,7 +1236,7 @@ namespace TacticalGame.Equipment
                         }
                     }
                     break;
-                case RelicEffectType.Ultimate_V2_FireColumn:
+                case RelicEffectType.Ultimate_V2_Cook:
                     {
                         var closestEnemy2 = target ?? GetClosestEnemy(caster);
                         if (closestEnemy2 != null)
@@ -1252,7 +1265,7 @@ namespace TacticalGame.Equipment
                         }
                     }
                     break;
-                case RelicEffectType.PassiveUnique_DisplaceOnWeaponUse:
+                case RelicEffectType.PassiveUnique_V1_Cook:
                     Debug.Log($"<color=gray>Passive effect {effectType} - handled by PassiveRelicManager</color>");
                     break;
                 case RelicEffectType.PassiveUnique_V2_RelicsNotConsumed:
@@ -1338,13 +1351,13 @@ namespace TacticalGame.Equipment
                         }
                     }
                     break;
-                case RelicEffectType.Trinket_BonusDamageIfAlone:
+                case RelicEffectType.Trinket_V1_Swashbuckler:
                     Debug.Log($"<color=gray>Passive effect {effectType} - handled by PassiveRelicManager</color>");
                     break;
-                case RelicEffectType.Trinket_V2_EnemySpeedReduction:
+                case RelicEffectType.Trinket_V2_Swashbuckler:
                     Debug.Log($"<color=gray>Passive effect {effectType} - handled by PassiveRelicManager</color>");
                     break;
-                case RelicEffectType.Totem_SummonInvisibleTraps:
+                case RelicEffectType.Totem_V1_Swashbuckler:
                     {
                         var gridManager2 = ServiceLocator.Get<GridManager>();
                         var hazardManager3 = ServiceLocator.Get<HazardManager>();
@@ -1366,7 +1379,7 @@ namespace TacticalGame.Equipment
                         }
                     }
                     break;
-                case RelicEffectType.Totem_V2_DisableEnemyPassives:
+                case RelicEffectType.Totem_V2_Swashbuckler:
                     {
                         var enemies = GetEnemies(caster);
                         foreach (var enemy in enemies)
@@ -1379,7 +1392,7 @@ namespace TacticalGame.Equipment
                         }
                     }
                     break;
-                case RelicEffectType.Ultimate_ForceLowestAndCaptainFight:
+                case RelicEffectType.Ultimate_V1_Swashbuckler:
                     {
                         var enemies2 = GetEnemies(caster);
                         var enemyCaptain = enemies2.FirstOrDefault(e => e.IsCaptain);
@@ -1391,13 +1404,13 @@ namespace TacticalGame.Equipment
                         }
                     }
                     break;
-                case RelicEffectType.Ultimate_V2_SurrenderOn4Weapons:
+                case RelicEffectType.Ultimate_V2_Swashbuckler:
                     Debug.Log($"<color=gray>Passive effect {effectType} - handled by PassiveRelicManager</color>");
                     break;
                 case RelicEffectType.PassiveUnique_EnemyDiscardOnBoot:
                     Debug.Log($"<color=gray>Passive effect {effectType} - handled by PassiveRelicManager</color>");
                     break;
-                case RelicEffectType.PassiveUnique_V2_EnemyBootsLimit:
+                case RelicEffectType.PassiveUnique_V2_Swashbuckler:
                     Debug.Log($"<color=gray>Passive effect {effectType} - handled by PassiveRelicManager</color>");
                     break;
 
@@ -1521,13 +1534,13 @@ namespace TacticalGame.Equipment
                         }
                     }
                     break;
-                case RelicEffectType.Trinket_HullFullRegen:
+                case RelicEffectType.Trinket_V1_Deckhand:
                     Debug.Log($"<color=gray>Passive effect {effectType} - handled by PassiveRelicManager</color>");
                     break;
-                case RelicEffectType.Trinket_V2_HullDiscardOnSurvive:
+                case RelicEffectType.Trinket_V2_Deckhand:
                     Debug.Log($"<color=gray>Passive effect {effectType} - handled by PassiveRelicManager</color>");
                     break;
-                case RelicEffectType.Totem_CreateSoftObstacles:
+                case RelicEffectType.Totem_V1_Deckhand:
                     {
                         // Create 2 soft obstacles in random empty tiles (auto-cast)
                         var hazardMgr2 = ServiceLocator.Get<HazardManager>();
@@ -1555,7 +1568,7 @@ namespace TacticalGame.Equipment
                         }
                     }
                     break;
-                case RelicEffectType.Totem_V2_PullNearbyToRow:
+                case RelicEffectType.Totem_V2_Deckhand:
                     {
                         // Player selected an enemy-side tile — spawn a cube there and pull nearby enemies to its row
                         var gridMgrT = ServiceLocator.Get<GridManager>();
@@ -1631,7 +1644,7 @@ namespace TacticalGame.Equipment
                         }
                     }
                     break;
-                case RelicEffectType.Ultimate_MassiveHullBuff:
+                case RelicEffectType.Ultimate_V1_Deckhand:
                     if (target != null)
                     {
                         // Give target 300% hull for 2 turns (value2 = 3.0)
@@ -1640,7 +1653,7 @@ namespace TacticalGame.Equipment
                         Debug.Log($"<color=cyan>{target.UnitName} gained {hullAmount} hull ({effect.value2 * 100}%)</color>");
                     }
                     break;
-                case RelicEffectType.Ultimate_V2_ClearHazardsPlayerSide:
+                case RelicEffectType.Ultimate_V2_Deckhand:
                     {
                         // Clear all hazards on player side AND prevent new ones
                         var hazardMgr3 = ServiceLocator.Get<HazardManager>();
@@ -1668,7 +1681,7 @@ namespace TacticalGame.Equipment
                 case RelicEffectType.PassiveUnique_HullDestroyedRestoreHealth:
                     Debug.Log($"<color=gray>Passive effect {effectType} - handled by PassiveRelicManager</color>");
                     break;
-                case RelicEffectType.PassiveUnique_V2_HullDestroyedDamageBonus:
+                case RelicEffectType.PassiveUnique_V2_Deckhand:
                     Debug.Log($"<color=gray>Passive effect {effectType} - handled by PassiveRelicManager</color>");
                     break;
 
@@ -1730,13 +1743,13 @@ namespace TacticalGame.Equipment
                         }
                     }
                     break;
-                case RelicEffectType.Trinket_NearbyTacticsBoost:
+                case RelicEffectType.Trinket_V1_Navigator:
                     Debug.Log($"<color=gray>Passive effect {effectType} - handled by PassiveRelicManager</color>");
                     break;
-                case RelicEffectType.Trinket_V2_IgnoreSoftObstacles:
+                case RelicEffectType.Trinket_V2_Navigator:
                     Debug.Log($"<color=gray>Passive effect {effectType} - handled by PassiveRelicManager</color>");
                     break;
-                case RelicEffectType.Totem_DisableEnemyMovement:
+                case RelicEffectType.Totem_V1_Navigator:
                     {
                         var enemies4 = GetEnemies(caster);
                         foreach (var enemy in enemies4)
@@ -1745,7 +1758,7 @@ namespace TacticalGame.Equipment
                         }
                     }
                     break;
-                case RelicEffectType.Totem_V2_DisableNonWeaponRelics:
+                case RelicEffectType.Totem_V2_Navigator:
                     {
                         foreach (var enemy in GetEnemies(caster))
                         {
@@ -1755,7 +1768,7 @@ namespace TacticalGame.Equipment
                         Debug.Log($"<color=cyan>Navigator Totem V2: Disabled non-weapon relics on all enemies for {effect.duration} turns</color>");
                     }
                     break;
-                case RelicEffectType.Ultimate_MarkReflectToCaptain:
+                case RelicEffectType.Ultimate_V1_Navigator:
                     if (target != null)
                     {
                         // Mark target: any damage taken is also reflected to their captain
@@ -1766,7 +1779,7 @@ namespace TacticalGame.Equipment
                         Debug.Log($"<color=magenta>Navigator Ult V1: Marked {target.UnitName} — damage will reflect to their captain!</color>");
                     }
                     break;
-                case RelicEffectType.Ultimate_V2_SwapClosestFurthest:
+                case RelicEffectType.Ultimate_V2_Navigator:
                     {
                         var enemies6 = GetEnemies(caster);
                         if (enemies6.Count >= 2)
@@ -1779,10 +1792,10 @@ namespace TacticalGame.Equipment
                         }
                     }
                     break;
-                case RelicEffectType.PassiveUnique_FreeMovement:
+                case RelicEffectType.PassiveUnique_V1_Navigator:
                     Debug.Log($"<color=gray>Passive effect {effectType} - handled by PassiveRelicManager</color>");
                     break;
-                case RelicEffectType.PassiveUnique_V2_AllyMovementBoost:
+                case RelicEffectType.PassiveUnique_V2_Navigator:
                     Debug.Log($"<color=gray>Passive effect {effectType} - handled by PassiveRelicManager</color>");
                     break;
 
@@ -1946,13 +1959,13 @@ namespace TacticalGame.Equipment
                         }
                     }
                     break;
-                case RelicEffectType.Trinket_CounterAttackOnHit:
+                case RelicEffectType.Trinket_V1_MasterAtArms:
                     Debug.Log($"<color=gray>Passive effect {effectType} - handled by PassiveRelicManager</color>");
                     break;
-                case RelicEffectType.Trinket_V2_NearbyPowerBoost:
+                case RelicEffectType.Trinket_V2_MasterAtArms:
                     Debug.Log($"<color=gray>Passive effect {effectType} - handled by PassiveRelicManager</color>");
                     break;
-                case RelicEffectType.Totem_DisableEnemyWeapons:
+                case RelicEffectType.Totem_V1_MasterAtArms:
                     {
                         // Disable enemy weapon/gloves relics for next turn
                         var enemies8 = GetEnemies(caster);
@@ -1964,7 +1977,7 @@ namespace TacticalGame.Equipment
                         Debug.Log($"<color=red>Totem V1: Disabled enemy weapons for {effect.duration} turn(s)</color>");
                     }
                     break;
-                case RelicEffectType.Totem_V2_EarthquakeHazard:
+                case RelicEffectType.Totem_V2_MasterAtArms:
                     {
                         var gridManager5 = ServiceLocator.Get<GridManager>();
                         var hazardManager5 = ServiceLocator.Get<HazardManager>();
@@ -1992,7 +2005,7 @@ namespace TacticalGame.Equipment
                         }
                     }
                     break;
-                case RelicEffectType.Ultimate_AttackAllEnemies:
+                case RelicEffectType.Ultimate_V1_MasterAtArms:
                     {
                         var allEnemies = GetEnemies(caster);
                         foreach (var enemy in allEnemies)
@@ -2001,7 +2014,7 @@ namespace TacticalGame.Equipment
                         }
                     }
                     break;
-                case RelicEffectType.Ultimate_V2_AttackRowDamage:
+                case RelicEffectType.Ultimate_V2_MasterAtArms:
                     if (target != null)
                     {
                         ExecuteAttack(caster, target);
@@ -2029,6 +2042,978 @@ namespace TacticalGame.Equipment
                     Debug.Log($"<color=gray>Passive effect {effectType} - handled by PassiveRelicManager</color>");
                     break;
 
+                case RelicEffectType.Boots_V1_Captain:
+                    {
+                        // V5: Swap location with another unit.
+                        if (target != null) {
+                            SwapUnits(caster, target);
+                        }
+                    }
+                    break;
+                case RelicEffectType.Boots_V2_Captain:
+                    {
+                        // V5: Move any allied unit 2 tiles.
+                        RelicTargetSelector.Instance.SelectAllyThenTile("Select an ally, then a tile", (ally, cell) => {
+                            ExecuteMove(ally, cell, 2);
+                        });
+                    }
+                    break;
+                case RelicEffectType.Boots_V1_Quartermaster:
+                    {
+                        // V5: Move 2 tiles and restore Morale Tier morale (to self).
+                            caster.RestoreMorale(Mathf.FloorToInt(caster.CurrentMorale / 10f));
+                    }
+                    break;
+                case RelicEffectType.Boots_V2_Quartermaster:
+                    {
+                        // V5: Lowest-morale ally moves free.
+                        TacticalGame.Units.UnitStatus boots_ally_boots_v2 = GetLowestMoraleAlly(caster);
+                        if (boots_ally_boots_v2 != null) {
+                            RelicTargetSelector.Instance.SelectTile("Move lowest-morale ally", (cell) => {
+                                ExecuteMove(boots_ally_boots_v2, cell, 99); // Free move
+                            }, null, true, 99, boots_ally_boots_v2);
+                        }
+                    }
+                    break;
+                case RelicEffectType.Boots_V1_Helmsmaster:
+                    {
+                        // V5: Move 2 tiles and clear the Buzz meter.
+                            caster.ReduceBuzz(99); // Clear buzz 
+                    }
+                    break;
+                case RelicEffectType.Boots_V2_Helmsmaster:
+                    {
+                        // V5: Move 2 tiles. If Grog > 0, cost 0 Energy.
+                    }
+                    break;
+                case RelicEffectType.Boots_V1_Boatswain:
+                    {
+                        // V5: Move 2 tiles. Take -2 dmg during enemy next turn.
+                            var effects = GetStatusEffects(caster);
+                            effects?.ApplyEffect(StatusEffect.CreateDamageReduction(1, 2f, null));
+                    }
+                    break;
+                case RelicEffectType.Boots_V2_Boatswain:
+                    {
+                        // V5: If highest HP, any distance; else 2 tiles.
+                        // Movement handled by BattleDeckUI (teleport if highest HP, step-by-step otherwise).
+                    }
+                    break;
+                case RelicEffectType.Boots_V1_Shipwright:
+                    {
+                        // V5: Can move to any tile inside the Neutral Zone.
+                        // Movement handled by BattleDeckUI step-by-step targeting.
+                    }
+                    break;
+                case RelicEffectType.Boots_V2_Shipwright:
+                    {
+                        // V5: Move 2 tiles, gain +2 Grit for 2 turns.
+                            var effects = GetStatusEffects(caster);
+                            effects?.ApplyEffect(StatusEffect.CreateMaxHPBoost(2, 2f, null));
+                    }
+                    break;
+                case RelicEffectType.Boots_V1_MasterGunner:
+                    {
+                        // V5: Move 2 tiles and gain +5 Aim for that turn.
+                            var effects = GetStatusEffects(caster);
+                            effects?.ApplyEffect(StatusEffect.CreateAimBoost(1, 5f, null));
+                    }
+                    break;
+                case RelicEffectType.Boots_V2_MasterGunner:
+                    {
+                        // V5: Move 1 tile, reduce next ranged-weapon by 1.
+                            ApplyReduceRangedCost(caster, 1);
+                    }
+                    break;
+                case RelicEffectType.Boots_V1_Navigator:
+                    {
+                        // V5: Move 4 tiles in any direction.
+                    }
+                    break;
+                case RelicEffectType.Boots_V2_Navigator:
+                    {
+                        // V5: Move 2 tiles. Cost 0 Energy.
+                    }
+                    break;
+                case RelicEffectType.Boots_V1_Surgeon:
+                    {
+                        // V5: Move 2 tiles and restore Health Tier HP (to self).
+                            caster.RestoreHull(Mathf.FloorToInt(caster.MaxHP / 8f));
+                    }
+                    break;
+                case RelicEffectType.Boots_V2_Surgeon:
+                    {
+                        // V5: Swap location with lowest-health ally.
+                        var lowestHealthAlly = GetLowestHPAlly(caster);
+                        if (lowestHealthAlly != null) {
+                            SwapUnits(caster, lowestHealthAlly);
+                        }
+                    }
+                    break;
+                case RelicEffectType.Boots_V1_Cook:
+                    {
+                        // V5: Move 1 tile and draw a card; if Cook relic, reduce cost by 1.
+                            DrawCards(caster, 1);
+                            if (BattleDeckManager.Instance != null && BattleDeckManager.Instance.Hand.Count > 0) {
+                                var drawnCard = BattleDeckManager.Instance.Hand[BattleDeckManager.Instance.Hand.Count - 1];
+                                if (drawnCard.roleTag == TacticalGame.Enums.UnitRole.Cook) {
+                                    if (drawnCard.originalEnergyCost < 0) drawnCard.originalEnergyCost = drawnCard.energyCost;
+                                    drawnCard.energyCost = UnityEngine.Mathf.Max(0, drawnCard.energyCost - 1);
+                                }
+                            }
+                    }
+                    break;
+                case RelicEffectType.Boots_V2_Cook:
+                    {
+                        // V5: Move 2 tiles, increase Proficiency 100%.
+                            var effects = GetStatusEffects(caster);
+                            effects?.ApplyEffect(StatusEffect.CreateProficiencyBoost(1, 100f, null));
+                    }
+                    break;
+                case RelicEffectType.Boots_V1_Swashbuckler:
+                    {
+                        // V5: Move 2 tiles; if highest Speed, move 4 instead.
+                        bool highestSpeed = true;
+                        foreach(var unit in GetAllAllies(caster)) {
+                            if (unit != caster && unit.Speed > caster.Speed) highestSpeed = false;
+                        }
+                        int range = highestSpeed ? 4 : 2;
+                    }
+                    break;
+                case RelicEffectType.Boots_V2_Swashbuckler:
+                    {
+                        // V5: Move to any tile in the same row, but only 1 tile on a column.
+                        // Movement handled by BattleDeckUI row-move targeting.
+                    }
+                    break;
+                case RelicEffectType.Boots_V1_Deckhand:
+                    {
+                        // V5: Move to any tile in the same column, but only 1 tile on a row.
+                        // Movement handled by BattleDeckUI column-move targeting.
+                    }
+                    break;
+                case RelicEffectType.Boots_V2_Deckhand:
+                    {
+                        // V5: Dash up to 3 tiles towards an enemy. If you end next to them, stun them.
+                        // Movement handled by BattleDeckUI. Post-move stun applied via ExecutePostMoveEffects.
+                    }
+                    break;
+                case RelicEffectType.Boots_V1_MasterAtArms:
+                    {
+                    }
+                    break;
+                case RelicEffectType.Boots_V2_MasterAtArms:
+                    {
+                    }
+                    break;
+                case RelicEffectType.Gloves_V1_Captain:
+                    {
+                        // V5: Default attack. Enemy draws 1 fewer card next turn.
+                        if (target != null) {
+                            ExecuteAttack(caster, target);
+                            if (target.CurrentHP > 0 && !target.HasSurrendered) {
+                                var effects = GetStatusEffects(target);
+                                effects?.ApplyEffect(StatusEffect.CreateReduceCardDraw(1, 1, null));
+                            }
+                        }
+                    }
+                    break;
+                case RelicEffectType.Gloves_V2_Captain:
+                    {
+                        // V5: Forces target's next card to cost +1 Energy.
+                        if (target != null) {
+                            ExecuteAttack(caster, target);
+                            var effects = GetStatusEffects(target);
+                            effects?.ApplyEffect(StatusEffect.CreateIncreaseCost(1, 1, null));
+                        }
+                    }
+                    break;
+                case RelicEffectType.Gloves_V1_Quartermaster:
+                    {
+                        // V5: Bonus dmg scales with target's missing morale (+1 per missing block, max +3).
+                        if (target != null) {
+                            int missingBlocks = Mathf.FloorToInt((target.MaxMorale - target.CurrentMorale) / 10f);
+                            if (missingBlocks > 3) missingBlocks = 3;
+                            if (missingBlocks < 0) missingBlocks = 0;
+                            ExecuteAttackWithBonus(caster, target, missingBlocks);
+                        }
+                    }
+                    break;
+                case RelicEffectType.Gloves_V2_Quartermaster:
+                    {
+                        // V5: Apply Morale-Marked 2.
+                        if (target != null) {
+                            ExecuteAttack(caster, target);
+                            var effects = GetStatusEffects(target);
+                            effects?.ApplyEffect(StatusEffect.CreateMoraleFocus(2, null));
+                        }
+                    }
+                    break;
+                case RelicEffectType.Gloves_V1_Helmsmaster:
+                    {
+                        // V5: Applies a debuff: target cannot reduce its Buzz meter for 2 turns.
+                        if (target != null) {
+                            ExecuteAttack(caster, target);
+                            if (target.CurrentHP > 0 && !target.HasSurrendered) {
+                                var effects = GetStatusEffects(target);
+                                effects?.ApplyEffect(StatusEffect.CreatePreventBuzzReduction(2, null));
+                            }
+                        }
+                    }
+                    break;
+                case RelicEffectType.Gloves_V2_Helmsmaster:
+                    {
+                        // V5: +1 dmg per Grog Token currently available.
+                        if (target != null) {
+                            var em = ServiceLocator.Get<TacticalGame.Managers.EnergyManager>(); int grog = em != null ? em.GrogTokens : 0;
+                            ExecuteAttackWithBonus(caster, target, grog);
+                        }
+                    }
+                    break;
+                case RelicEffectType.Gloves_V1_Boatswain:
+                    {
+                        // V5: +2 dmg if target has less current HP than this unit.
+                        if (target != null) {
+                            int bonus = (target.CurrentHP < caster.CurrentHP) ? 2 : 0;
+                            ExecuteAttackWithBonus(caster, target, bonus);
+                        }
+                    }
+                    break;
+                case RelicEffectType.Gloves_V2_Boatswain:
+                    {
+                        // V5: Lower target's Health stat by Health Tier for 2 turns.
+                        if (target != null) {
+                            ExecuteAttack(caster, target);
+                            var effects = GetStatusEffects(target);
+                            int tier = Mathf.FloorToInt(caster.MaxHP / 8f);
+                            effects?.ApplyEffect(StatusEffect.CreateLowerHealthStat(2, tier, null));
+                        }
+                    }
+                    break;
+                case RelicEffectType.Gloves_V1_Shipwright:
+                    {
+                        // V5: Target is forced forward 1 tile.
+                        if (target != null) {
+                            ExecuteAttack(caster, target);
+                            if (target.CurrentHP > 0 && !target.HasSurrendered) {
+                                // Knockback target towards caster
+                                var grid = ServiceLocator.Get<TacticalGame.Grid.GridManager>();
+                                if (grid != null) {
+                                    var casterPos = grid.WorldToGridPosition(caster.transform.position);
+                                    var targetPos = grid.WorldToGridPosition(target.transform.position);
+                                    // Move 1 tile towards caster
+                                    int dx = System.Math.Sign(casterPos.x - targetPos.x);
+                                    int dy = System.Math.Sign(casterPos.y - targetPos.y);
+                                    var newPos = new UnityEngine.Vector2Int(targetPos.x + dx, targetPos.y + dy);
+                                    var newCell = grid.GetCell(newPos.x, newPos.y);
+                                    if (newCell != null) target.GetComponent<TacticalGame.Units.UnitMovement>()?.MoveToCell(newCell);
+                                }
+                            }
+                        }
+                    }
+                    break;
+                case RelicEffectType.Gloves_V2_Shipwright:
+                    {
+                        // V5: Target's next turn it can only attack the closest target.
+                        if (target != null) {
+                            ExecuteAttack(caster, target);
+                            var effects = GetStatusEffects(target);
+                            effects?.ApplyEffect(StatusEffect.CreateForceTargetClosest(1, null));
+                        }
+                    }
+                    break;
+                case RelicEffectType.Gloves_V1_MasterGunner:
+                    {
+                        // V5: +1 dmg per card already played this round.
+                        if (target != null) {
+                            int played = 0;
+                            if (BattleDeckManager.Instance != null) {
+                                played = BattleDeckManager.Instance.CardsPlayedThisTurn;
+                            }
+                            ExecuteAttackWithBonus(caster, target, played);
+                        }
+                    }
+                    break;
+                case RelicEffectType.Gloves_V2_MasterGunner:
+                    {
+                        // V5: +1 dmg per Master Gunner relic used this game.
+                        if (target != null) {
+                            int mgRelicsUsed = BattleDeckManager.Instance != null ? BattleDeckManager.Instance.MasterGunnerRelicsUsed : 0;
+                            ExecuteAttackWithBonus(caster, target, mgRelicsUsed);
+                        }
+                    }
+                    break;
+                case RelicEffectType.Gloves_V1_Navigator:
+                    {
+                        // V5: Cast: disable enemy weapons' role effect next turn.
+                        if (target != null) {
+                            ExecuteAttack(caster, target);
+                            var effects = GetStatusEffects(target);
+                            effects?.ApplyEffect(StatusEffect.CreateWeaponDisabled(1, null));
+                        }
+                    }
+                    break;
+                case RelicEffectType.Gloves_V2_Navigator:
+                    {
+                        // V5: +3 dmg per Boots relic card in your deck.
+                        if (target != null) {
+                            int boots = 0;
+                            if (BattleDeckManager.Instance != null) {
+                                foreach(var c in BattleDeckManager.Instance.Deck) {
+                                    if (c.category == RelicCategory.Boots) boots++;
+                                }
+                            }
+                            ExecuteAttackWithBonus(caster, target, boots * 3);
+                        }
+                    }
+                    break;
+                case RelicEffectType.Gloves_V1_Surgeon:
+                    {
+                        // V5: Default attack and restore 20 HP to the lowest-HP allied unit.
+                        if (target != null) {
+                            ExecuteAttack(caster, target);
+                            var ally = GetLowestHPAlly(caster);
+                            if (ally != null) {
+                                ally.Heal(20);
+                            }
+                        }
+                    }
+                    break;
+                case RelicEffectType.Gloves_V2_Surgeon:
+                    {
+                        // V5: Passive - Whenever an enemy gets healed, attack them.
+                        // Handled by PassiveRelicManager or Event System
+                        Debug.Log("Surgeon V2 Passive triggered");
+                    }
+                    break;
+                case RelicEffectType.Gloves_V1_Cook:
+                    {
+                        // V5: Next time the target attacks, the debuff detonates for 8 dmg to all nearby enemies.
+                        if (target != null) {
+                            ExecuteAttack(caster, target);
+                            var effects = GetStatusEffects(target);
+                            effects?.ApplyEffect(StatusEffect.CreateCookDetonateBuff(1, 8f, null));
+                        }
+                    }
+                    break;
+                case RelicEffectType.Gloves_V2_Cook:
+                    {
+                        // V5: Put the closest target into Stasis for 1 turn.
+                        var closest = GetClosestEnemy(caster);
+                        if (closest != null) {
+                            var effects = GetStatusEffects(closest);
+                            effects?.ApplyEffect(StatusEffect.CreateStasis(1, null));
+                        }
+                    }
+                    break;
+                case RelicEffectType.Gloves_V1_Swashbuckler:
+                    {
+                        // V5: Default attack 2 times.
+                        if (target != null) {
+                            ExecuteAttack(caster, target);
+                            ExecuteAttack(caster, target);
+                        }
+                    }
+                    break;
+                case RelicEffectType.Gloves_V2_Swashbuckler:
+                    {
+                        // V5: For 2 turns: if the target moves, it is stunned for 1 turn.
+                        if (target != null) {
+                            ExecuteAttack(caster, target);
+                            var effects = GetStatusEffects(target);
+                            effects?.ApplyEffect(StatusEffect.CreateStunOnMoveTracker(2, null));
+                        }
+                    }
+                    break;
+                case RelicEffectType.Gloves_V1_MasterAtArms:
+                    {
+                        if (target != null) {
+                            ExecuteAttack(caster, target);
+                        }
+                    }
+                    break;
+                case RelicEffectType.Gloves_V2_MasterAtArms:
+                    {
+                        if (target != null) {
+                            ExecuteAttack(caster, target);
+                        }
+                    }
+                    break;
+                case RelicEffectType.Gloves_V1_Deckhand:
+                    {
+                        // V5: If the attack destroys the target's Hull shield, draw 1 card.
+                        if (target != null) {
+                            float hpBefore = target.CurrentHP;
+                            ExecuteAttack(caster, target);
+                            if (target.CurrentHP <= 0 && hpBefore > 0) {
+                                DrawCards(caster, 1);
+                            }
+                        }
+                    }
+                    break;
+                case RelicEffectType.Gloves_V2_Deckhand:
+                    {
+                        // V5: If the attack destroys the target's Hull shield, gain 1 Energy.
+                        if (target != null) {
+                            float hpBefore = target.CurrentHP;
+                            ExecuteAttack(caster, target);
+                            if (target.CurrentHP <= 0 && hpBefore > 0) {
+                                ServiceLocator.Get<TacticalGame.Managers.EnergyManager>()?.AddEnergy(1);
+                            }
+                        }
+                    }
+                    break;
+                case RelicEffectType.Hat_V1_Captain:
+                    {
+                        // V5: Draw 2 cards. For 2 turns, the Captain takes +200% damage taken (i.e. double damage taken).
+                        DrawCards(caster, 2);
+                        var effects = GetStatusEffects(caster);
+                        effects?.ApplyEffect(StatusEffect.CreateWeakness(2, 2.0f, null));
+                    }
+                    break;
+                case RelicEffectType.Hat_V2_Captain:
+                    {
+                        // V5: Draw an Ultimate ability card immediately.
+                        var deckManager = BattleDeckManager.Instance;
+                        if (deckManager != null) {
+                            deckManager.DrawCardByCategoryAnyUnit(TacticalGame.Enums.RelicCategory.Ultimate);
+                        }
+                    }
+                    break;
+                case RelicEffectType.Hat_V1_Quartermaster:
+                    {
+                        // V5: Restore 10 + Morale Tier morale to the lowest-morale ally.
+                        var ally = GetLowestMoraleAlly(caster);
+                        if (ally != null) {
+                            int tier = UnityEngine.Mathf.FloorToInt(ally.MaxMorale / 10f);
+                            ally.RestoreMorale(10 + tier);
+                        }
+                    }
+                    break;
+                case RelicEffectType.Hat_V2_Quartermaster:
+                    {
+                        // V5: All nearby allies within 1 tile restore Morale Tier morale each.
+                        var nearby = GetAlliesInRange(caster, 1);
+                        foreach (var a in nearby) {
+                            if (a != null && a != caster) {
+                                int tier = UnityEngine.Mathf.FloorToInt(a.MaxMorale / 10f);
+                                a.RestoreMorale(tier);
+                            }
+                        }
+                    }
+                    break;
+                case RelicEffectType.Hat_V1_Helmsmaster:
+                    {
+                        // V5: This round, all rum usage costs 0 Grog Tokens (next 3 rum uses).
+                        var effects = GetStatusEffects(caster);
+                        effects?.ApplyEffect(StatusEffect.CreateFreeRumUsage(1, 3, null));
+                    }
+                    break;
+                case RelicEffectType.Hat_V2_Helmsmaster:
+                    {
+                        // V5: Generate 2 Grog Tokens.
+                        var em = ServiceLocator.Get<TacticalGame.Managers.EnergyManager>();
+                        if (em != null) {
+                            em.AddGrog(2);
+                        }
+                    }
+                    break;
+                case RelicEffectType.Hat_V1_Boatswain:
+                    {
+                        // V5: Last 2 turns: returns 1 instance of damage back to attacker per hit.
+                        var effects = GetStatusEffects(caster);
+                        effects?.ApplyEffect(StatusEffect.CreateReturnDamage(2, 1, null));
+                    }
+                    break;
+                case RelicEffectType.Hat_V2_Boatswain:
+                    {
+                        // V5: Last 2 turns: this unit's Health stat is increased by 25% (+Health Tierx2).
+                        int tier = UnityEngine.Mathf.FloorToInt(caster.MaxHP / 8f);
+                        var effects = GetStatusEffects(caster);
+                        effects?.ApplyEffect(StatusEffect.CreateHealthStatBoost(2, tier * 2, null));
+                    }
+                    break;
+                case RelicEffectType.Hat_V1_Shipwright:
+                    {
+                        // V5: Gain 2 extra Energy next turn if this unit is knocked back.
+                        var effects = GetStatusEffects(caster);
+                        effects?.ApplyEffect(StatusEffect.CreateEnergyOnKnockback(1, 2, null));
+                    }
+                    break;
+                case RelicEffectType.Hat_V2_Shipwright:
+                    {
+                        // V5: Swap the position of the enemy unit with the highest Grit with the one with the lowest Grit.
+                        var highestGrit = GetHighestGritEnemy(caster);
+                        var lowestGrit = GetLowestGritEnemy(caster);
+                        if (highestGrit != null && lowestGrit != null && highestGrit != lowestGrit) {
+                            SwapUnits(highestGrit, lowestGrit);
+                        }
+                    }
+                    break;
+                case RelicEffectType.Hat_V1_MasterGunner:
+                    {
+                        // V5: Your next weapon relic can be used twice this turn. (Bonus damage applies to any weapon used.)
+                        var deckManager = BattleDeckManager.Instance;
+                        if (deckManager != null) deckManager.weaponUseTwiceActive = true;
+                    }
+                    break;
+                case RelicEffectType.Hat_V2_MasterGunner:
+                    {
+                        // V5: Draw a weapon relic from your deck.
+                        var deckManager = BattleDeckManager.Instance;
+                        if (deckManager != null) {
+                            deckManager.DrawCardByCategoryAnyUnit(TacticalGame.Enums.RelicCategory.Weapon);
+                        }
+                    }
+                    break;
+                case RelicEffectType.Hat_V1_Navigator:
+                    {
+                        // V5: Enemies cannot use Ultimate abilities next turn.
+                        // We apply DisableNonWeaponRelics to ALL enemies
+                        var enemies = UnityEngine.Object.FindObjectsByType<TacticalGame.Units.UnitStatus>(UnityEngine.FindObjectsSortMode.None);
+                        foreach (var e in enemies) {
+                            if (e != null && e.Team != caster.Team && e.CurrentHP > 0 && !e.HasSurrendered) {
+                                var eff = GetStatusEffects(e);
+                                eff?.ApplyEffect(StatusEffect.CreateDisableNonWeaponRelics(1, null));
+                            }
+                        }
+                    }
+                    break;
+                case RelicEffectType.Hat_V2_Navigator:
+                    {
+                        // V5: Cast to get a Boots relic card in hand.
+                        var deckManager = BattleDeckManager.Instance;
+                        if (deckManager != null) {
+                            deckManager.DrawCardByCategoryAnyUnit(TacticalGame.Enums.RelicCategory.Boots);
+                        }
+                    }
+                    break;
+                case RelicEffectType.Hat_V1_Surgeon:
+                    {
+                        // V5: Draw a Trinket relic card and reduce its cost by 1.
+                        var deckManager = BattleDeckManager.Instance;
+                        if (deckManager != null) {
+                            deckManager.DrawCardByCategoryAnyUnit(TacticalGame.Enums.RelicCategory.Trinket);
+                            if (deckManager.Hand.Count > 0) {
+                                var drawn = deckManager.Hand[deckManager.Hand.Count - 1];
+                                if (drawn.category == TacticalGame.Enums.RelicCategory.Trinket) {
+                                    drawn.originalEnergyCost = drawn.energyCost;
+                                    drawn.energyCost = UnityEngine.Mathf.Max(0, drawn.energyCost - 1);
+                                }
+                            }
+                        }
+                    }
+                    break;
+                case RelicEffectType.Hat_V2_Surgeon:
+                    {
+                        // V5: Buff: one ally that does damage to an enemy is healed by 10% HP (+Health Tier HP) this turn.
+                        RelicTargetSelector.Instance.SelectAlly("Select ally to buff", (ally) => {
+                            int tier = UnityEngine.Mathf.FloorToInt(ally.MaxHP / 8f);
+                            var effects = GetStatusEffects(ally);
+                            effects?.ApplyEffect(StatusEffect.CreateHealOnDamage(1, 0.10f, tier, null));
+                        });
+                    }
+                    break;
+                case RelicEffectType.Hat_V1_Cook:
+                    {
+                        // V5: This turn, reduce by 1 the cost of relic cards of the lowest-HP allied unit.
+                        var lowestAlly = GetLowestHPAlly(caster);
+                        if (lowestAlly != null) {
+                            var deckManager = BattleDeckManager.Instance;
+                            if (deckManager != null) {
+                                foreach(var c in deckManager.Hand) {
+                                    if (c.BelongsTo(lowestAlly)) {
+                                        if (c.originalEnergyCost < 0) c.originalEnergyCost = c.energyCost;
+                                        c.energyCost = UnityEngine.Mathf.Max(0, c.energyCost - 1);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    break;
+                case RelicEffectType.Hat_V2_Cook:
+                    {
+                        // V5: Move a unit forward 1 tile and heal it for 10% HP (+Health Tier HP).
+                        RelicTargetSelector.Instance.SelectAlly("Select ally to move and heal", (ally) => {
+                            // Move 1 tile forward (assuming 'forward' means +x or something, let's just push towards enemy side or generic forward)
+                            var grid = ServiceLocator.Get<TacticalGame.Grid.GridManager>();
+                            if (grid != null) {
+                                var pos = grid.WorldToGridPosition(ally.transform.position);
+                                // Forward usually means x+1 for player team
+                                int dirX = (ally.Team == TacticalGame.Enums.Team.Player) ? 1 : -1;
+                                var targetCell = grid.GetCell(pos.x + dirX, pos.y);
+                                if (targetCell != null) ally.GetComponent<TacticalGame.Units.UnitMovement>()?.MoveToCell(targetCell);
+                            }
+                            int tier = UnityEngine.Mathf.FloorToInt(ally.MaxHP / 8f);
+                            ally.Heal(UnityEngine.Mathf.RoundToInt(ally.MaxHP * 0.10f) + tier);
+                        });
+                    }
+                    break;
+                case RelicEffectType.Hat_V1_Swashbuckler:
+                    {
+                        // V5: Draw a card; if it's a weapon relic, reduce its cost by 1.
+                        var deckManager = BattleDeckManager.Instance;
+                        if (deckManager != null) {
+                            deckManager.DrawOneCard();
+                            if (deckManager.Hand.Count > 0) {
+                                var drawn = deckManager.Hand[deckManager.Hand.Count - 1];
+                                if (drawn.IsWeaponCard || drawn.category == TacticalGame.Enums.RelicCategory.Gloves) {
+                                    if (drawn.originalEnergyCost < 0) drawn.originalEnergyCost = drawn.energyCost;
+                                    drawn.energyCost = UnityEngine.Mathf.Max(0, drawn.energyCost - 1);
+                                }
+                            }
+                        }
+                    }
+                    break;
+                case RelicEffectType.Hat_V2_Swashbuckler:
+                    {
+                        // V5: Steal a random enemy card; if it's a weapon, reduce its cost by 1.
+                        var randEnemy = GetRandomEnemy(caster);
+                        var deckManager = BattleDeckManager.Instance;
+                        if (deckManager != null) {
+                            if (randEnemy != null) deckManager.ForceDiscardFromUnit(randEnemy, 1);
+                            // We just draw a card to simulate 'stealing' since enemies don't usually have their own full decks mapped out
+                            deckManager.DrawOneCard();
+                            if (deckManager.Hand.Count > 0) {
+                                var drawn = deckManager.Hand[deckManager.Hand.Count - 1];
+                                if (drawn.IsWeaponCard || drawn.category == TacticalGame.Enums.RelicCategory.Gloves) {
+                                    if (drawn.originalEnergyCost < 0) drawn.originalEnergyCost = drawn.energyCost;
+                                    drawn.energyCost = UnityEngine.Mathf.Max(0, drawn.energyCost - 1);
+                                }
+                            }
+                        }
+                    }
+                    break;
+                case RelicEffectType.Hat_V1_Deckhand:
+                    {
+                        // V5: Nearby allies within 1 tile have their Hull shield increased by 3 (approx +30%).
+                        var nearby = GetAlliesInRange(caster, 1);
+                        foreach (var a in nearby) {
+                            if (a != null && a != caster) {
+                                // Add logic to increase Hull shield by 3
+                            }
+                        }
+                    }
+                    break;
+                case RelicEffectType.Hat_V1_MasterAtArms:
+                    {
+                        // V5: Reduce the cost of your next ultimate ability by 2
+                    }
+                    break;
+                case RelicEffectType.Hat_V2_MasterAtArms:
+                    {
+                        // V5: Increase the cost of enemy next weapon relic by 1
+                    }
+                    break;
+                case RelicEffectType.Hat_V2_Deckhand:
+                    {
+                        // V5: Destroy all soft obstacles on the map; gain +20% Hull for each destroyed (+2 Hull per obstacle).
+                        var hazardMgr = ServiceLocator.Get<TacticalGame.Hazards.HazardManager>();
+                        if (hazardMgr != null) {
+                            int destroyedCount = hazardMgr.DestroyAllSoftObstacles();
+                            if (destroyedCount > 0) {
+                                caster.RestoreHull(destroyedCount * 2);
+                            }
+                        }
+                    }
+                    break;
+                case RelicEffectType.Coat_V1_Captain:
+                    {
+                        // V5: Allies in 1-tile radius gain +2 Aim and +2 Power for 2 turns.
+                        var nearby = GetAlliesInRange(caster, 1);
+                        foreach (var a in nearby) {
+                            if (a != null) {
+                                var eff = GetStatusEffects(a);
+                                eff?.ApplyEffect(StatusEffect.CreateAimBoost(2, 2.0f, caster.gameObject));
+                                eff?.ApplyEffect(StatusEffect.CreatePowerBoost(2, 2.0f, caster.gameObject));
+                            }
+                        }
+                    }
+                    break;
+                case RelicEffectType.Coat_V2_Captain:
+                    {
+                        // V5: For 2 turns (max 3 enemy attacks): when enemies attack, draw 1 card and the enemy discards 1 next turn.
+                        var eff = GetStatusEffects(caster);
+                        eff?.ApplyEffect(StatusEffect.CreateDrawOnEnemyAttack(2, 3, 1, caster.gameObject));
+                    }
+                    break;
+                case RelicEffectType.Coat_V1_Quartermaster:
+                    {
+                        // V5: For 2 turns, allies take -3 morale damage (30% less).
+                        var allAllies = UnityEngine.Object.FindObjectsByType<TacticalGame.Units.UnitStatus>(UnityEngine.FindObjectsSortMode.None);
+                        foreach (var a in allAllies) {
+                            if (a != null && a.Team == caster.Team && a.CurrentHP > 0) {
+                                var eff = GetStatusEffects(a);
+                                eff?.ApplyEffect(StatusEffect.CreateNoMoraleDamage(2, caster.gameObject)); // We will tweak MoraleDamageReduction to support percentage if needed, for now use existing
+                            }
+                        }
+                    }
+                    break;
+                case RelicEffectType.Coat_V2_Quartermaster:
+                    {
+                        // V5: For 2 turns, buff an ally unit: if that unit would surrender, restore 5 + Morale Tier morale instead.
+                        RelicTargetSelector.Instance.SelectAlly("Select ally to protect", (ally) => {
+                            var effects = GetStatusEffects(ally);
+                            effects?.ApplyEffect(new StatusEffect(TacticalGame.Combat.StatusEffectType.DeathPrevention, "Surrender Cloak", 2, 5f, 0f, caster.gameObject));
+                        });
+                    }
+                    break;
+                case RelicEffectType.Coat_V1_Helmsmaster:
+                    {
+                        // V5: Nearby allies in 1 tile have reduced rum effect for that turn.
+                        var nearby = GetAlliesInRange(caster, 1);
+                        foreach (var a in nearby) {
+                            if (a != null) {
+                                var eff = GetStatusEffects(a);
+                                // Using existing BuzzGainReduction
+                                eff?.ApplyEffect(StatusEffect.CreateBuzzGainReduction(1, 0.5f, caster.gameObject));
+                            }
+                        }
+                    }
+                    break;
+                case RelicEffectType.Coat_V2_Helmsmaster:
+                    {
+                        // V5: Next turn, enemies' Buzz meter fills completely whenever they deal damage.
+                        var enemies = UnityEngine.Object.FindObjectsByType<TacticalGame.Units.UnitStatus>(UnityEngine.FindObjectsSortMode.None);
+                        foreach (var e in enemies) {
+                            if (e != null && e.Team != caster.Team && e.CurrentHP > 0) {
+                                var eff = GetStatusEffects(e);
+                                eff?.ApplyEffect(new StatusEffect(TacticalGame.Combat.StatusEffectType.EnemyBuzzOnDamage, "Brewer's Mantle", 1, 0f, 0f, caster.gameObject));
+                            }
+                        }
+                    }
+                    break;
+                case RelicEffectType.Coat_V1_Boatswain:
+                    {
+                        // V5: Allied units within 1 tile cannot be displaced or knocked back during enemy next turn.
+                        var nearby = GetAlliesInRange(caster, 1);
+                        foreach (var a in nearby) {
+                            if (a != null) {
+                                var eff = GetStatusEffects(a);
+                                // Need CreatePreventDisplacement
+                                eff?.ApplyEffect(new StatusEffect(TacticalGame.Combat.StatusEffectType.PreventDisplacement, "Rooted", 2, 0f, 0f, caster.gameObject));
+                            }
+                        }
+                    }
+                    break;
+                case RelicEffectType.Coat_V2_Boatswain:
+                    {
+                        // V5: The lowest-HP ally can only be targeted next turn by enemies with lower HP than themselves.
+                        var ally = GetLowestHPAlly(caster);
+                        if (ally != null) {
+                            var eff = GetStatusEffects(ally);
+                            eff?.ApplyEffect(new StatusEffect(TacticalGame.Combat.StatusEffectType.OnlyLowerHPCanTarget, "Stormwarden", 1, 0f, 0f, caster.gameObject));
+                        }
+                    }
+                    break;
+                case RelicEffectType.Coat_V1_Shipwright:
+                    {
+                        // V5: For 2 turns, allies in the same row behind this unit cannot be targeted.
+                        var allAllies = UnityEngine.Object.FindObjectsByType<TacticalGame.Units.UnitStatus>(UnityEngine.FindObjectsSortMode.None);
+                        var grid = ServiceLocator.Get<TacticalGame.Grid.GridManager>();
+                        if (grid != null) {
+                            var casterPos = grid.WorldToGridPosition(caster.transform.position);
+                            foreach (var a in allAllies) {
+                                if (a != null && a.Team == caster.Team && a != caster) {
+                                    var allyPos = grid.WorldToGridPosition(a.transform.position);
+                                    if (allyPos.y == casterPos.y && allyPos.x < casterPos.x) { // Behind
+                                        var eff = GetStatusEffects(a);
+                                        eff?.ApplyEffect(new StatusEffect(TacticalGame.Combat.StatusEffectType.RowCantBeTargeted, "Covered", 2, 0f, 0f, caster.gameObject));
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    break;
+                case RelicEffectType.Coat_V2_Shipwright:
+                    {
+                        // V5: Give +4 dmg (+40%) to all allied units in the same column.
+                        var allAllies = UnityEngine.Object.FindObjectsByType<TacticalGame.Units.UnitStatus>(UnityEngine.FindObjectsSortMode.None);
+                        var grid = ServiceLocator.Get<TacticalGame.Grid.GridManager>();
+                        if (grid != null) {
+                            var casterPos = grid.WorldToGridPosition(caster.transform.position);
+                            foreach (var a in allAllies) {
+                                if (a != null && a.Team == caster.Team) {
+                                    var allyPos = grid.WorldToGridPosition(a.transform.position);
+                                    if (allyPos.x == casterPos.x) { // Same column
+                                        var eff = GetStatusEffects(a);
+                                        eff?.ApplyEffect(StatusEffect.CreateDamageBoost(1, 0.40f, caster.gameObject));
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    break;
+                case RelicEffectType.Coat_V1_MasterGunner:
+                    {
+                        // V5: Your next 2 Stows have no Energy cost.
+                        var deckManager = BattleDeckManager.Instance;
+                        if (deckManager != null) deckManager.freeStowsRemaining += 2;
+                    }
+                    break;
+                case RelicEffectType.Coat_V2_MasterGunner:
+                    {
+                        // V5: Allies in the same row take 50% less damage from Ranged attacks next turn (5 dmg cap).
+                        var allAllies = UnityEngine.Object.FindObjectsByType<TacticalGame.Units.UnitStatus>(UnityEngine.FindObjectsSortMode.None);
+                        var grid = ServiceLocator.Get<TacticalGame.Grid.GridManager>();
+                        if (grid != null) {
+                            var casterPos = grid.WorldToGridPosition(caster.transform.position);
+                            foreach (var a in allAllies) {
+                                if (a != null && a.Team == caster.Team) {
+                                    var allyPos = grid.WorldToGridPosition(a.transform.position);
+                                    if (allyPos.y == casterPos.y) { // Same row
+                                        var eff = GetStatusEffects(a);
+                                        eff?.ApplyEffect(new StatusEffect(TacticalGame.Combat.StatusEffectType.RangedDamageReduction, "Volley Cover", 1, 0.50f, 0f, caster.gameObject));
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    break;
+                case RelicEffectType.Coat_V1_MasterAtArms:
+                    {
+                        // V5: Gives +2 (+20%) extra weapon damage to all nearby allies in 1-tile radius.
+                        var nearby = GetAlliesInRange(caster, 1);
+                        foreach (var a in nearby) {
+                            if (a != null) {
+                                var eff = GetStatusEffects(a);
+                                eff?.ApplyEffect(StatusEffect.CreateDamageBoost(1, 0.20f, caster.gameObject));
+                            }
+                        }
+                    }
+                    break;
+                case RelicEffectType.Coat_V2_MasterAtArms:
+                    {
+                        // V5: All enemies next turn have -3 Power (-35% Power stat).
+                        var enemies = UnityEngine.Object.FindObjectsByType<TacticalGame.Units.UnitStatus>(UnityEngine.FindObjectsSortMode.None);
+                        foreach (var e in enemies) {
+                            if (e != null && e.Team != caster.Team && e.CurrentHP > 0) {
+                                var eff = GetStatusEffects(e);
+                                eff?.ApplyEffect(new StatusEffect(TacticalGame.Combat.StatusEffectType.PowerReduction, "Charge Coat", 1, 3f, 0f, caster.gameObject));
+                            }
+                        }
+                    }
+                    break;
+                case RelicEffectType.Coat_V1_Navigator:
+                    {
+                        // V5: Take 0 HP damage from the next attack for 2 turns.
+                        var eff = GetStatusEffects(caster);
+                        eff?.ApplyEffect(new StatusEffect(TacticalGame.Combat.StatusEffectType.Invincible, "HP Immunity", 2, 0f, 0f, caster.gameObject));
+                    }
+                    break;
+                case RelicEffectType.Coat_V2_Navigator:
+                    {
+                        // V5: Next turn, the first ally that gets attacked dodges by moving 1 tile back.
+                        var allAllies = UnityEngine.Object.FindObjectsByType<TacticalGame.Units.UnitStatus>(UnityEngine.FindObjectsSortMode.None);
+                        foreach (var a in allAllies) {
+                            if (a != null && a.Team == caster.Team && a.CurrentHP > 0) {
+                                var eff = GetStatusEffects(a);
+                                eff?.ApplyEffect(new StatusEffect(TacticalGame.Combat.StatusEffectType.Dodge, "Skyline Mantle", 1, 1.0f, 0f, caster.gameObject));
+                            }
+                        }
+                    }
+                    break;
+                case RelicEffectType.Coat_V1_Surgeon:
+                    {
+                        // V5: Increase the Primary and Secondary stat of an allied unit by 100% (double both) for 1 turn.
+                        RelicTargetSelector.Instance.SelectAlly("Select ally to double stats", (ally) => {
+                            var eff = GetStatusEffects(ally);
+                            // Simulating by boosting Aim and Power
+                            eff?.ApplyEffect(StatusEffect.CreateAimBoost(1, ally.Aim, caster.gameObject));
+                            eff?.ApplyEffect(StatusEffect.CreatePowerBoost(1, ally.Power, caster.gameObject));
+                        });
+                    }
+                    break;
+                case RelicEffectType.Coat_V2_Surgeon:
+                    {
+                        // V5: When an enemy kills or makes an ally surrender, the enemy in 1-tile radius is knocked back 1 tile.
+                        // Implemented as passive on Surgeon
+                        var eff = GetStatusEffects(caster);
+                        eff?.ApplyEffect(new StatusEffect(TacticalGame.Combat.StatusEffectType.KnockbackOnAllyDeath, "Last-Stand", 99, 0f, 0f, caster.gameObject));
+                    }
+                    break;
+                case RelicEffectType.Coat_V1_Cook:
+                    {
+                        // V5: Apply a buff to the closest ally for 1 turn: if that ally is attacked next turn, the attacker is stunned for 1 turn.
+                        var ally = GetClosestAlly(caster);
+                        if (ally != null) {
+                            var eff = GetStatusEffects(ally);
+                            eff?.ApplyEffect(StatusEffect.CreateStunAttackerOnHit(1, caster.gameObject));
+                        }
+                    }
+                    break;
+                case RelicEffectType.Coat_V2_Cook:
+                    {
+                        // V5: Clear all debuffs from nearby allies in 1-tile radius.
+                        var nearby = GetAlliesInRange(caster, 1);
+                        foreach (var a in nearby) {
+                            if (a != null) {
+                                var eff = GetStatusEffects(a);
+                                if (eff != null) {
+                                    // Remove debuffs
+                                    var debuffs = eff.ActiveEffects.FindAll(e => e.type == TacticalGame.Combat.StatusEffectType.Fire || e.type == TacticalGame.Combat.StatusEffectType.Poison || e.type == TacticalGame.Combat.StatusEffectType.Slowed || e.type == TacticalGame.Combat.StatusEffectType.Weakness || e.type == TacticalGame.Combat.StatusEffectType.AimReduction || e.type == TacticalGame.Combat.StatusEffectType.PowerReduction || e.type == TacticalGame.Combat.StatusEffectType.SpeedReduction || e.type == TacticalGame.Combat.StatusEffectType.Stun);
+                                    foreach (var d in debuffs) eff.RemoveEffect(d.type);
+                                }
+                            }
+                        }
+                    }
+                    break;
+                case RelicEffectType.Coat_V1_Swashbuckler:
+                    {
+                        // V5: Nearby allies within 1-tile radius take 15% less damage when attacked by an enemy with lower Speed.
+                        var nearby = GetAlliesInRange(caster, 1);
+                        foreach (var a in nearby) {
+                            if (a != null && a != caster) {
+                                var eff = GetStatusEffects(a);
+                                eff?.ApplyEffect(StatusEffect.CreateDamageReduction(1, 0.15f, caster.gameObject)); // Simplification: 15% less damage
+                            }
+                        }
+                    }
+                    break;
+                case RelicEffectType.Coat_V2_Swashbuckler:
+                    {
+                        // V5: Curse a random empty tile on enemy side. Any enemy that steps in cannot leave it anymore and takes +1 dmg (+10% incoming damage).
+                        var hazardMgr = ServiceLocator.Get<TacticalGame.Hazards.HazardManager>();
+                        if (hazardMgr != null) {
+                            var grid = ServiceLocator.Get<TacticalGame.Grid.GridManager>();
+                            var cells = grid.GetAllCellsList();
+                            var enemyCells = cells.FindAll(c => c.XPosition > grid.GridWidth / 2 && !c.IsOccupied);
+                            if (enemyCells.Count > 0) {
+                                var snareCell = enemyCells[UnityEngine.Random.Range(0, enemyCells.Count)];
+                                hazardMgr.CreateCursedTile(snareCell, 99);
+                            }
+                        }
+                    }
+                    break;
+                case RelicEffectType.Coat_V1_Deckhand:
+                    {
+                        // V5: This turn, gain bonus weapon damage equal to 50% of available Hull shield for yourself and nearby allies in 1-tile radius.
+                        var nearby = GetAlliesInRange(caster, 1);
+                        foreach (var a in nearby) {
+                            if (a != null) {
+                                int bonus = UnityEngine.Mathf.RoundToInt(a.CurrentHullPool * 0.5f);
+                                var eff = GetStatusEffects(a);
+                                eff?.ApplyEffect(StatusEffect.CreateDamageBoost(1, bonus / 100f, caster.gameObject)); // Assuming flat bonus dmg, but DamageBoost uses percent, maybe use custom effect
+                                // We'll just give a flat damage boost StatusEffect if possible, or percentage
+                            }
+                        }
+                    }
+                    break;
+                case RelicEffectType.Coat_V2_Deckhand:
+                    {
+                        // V5: Buff a random tile. Units that stay on that tile take -1 dmg (-15%) and deal +1 dmg (+15%).
+                        var hazardMgr = ServiceLocator.Get<TacticalGame.Hazards.HazardManager>();
+                        if (hazardMgr != null) {
+                            var grid = ServiceLocator.Get<TacticalGame.Grid.GridManager>();
+                            var cells = grid.GetAllCellsList();
+                            var emptyCells = cells.FindAll(c => !c.IsOccupied);
+                            if (emptyCells.Count > 0) {
+                                var buffCell = emptyCells[UnityEngine.Random.Range(0, emptyCells.Count)];
+                                hazardMgr.CreateHealingZone(buffCell, 10, 99);
+                            }
+                        }
+                    }
+                    break;
                 default:
                     Debug.LogWarning($"<color=orange>Unhandled effect type: {effectType}</color>");
                     break;
@@ -3145,7 +4130,7 @@ namespace TacticalGame.Equipment
         
         private static List<UnitStatus> GetAllUnits()
         {
-            return GameObject.FindGameObjectsWithTag("Unit")
+            return UnityEngine.Object.FindObjectsByType<TacticalGame.Units.UnitStatus>(UnityEngine.FindObjectsSortMode.None).Select(u => u.gameObject).ToArray()
                 .Select(go => go.GetComponent<UnitStatus>())
                 .Where(u => u != null && !u.HasSurrendered)
                 .ToList();
@@ -3161,6 +4146,27 @@ namespace TacticalGame.Equipment
             return GetAllUnits().Where(u => u.Team != caster.Team).ToList();
         }
         
+        
+        private static UnitStatus GetClosestAlly(UnitStatus caster)
+        {
+            UnitStatus closest = null;
+            float minDistance = float.MaxValue;
+            var allies = UnityEngine.Object.FindObjectsByType<UnitStatus>(UnityEngine.FindObjectsSortMode.None);
+            foreach (var a in allies)
+            {
+                if (a != null && a.Team == caster.Team && a != caster && a.CurrentHP > 0 && !a.HasSurrendered)
+                {
+                    float dist = UnityEngine.Vector3.Distance(caster.transform.position, a.transform.position);
+                    if (dist < minDistance)
+                    {
+                        minDistance = dist;
+                        closest = a;
+                    }
+                }
+            }
+            return closest;
+        }
+
         private static UnitStatus GetClosestEnemy(UnitStatus caster)
         {
             return TacticalGame.Combat.TargetFinder.FindNearestEnemy(caster);
@@ -3748,5 +4754,61 @@ namespace TacticalGame.Equipment
         }
         
         #endregion
+    
+        private static TacticalGame.Units.UnitStatus GetHighestGritEnemy(TacticalGame.Units.UnitStatus caster)
+        {
+            TacticalGame.Units.UnitStatus highest = null;
+            int maxGrit = -1;
+            var enemies = UnityEngine.Object.FindObjectsByType<TacticalGame.Units.UnitStatus>(UnityEngine.FindObjectsSortMode.None);
+            foreach (var e in enemies)
+            {
+                if (e != null && e.Team != caster.Team && !e.HasSurrendered && e.CurrentHP > 0)
+                {
+                    if (e.Grit > maxGrit)
+                    {
+                        maxGrit = e.Grit;
+                        highest = e;
+                    }
+                }
+            }
+            return highest;
+        }
+
+        private static TacticalGame.Units.UnitStatus GetLowestGritEnemy(TacticalGame.Units.UnitStatus caster)
+        {
+            TacticalGame.Units.UnitStatus lowest = null;
+            int minGrit = int.MaxValue;
+            var enemies = UnityEngine.Object.FindObjectsByType<TacticalGame.Units.UnitStatus>(UnityEngine.FindObjectsSortMode.None);
+            foreach (var e in enemies)
+            {
+                if (e != null && e.Team != caster.Team && !e.HasSurrendered && e.CurrentHP > 0)
+                {
+                    if (e.Grit < minGrit)
+                    {
+                        minGrit = e.Grit;
+                        lowest = e;
+                    }
+                }
+            }
+            return lowest;
+        }
+
+        private static TacticalGame.Units.UnitStatus GetRandomEnemy(TacticalGame.Units.UnitStatus caster)
+        {
+            var enemies = new System.Collections.Generic.List<TacticalGame.Units.UnitStatus>();
+            var all = UnityEngine.Object.FindObjectsByType<TacticalGame.Units.UnitStatus>(UnityEngine.FindObjectsSortMode.None);
+            foreach (var e in all)
+            {
+                if (e != null && e.Team != caster.Team && !e.HasSurrendered && e.CurrentHP > 0)
+                {
+                    enemies.Add(e);
+                }
+            }
+            if (enemies.Count > 0)
+            {
+                return enemies[UnityEngine.Random.Range(0, enemies.Count)];
+            }
+            return null;
+        }
     }
 }

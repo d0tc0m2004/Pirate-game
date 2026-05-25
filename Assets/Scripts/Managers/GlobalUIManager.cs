@@ -1,3 +1,4 @@
+using System.Linq;
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
@@ -78,6 +79,9 @@ namespace TacticalGame.Managers
             {
                 swapButton.gameObject.SetActive(false);
             }
+            
+            // Force an initial update of the UI
+            isDirty = true;
         }
 
         private void Update()
@@ -185,7 +189,7 @@ namespace TacticalGame.Managers
 
         private void UpdateTeamStats()
         {
-            GameObject[] units = GameObject.FindGameObjectsWithTag("Unit");
+            GameObject[] units = UnityEngine.Object.FindObjectsByType<TacticalGame.Units.UnitStatus>(UnityEngine.FindObjectsSortMode.None).Select(u => u.gameObject).ToArray();
             
             int playerHP = 0, playerMaxHP = 0, playerMorale = 0, playerMaxMorale = 0;
             int enemyHP = 0, enemyMaxHP = 0, enemyMorale = 0, enemyMaxMorale = 0;
@@ -289,7 +293,7 @@ namespace TacticalGame.Managers
             
             ClearIconContainers();
 
-            GameObject[] units = GameObject.FindGameObjectsWithTag("Unit");
+            GameObject[] units = UnityEngine.Object.FindObjectsByType<TacticalGame.Units.UnitStatus>(UnityEngine.FindObjectsSortMode.None).Select(u => u.gameObject).ToArray();
             
             foreach (GameObject unit in units)
             {

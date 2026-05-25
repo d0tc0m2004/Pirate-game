@@ -197,6 +197,20 @@ namespace TacticalGame.Grid
         /// <summary>
         /// Get a cell at grid coordinates.
         /// </summary>
+        
+        public System.Collections.Generic.List<GridCell> GetAllCellsList()
+        {
+            var list = new System.Collections.Generic.List<GridCell>();
+            for (int x = 0; x < gridWidth; x++)
+            {
+                for (int y = 0; y < gridHeight; y++)
+                {
+                    if (gridCells[x, y] != null) list.Add(gridCells[x, y]);
+                }
+            }
+            return list;
+        }
+
         public GridCell GetCell(int x, int y)
         {
             if (IsValidPosition(x, y))
@@ -212,6 +226,14 @@ namespace TacticalGame.Grid
         public bool IsValidPosition(int x, int y)
         {
             return x >= 0 && x < gridWidth && y >= 0 && y < gridHeight;
+        }
+        
+        /// <summary>
+        /// Check if coordinates are inside the Neutral Zone (center 3 columns).
+        /// </summary>
+        public bool IsInNeutralZone(int x)
+        {
+            return x >= middleColumnIndex - 1 && x <= middleColumnIndex + 1;
         }
 
         #endregion

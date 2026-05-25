@@ -1,3 +1,4 @@
+using System.Linq;
 using UnityEngine;
 using System.Collections.Generic;
 using TacticalGame.Config;
@@ -34,7 +35,7 @@ namespace TacticalGame.Combat
             int enemySpeed = 0;
 
             // Find all units and sum their Speed
-            GameObject[] allUnits = GameObject.FindGameObjectsWithTag("Unit");
+            GameObject[] allUnits = UnityEngine.Object.FindObjectsByType<TacticalGame.Units.UnitStatus>(UnityEngine.FindObjectsSortMode.None).Select(u => u.gameObject).ToArray();
             
             foreach (GameObject unitObj in allUnits)
             {
@@ -86,7 +87,7 @@ namespace TacticalGame.Combat
         {
             int totalSpeed = 0;
             
-            GameObject[] allUnits = GameObject.FindGameObjectsWithTag("Unit");
+            GameObject[] allUnits = UnityEngine.Object.FindObjectsByType<TacticalGame.Units.UnitStatus>(UnityEngine.FindObjectsSortMode.None).Select(u => u.gameObject).ToArray();
             
             foreach (GameObject unitObj in allUnits)
             {

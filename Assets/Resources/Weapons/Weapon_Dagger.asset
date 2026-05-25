@@ -17,8 +17,8 @@ MonoBehaviour:
   subType: 3
   attackType: 0
   cardCopies: 2
-  energyCost: 1
-  baseDamage: 2
+  energyCost: 0
+  baseDamage: 1
   scalingStat: 0
   scalingCoefficient: 1.25
   defaultTarget: 0

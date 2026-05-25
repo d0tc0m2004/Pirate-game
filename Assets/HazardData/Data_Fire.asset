@@ -20,11 +20,11 @@ MonoBehaviour:
   causesDisplacement: 0
   shapePattern: 1
   effectType: 1
-  damageHP: 15
+  damageHP: 1
   damageMorale: 0
   effectDuration: 0
   curseMultiplier: 1
-  standingBonusHP: 10
+  standingBonusHP: 1
   standingBonusMorale: 0
   standingAppliesCurse: 0
   dropItem: {fileID: 0}

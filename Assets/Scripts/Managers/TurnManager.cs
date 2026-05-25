@@ -1,3 +1,4 @@
+using System.Linq;
 using UnityEngine;
 using System.Collections;
 using TacticalGame.Core;
@@ -95,7 +96,16 @@ namespace TacticalGame.Managers
             else
             {
                 GameEvents.TriggerEnemyTurnStart();
-                StartCoroutine(AutoSkipEnemyTurn());
+                var aiManager = ServiceLocator.Get<TacticalGame.AI.EnemyAIManager>();
+                if (aiManager != null)
+                {
+                    aiManager.StartEnemyTurn();
+                }
+                else
+                {
+                    Debug.LogWarning("EnemyAIManager not found, skipping turn fallback.");
+                    StartCoroutine(AutoSkipEnemyTurn());
+                }
             }
         }
 
@@ -171,8 +181,17 @@ namespace TacticalGame.Managers
             {
                 ResetUnitsForNewTurn();
                 GameEvents.TriggerEnemyTurnStart();
-                Debug.Log($"Enemy Turn. Skipping in {GameConfig.Instance.enemyTurnDelay}s...");
-                StartCoroutine(AutoSkipEnemyTurn());
+                
+                var aiManager = ServiceLocator.Get<TacticalGame.AI.EnemyAIManager>();
+                if (aiManager != null)
+                {
+                    aiManager.StartEnemyTurn();
+                }
+                else
+                {
+                    Debug.LogWarning("EnemyAIManager not found, skipping turn fallback.");
+                    StartCoroutine(AutoSkipEnemyTurn());
+                }
             }
         }
 
@@ -204,7 +223,7 @@ namespace TacticalGame.Managers
 
         private void ApplyHazardEffects()
         {
-            GameObject[] units = GameObject.FindGameObjectsWithTag("Unit");
+            GameObject[] units = UnityEngine.Object.FindObjectsByType<TacticalGame.Units.UnitStatus>(UnityEngine.FindObjectsSortMode.None).Select(u => u.gameObject).ToArray();
             
             foreach (GameObject unit in units)
             {
@@ -234,7 +253,7 @@ namespace TacticalGame.Managers
 
         private void ResetUnitsForNewTurn()
         {
-            GameObject[] units = GameObject.FindGameObjectsWithTag("Unit");
+            GameObject[] units = UnityEngine.Object.FindObjectsByType<TacticalGame.Units.UnitStatus>(UnityEngine.FindObjectsSortMode.None).Select(u => u.gameObject).ToArray();
             
             foreach (GameObject unit in units)
             {

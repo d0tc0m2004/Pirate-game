@@ -15,23 +15,23 @@ MonoBehaviour:
   role: 8
   effect1Name: Combat Medic
   effect1Description: 'On-hit: Restores 150 health to closest ally unit'
-  effect1Type: 25
-  effect1Value1: 150
+  effect1Type: 1
+  effect1Value1: 2
   effect1Value2: 0
   effect1Duration: 0
   effect2Name: Wound
   effect2Description: 'On-hit: Applies a debuff - for 2 turns the target can''t restore
     health or morale'
-  effect2Type: 26
-  effect2Value1: 0
+  effect2Type: 1
+  effect2Value1: 3
   effect2Value2: 0
   effect2Duration: 2
   effect2BonusDamage: 1
   effect3Name: Team Synergy
   effect3Description: 'On-hit: Does 20% increased damage for each allied unit in
     1 tile radius'
-  effect3Type: 27
-  effect3Value1: 0.2
+  effect3Type: 1
+  effect3Value1: 4
   effect3Value2: 1
   effect3Duration: 0
   effect3BonusDamage: 2

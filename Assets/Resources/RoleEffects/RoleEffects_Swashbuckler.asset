@@ -16,23 +16,23 @@ MonoBehaviour:
   effect1Name: Quick Strike
   effect1Description: 'On-hit: If the weapon attacks first in a turn its cost is
     0'
-  effect1Type: 31
-  effect1Value1: 0
+  effect1Type: 6
+  effect1Value1: 1
   effect1Value2: 0
   effect1Duration: 0
   effect2Name: Speed Advantage
   effect2Description: 'On-hit: Does 20% bonus damage if the target has lower speed
     stat'
-  effect2Type: 32
-  effect2Value1: 0.2
+  effect2Type: 6
+  effect2Value1: 2
   effect2Value2: 0
   effect2Duration: 0
   effect2BonusDamage: 1
   effect3Name: First Blood
   effect3Description: 'On-hit: If the unit attacks first in a turn it does 50% increased
     damage'
-  effect3Type: 33
-  effect3Value1: 0.5
+  effect3Type: 6
+  effect3Value1: 3
   effect3Value2: 0
   effect3Duration: 0
   effect3BonusDamage: 2

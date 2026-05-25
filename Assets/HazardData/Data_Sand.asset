@@ -21,7 +21,7 @@ MonoBehaviour:
   shapePattern: 3
   effectType: 4
   damageHP: 0
-  damageMorale: 10
+  damageMorale: 1
   effectDuration: 0
   curseMultiplier: 1
   standingBonusHP: 0

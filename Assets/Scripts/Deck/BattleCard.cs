@@ -123,8 +123,11 @@ namespace TacticalGame.Equipment
         {
             switch (effectType)
             {
-                // === Boots that target allies ===
+                // === Captain V1 Swap With ANY unit ===
                 case RelicEffectType.Boots_SwapWithUnit:
+                    return CardTargetType.AnyUnit;
+
+                // === Boots that target allies ===
                 case RelicEffectType.Boots_MoveAlly:
                 case RelicEffectType.Boots_V2_MoveAllyGainShield:
                     return CardTargetType.Ally;

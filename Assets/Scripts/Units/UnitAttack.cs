@@ -316,8 +316,7 @@ public class UnitAttack : MonoBehaviour
             return;
         }
 
-        if (energyManager == null) energyManager = FindFirstObjectByType<EnergyManager>();
-        if (!energyManager.TrySpendEnergy(attackEnergyCost)) return;
+        if (!SpendActionEnergy()) return;
 
         UnitStatus target = FindNearestEnemy();
         if (target != null)
@@ -348,16 +347,15 @@ public class UnitAttack : MonoBehaviour
     {
         if (!CanAct()) return;
         
-        if (myStatus.WeaponType != WeaponType.Ranged)
+        if (myStatus.WeaponType == WeaponType.Melee)
         {
-            Debug.Log($"<color=red>{name} cannot Shoot! (Equipped: {myStatus.WeaponType})</color>");
+            Debug.Log($"<color=red>{name} cannot Shoot! (Equipped: Melee)</color>");
             return;
         }
 
         if (myStatus.CurrentArrows <= 0) return;
 
-        if (energyManager == null) energyManager = FindFirstObjectByType<EnergyManager>();
-        if (!energyManager.TrySpendEnergy(attackEnergyCost)) return;
+        if (!SpendActionEnergy()) return;
 
         UnitStatus target = FindNearestEnemy();
         if (target != null)
@@ -542,6 +540,22 @@ public class UnitAttack : MonoBehaviour
     {
         // Use the centralized TargetFinder
         return TargetFinder.FindNearestEnemy(myStatus);
+    }
+
+    private bool SpendActionEnergy()
+    {
+        if (myStatus.Team == Team.Enemy)
+        {
+            var enemyEnergy = ServiceLocator.Get<TacticalGame.Managers.EnemyEnergyManager>();
+            if (enemyEnergy != null) return enemyEnergy.TrySpendEnergy(attackEnergyCost);
+            return true; // Fallback if no manager
+        }
+        else
+        {
+            if (energyManager == null) energyManager = ServiceLocator.Get<EnergyManager>();
+            if (energyManager != null) return energyManager.TrySpendEnergy(attackEnergyCost);
+            return true;
+        }
     }
 
     bool CanAct()

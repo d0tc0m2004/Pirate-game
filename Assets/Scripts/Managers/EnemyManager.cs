@@ -74,6 +74,17 @@ namespace TacticalGame.Managers
                     {
                         GameObject unit = Instantiate(prefabToSpawn, cell.GetWorldPosition(), Quaternion.identity);
                         unit.transform.rotation = Quaternion.LookRotation(Vector3.left);
+                        
+                        // Auto-attach AI components
+                        if (unit.GetComponent<TacticalGame.AI.EnemyBrain>() == null)
+                        {
+                            unit.AddComponent<TacticalGame.AI.EnemyBrain>();
+                        }
+                        if (unit.GetComponent<TacticalGame.UI.IntentWarningUI>() == null)
+                        {
+                            unit.AddComponent<TacticalGame.UI.IntentWarningUI>();
+                        }
+                        
                         cell.PlaceUnit(unit);
                         return;
                     }

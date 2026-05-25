@@ -15,22 +15,22 @@ MonoBehaviour:
   role: 6
   effect1Name: Efficient Combat
   effect1Description: 'On-hit: Reduce other weapon relic cost by 1'
-  effect1Type: 19
+  effect1Type: 8
   effect1Value1: 1
   effect1Value2: 0
   effect1Duration: 1
   effect2Name: Static Assault
   effect2Description: 'On-hit: Does 20% more damage if the unit didn''t move in the
     past turn'
-  effect2Type: 20
-  effect2Value1: 0.2
+  effect2Type: 8
+  effect2Value1: 2
   effect2Value2: 0
   effect2Duration: 0
   effect2BonusDamage: 1
   effect3Name: Execute
   effect3Description: 'On-hit: Executes targets below 15% Health'
-  effect3Type: 21
-  effect3Value1: 0.15
+  effect3Type: 8
+  effect3Value1: 3
   effect3Value2: 0
   effect3Duration: 0
   effect3BonusDamage: 2

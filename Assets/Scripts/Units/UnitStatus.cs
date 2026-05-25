@@ -74,6 +74,11 @@ namespace TacticalGame.Units
         private bool isStunned = false;
         private bool isTrapped = false;
         private bool hasSurrendered = false;
+        
+        // Tribute / V5 mechanics
+        private int legendReserve;
+        private bool hasSpilledThisRound = false;
+        private bool hasDesperationBuff = false;
 
         // Focus fire tracking
         private GameObject lastAttacker;
@@ -108,6 +113,16 @@ namespace TacticalGame.Units
         public int CurrentMorale => currentMorale;
         public float HPPercent => maxHP > 0 ? (float)currentHP / maxHP : 0f;
         public float MoralePercent => maxMorale > 0 ? (float)currentMorale / maxMorale : 0f;
+        
+        // Tribute properties
+        public int LegendReserve => legendReserve;
+        public bool HasDesperationBuff => hasDesperationBuff;
+
+        // Tiers (v5 rework)
+        public int MoraleTier => Mathf.FloorToInt(maxMorale / 10f);
+        public int BuzzTier => Mathf.FloorToInt(maxBuzz / 2f);
+        public int HealthTier => Mathf.FloorToInt(maxHP / 8f);
+        public int TacticsTier => Mathf.FloorToInt(tactics / 2f);
 
         // Stats
         public int Power => power;
@@ -196,12 +211,28 @@ namespace TacticalGame.Units
             
             if (currentHP == 0) currentHP = maxHP;
             if (currentMorale == 0) currentMorale = maxMorale;
+            if (legendReserve == 0) legendReserve = maxMorale;
             currentArrows = MaxArrows;
             
             if (whiteFlagVisual != null)
             {
                 whiteFlagVisual.SetActive(false);
             }
+        }
+
+        private void OnEnable()
+        {
+            GameEvents.OnRoundStart += OnRoundStart;
+        }
+
+        private void OnDisable()
+        {
+            GameEvents.OnRoundStart -= OnRoundStart;
+        }
+
+        private void OnRoundStart(int roundNumber)
+        {
+            hasSpilledThisRound = false;
         }
 
         #endregion
@@ -229,6 +260,7 @@ namespace TacticalGame.Units
             currentHP = maxHP;
             maxMorale = data.morale;
             currentMorale = maxMorale;
+            legendReserve = maxMorale;
             maxBuzz = data.buzz; // Buzz is now capacity
             
             // Enemies start with 50% buzz to allow testing buzz-related cards
@@ -275,6 +307,10 @@ namespace TacticalGame.Units
 
             // Check for adjacency cover
             bool hasCover = CheckAdjacencyCover();
+            
+            // Check for Fog hazard (if applicable, using default false for now unless GridCell has it)
+            bool hasFog = false;
+            // TODO: Implement Fog hazard detection once GridCell has Hazard support
 
             // Get attacker status for first-action bonus and combo calculation
             UnitStatus attackerStatus = source != null ? source.GetComponent<UnitStatus>() : null;
@@ -286,15 +322,15 @@ namespace TacticalGame.Units
                 attackerStatus,
                 this, 
                 hasCover,
+                hasFog,
                 isFirstAction,
                 comboCount,
                 flatBonusHP, 
                 flatBonusMorale
             );
 
-            // Apply Grit damage reduction (flat)
-            int gritDR = DamageCalculator.GetFlatGritReduction(this);
-            int damageAfterGrit = Mathf.Max(0, result.FinalHPDamage - gritDR);
+            // V5: Flat Grit DR is removed from the core pipeline (it's now a conditional passive)
+            int damageAfterGrit = result.FinalHPDamage;
 
             // Apply Hull absorption
             int hullAbsorbed = 0;
@@ -318,7 +354,7 @@ namespace TacticalGame.Units
             int derivedMoraleDmg = Mathf.RoundToInt(finalHPDamage * 0.60f * attackMult);
             int totalMoraleDmg = derivedMoraleDmg + result.FinalMoraleDamage; // add flat riders
             
-            ApplyMoraleDamage(totalMoraleDmg);
+            ApplyMoraleDamage(totalMoraleDmg, source);
 
             // Log damage report
             string attackerName = source != null ? source.name : "Unknown Source";
@@ -326,7 +362,7 @@ namespace TacticalGame.Units
             string comboInfo = comboCount > 1 ? $" [Combo x{comboCount}]" : "";
             Debug.Log($"<color=red><b>DAMAGE REPORT: {gameObject.name}</b></color>\n" +
                       $"<b>Attacker:</b> {attackerName}{comboInfo}\n" +
-                      $"<b>HP Lost: {finalHPDamage}</b> (Grit Blocked: {gritDR}){hullInfo} [{result.HPBreakdown}]\n" +
+                      $"<b>HP Lost: {finalHPDamage}</b> {hullInfo} [{result.HPBreakdown}]\n" +
                       $"<b>Morale Lost: {totalMoraleDmg}</b>  [{result.MoraleBreakdown}]");
 
             RecordDamageHistory($"Took {finalHPDamage} HP dmg from {attackerName}");
@@ -421,15 +457,106 @@ namespace TacticalGame.Units
         /// <summary>
         /// Apply morale damage (used by hazards and other sources).
         /// </summary>
-        public void ApplyMoraleDamage(int amount)
+        public void ApplyMoraleDamage(int amount, GameObject source = null)
         {
             currentMorale -= amount;
             if (currentMorale < 0) currentMorale = 0;
             RecordDamageHistory($"Lost {amount} Morale");
 
             GameEvents.TriggerMoraleDamaged(gameObject, amount);
+            
+            // --- NEW LOGIC: Tribute Extraction Pipeline (v5) ---
+            if (team == Team.Enemy && legendReserve > 0)
+            {
+                var tConfig = GameConfig.Instance.tributeConfig;
+                
+                // 1. Calculate Spill
+                int spill = Mathf.RoundToInt(amount * tConfig.spillRate);
+                
+                // Neutral Zone Loot Multiplier (20%)
+                if (source != null)
+                {
+                    var grid = ServiceLocator.Get<GridManager>();
+                    if (grid != null)
+                    {
+                        var pos = grid.WorldToGridPosition(source.transform.position);
+                        if (grid.IsInNeutralZone(pos.x))
+                        {
+                            spill = Mathf.RoundToInt(spill * 1.20f);
+                        }
+                    }
+                }
+                
+                // 2. Fresh Plunder / Loot Burst
+                float multiplier = 1.0f;
+                
+                // First hit this round?
+                if (!hasSpilledThisRound) 
+                {
+                    multiplier = tConfig.freshPlunderMult; // 1.50x
+                    hasSpilledThisRound = true;
+                    Debug.Log($"<color=yellow>FRESH PLUNDER! {gameObject.name}</color>");
+                }
+                else 
+                {
+                    // 15% chance for Loot Burst
+                    if (UnityEngine.Random.value < tConfig.lootBurstChance)
+                    {
+                        multiplier = tConfig.lootBurstChance > 0 ? tConfig.freshPlunderMult : 1.0f; // Reuse 1.50x
+                        Debug.Log($"<color=yellow>LOOT BURST! {gameObject.name}</color>");
+                    }
+                }
+                
+                int finalSpill = Mathf.RoundToInt(spill * multiplier);
+                
+                // 3. Deduct from Legend Reserve
+                finalSpill = Mathf.Min(finalSpill, legendReserve);
+                legendReserve -= finalSpill;
+                
+                // 4. Siphon to DeadMan's Locker Manager
+                if (finalSpill > 0)
+                {
+                    var lockerManager = TacticalGame.Core.ServiceLocator.Get<TacticalGame.Combat.DeadMansLockerManager>();
+                    if (lockerManager != null)
+                    {
+                        lockerManager.AddSiphonedTribute(finalSpill);
+                        
+                        // 5. Loot Shock (Terminal Morale Damage)
+                        int shock = Mathf.RoundToInt(finalSpill * tConfig.shockRatio);
+                        int shockCap = Mathf.RoundToInt(maxMorale * tConfig.shockCapPct);
+                        shock = Mathf.Min(shock, shockCap);
+                        
+                        if (shock > 0)
+                        {
+                            currentMorale -= shock;
+                            if (currentMorale < 0) currentMorale = 0;
+                            RecordDamageHistory($"Lost {shock} Morale (Loot Shock)");
+                            Debug.Log($"<color=orange>{gameObject.name} suffered {shock} Loot Shock!</color>");
+                            // Note: We don't trigger events recursively for Loot Shock to prevent infinite loops.
+                        }
+                    }
+                }
+                
+                // 6. Desperation Mechanic (Section 7.6)
+                if (legendReserve <= 0 && !hasDesperationBuff)
+                {
+                    hasDesperationBuff = true;
+                    ApplyDesperationBuff();
+                }
+            }
 
             CheckSurrenderCondition();
+        }
+
+        private void ApplyDesperationBuff()
+        {
+            Debug.Log($"<color=red>DESPERATION! {gameObject.name} has exhausted their Legend Reserve!</color>");
+            var effects = GetComponent<StatusEffectManager>();
+            if (effects != null)
+            {
+                var desperation = new StatusEffect(StatusEffectType.DamageBoost, "Desperation", 999, 0.15f, 0.10f, gameObject);
+                effects.ApplyEffect(desperation);
+            }
         }
 
         private void CheckSurrenderCondition()
@@ -820,7 +947,26 @@ namespace TacticalGame.Units
 
         public void Surrender()
         {
+            if (hasSurrendered) return; // Prevent double trigger
             hasSurrendered = true;
+            
+            // --- NEW LOGIC: Tribute Extraction Pipeline (v5) ---
+            if (team == Team.Enemy && legendReserve > 0)
+            {
+                var tConfig = GameConfig.Instance.tributeConfig;
+                int spill = Mathf.RoundToInt(legendReserve * tConfig.surrenderSpillPct);
+                
+                legendReserve -= spill;
+                if (spill > 0)
+                {
+                    var lockerManager = TacticalGame.Core.ServiceLocator.Get<TacticalGame.Combat.DeadMansLockerManager>();
+                    if (lockerManager != null)
+                    {
+                        lockerManager.AddSiphonedTribute(spill);
+                        Debug.Log($"<color=yellow>{unitName} SURRENDERED! Spilled {spill} Tribute.</color>");
+                    }
+                }
+            }
             
             if (meshRenderer != null)
             {
@@ -860,6 +1006,24 @@ namespace TacticalGame.Units
 
         private void Die()
         {
+            // --- NEW LOGIC: Tribute Extraction Pipeline (v5) ---
+            if (team == Team.Enemy && legendReserve > 0)
+            {
+                var tConfig = GameConfig.Instance.tributeConfig;
+                int spill = Mathf.RoundToInt(legendReserve * tConfig.deathSpillPct);
+                
+                legendReserve -= spill;
+                if (spill > 0)
+                {
+                    var lockerManager = TacticalGame.Core.ServiceLocator.Get<TacticalGame.Combat.DeadMansLockerManager>();
+                    if (lockerManager != null)
+                    {
+                        lockerManager.AddSiphonedTribute(spill);
+                        Debug.Log($"<color=red>{unitName} DIED! Spilled {spill} Tribute.</color>");
+                    }
+                }
+            }
+            
             GameEvents.TriggerUnitDeath(gameObject);
             Destroy(gameObject);
         }

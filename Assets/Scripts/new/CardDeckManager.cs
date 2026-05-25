@@ -463,7 +463,7 @@ namespace TacticalGame.Equipment
         {
             if (target == null)
             {
-                var enemies = GameObject.FindGameObjectsWithTag("Unit")
+                var enemies = UnityEngine.Object.FindObjectsByType<TacticalGame.Units.UnitStatus>(UnityEngine.FindObjectsSortMode.None).Select(u => u.gameObject).ToArray()
                     .Select(go => go.GetComponent<UnitStatus>())
                     .Where(u => u != null && u.Team != unitStatus.Team && !u.HasSurrendered)
                     .ToList();

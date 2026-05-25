@@ -904,6 +904,19 @@ namespace TacticalGame.Combat
         private void OnAnyUnitDamaged(GameObject unit, int damage)
         {
             // Check if we should heal on captain damage
+            
+            // Check if we should heal on any enemy damage
+            if (HasEffect(StatusEffectType.HealOnDamage))
+            {
+                var targetStatus = unit?.GetComponent<UnitStatus>();
+                if (targetStatus != null && targetStatus.Team != unitStatus.Team)
+                {
+                    StatusEffect effect = GetEffect(StatusEffectType.HealOnDamage);
+                    int healAmount = UnityEngine.Mathf.RoundToInt((unitStatus.MaxHP * effect.value1) + effect.value2);
+                    unitStatus.Heal(healAmount);
+                    UnityEngine.Debug.Log($"{gameObject.name} healed {healAmount} from enemy damage!");
+                }
+            }
             if (HasEffect(StatusEffectType.HealOnCaptainDamage))
             {
                 var targetStatus = unit?.GetComponent<UnitStatus>();

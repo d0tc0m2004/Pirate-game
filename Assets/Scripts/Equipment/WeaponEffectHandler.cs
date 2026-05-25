@@ -118,6 +118,10 @@ namespace TacticalGame.Combat
                     ApplyIntimidatingCut(target);
                     break;
                     
+                case WeaponEffectType.ChopThrough:
+                    ApplyChopThrough(attacker, target);
+                    break;
+                    
                 case WeaponEffectType.Gash:
                     ApplyGash(target, attacker.gameObject);
                     break;
@@ -187,6 +191,33 @@ namespace TacticalGame.Combat
                 int bonusMorale = 15;
                 target.ApplyMoraleDamage(bonusMorale);
                 Debug.Log($"<color=red>Intimidating Cut! +{bonusMorale} bonus morale damage (target at {target.MoralePercent:P0} morale)</color>");
+            }
+        }
+        
+        // === MACHETE: ChopThrough ===
+        private static void ApplyChopThrough(UnitStatus attacker, UnitStatus target)
+        {
+            EnsureGridManager();
+            if (gridManager == null) return;
+            
+            // Destroys soft obstacles (hazards/blocks) in target's row
+            Vector2Int targetPos = gridManager.WorldToGridPosition(target.transform.position);
+            int row = targetPos.y;
+            
+            bool clearedSomething = false;
+            for (int x = 0; x < gridManager.GridWidth; x++)
+            {
+                GridCell cell = gridManager.GetCell(x, row);
+                if (cell != null && cell.HasHazard)
+                {
+                    cell.ClearHazard();
+                    clearedSomething = true;
+                }
+            }
+            
+            if (clearedSomething)
+            {
+                Debug.Log($"<color=orange>Chop Through! Cleared obstacles/hazards in row {row}</color>");
             }
         }
         

@@ -70,25 +70,39 @@ namespace TacticalGame.Combat
         }
 
         /// <summary>
-        /// Calculate tribute quota based on Enemy squad total HP * 0.25
+        /// Calculate tribute quota based on Enemy squad total Morale
+        /// Quota = round(TotalEnemyMorale * QuotaPct * SiphonEfficiency)
         /// </summary>
         public void CalculateTributeQuota()
         {
-            float totalEnemyHP = 0;
+            float totalEnemyMorale = 0;
             var allUnits = FindObjectsByType<UnitStatus>(FindObjectsSortMode.None);
             foreach (var unit in allUnits)
             {
                 if (unit.Team == Team.Enemy)
                 {
-                    totalEnemyHP += unit.MaxHP;
+                    totalEnemyMorale += unit.MaxMorale;
                 }
             }
             
-            if (totalEnemyHP > 0)
+            if (totalEnemyMorale > 0)
             {
-                tributeQuota = totalEnemyHP * 0.25f;
-                Debug.Log($"<color=cyan>[LockerManager] Calculated Tribute Quota: {tributeQuota} (25% of {totalEnemyHP} Enemy HP)</color>");
+                var config = GameConfig.Instance;
+                float quotaPct = TributeConfig.GetQuotaPct(config.currentDifficulty);
+                float siphonEff = GetSiphonEfficiency();
+                
+                tributeQuota = Mathf.RoundToInt(totalEnemyMorale * quotaPct * siphonEff);
+                Debug.Log($"<color=cyan>[LockerManager] Calculated Tribute Quota: {tributeQuota} (Morale: {totalEnemyMorale}, Pct: {quotaPct}, Eff: {siphonEff})</color>");
             }
+        }
+
+        public float GetSiphonEfficiency()
+        {
+            int chests = activeLockers.Count;
+            if (chests >= 3) return 0.80f;
+            if (chests == 2) return 0.70f;
+            if (chests == 1) return 0.55f;
+            return 0.80f;
         }
 
         private void Update()
@@ -506,6 +520,29 @@ namespace TacticalGame.Combat
         private void HandleLockerDestroyed(GameObject lockerObj)
         {
             OnLockerDestroyedCheck();
+        }
+
+        #endregion
+
+        #region Tribute Management
+
+        /// <summary>
+        /// Distributes siphoned tribute among all surviving lockers.
+        /// </summary>
+        public void AddSiphonedTribute(float amount)
+        {
+            if (amount <= 0 || activeLockers.Count == 0) return;
+
+            float perLocker = amount / activeLockers.Count;
+            foreach (var locker in activeLockers)
+            {
+                if (locker != null && !locker.IsDestroyed)
+                {
+                    locker.DepositTribute(perLocker);
+                }
+            }
+            
+            totalCollectedTribute += amount;
         }
 
         #endregion

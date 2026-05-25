@@ -653,16 +653,36 @@ namespace TacticalGame.Equipment
             ClearTileHighlights();
 
             var targetType = card.GetTargetType();
+            
+            // --- MOVEMENT PREVIEWS ON HOVER ---
+            if (targetType == CardTargetType.Tile)
+            {
+                var gridManager = ServiceLocator.Get<GridManager>();
+                if (gridManager != null)
+                {
+                    var validCells = CollectValidTargetCells(card, targetType, gridManager);
+                    Color targetTint = new Color(0.3f, 0.8f, 1f, 1f);
+                    foreach (var cell in validCells)
+                    {
+                        if (cell != null) PaintCell(cell, targetTint);
+                    }
+                }
+            }
 
-            // === AUTO-TARGETING CARDS (No click required) ===
             // === AUTO-TARGETING CARDS (No click required) ===
             if (targetType == CardTargetType.None)
             {
-                // 1. Weapons & Gloves -> Highlight Nearest Enemy in Yellow
+                // 1. Weapons & Gloves -> Highlight Nearest Enemy in Yellow (and Lowest Ally in Green if Surgeon)
                 if ((card.IsWeaponCard || card.category == RelicCategory.Gloves) && card.ownerUnit != null && card.effectType != RelicEffectType.Gloves_V2_StasisClosest)
                 {
                     UnitStatus closest = TacticalGame.Combat.TargetFinder.FindNearestEnemy(card.ownerUnit);
                     if (closest != null) HighlightTargetUnit(closest, new Color(1f, 1f, 0f, 1f));
+                    
+                    if (card.effectType == RelicEffectType.Gloves_V1_Surgeon)
+                    {
+                        UnitStatus lowestHP = GetLowestHPAlly(card.ownerUnit);
+                        if (lowestHP != null) HighlightTargetUnit(lowestHP, new Color(0.2f, 1f, 0.2f, 1f));
+                    }
                 }
                 // 2. Boots V1: Highlight Lowest Morale Ally AND ALL empty tiles!
                 else if (card.effectType == RelicEffectType.Boots_AllyFreeMoveLowestMorale)
@@ -673,6 +693,12 @@ namespace TacticalGame.Equipment
                         HighlightTargetUnit(lowestMorale, new Color(0.2f, 1f, 0.2f, 1f));
                         HighlightAllEmptyTiles(); // Draws green tiles across the whole board
                     }
+                }
+                // 2b. Boots V2 Swap Lowest HP: Highlight Lowest HP Ally
+                else if (card.effectType == RelicEffectType.Boots_V2_SwapLowestHealthAlly)
+                {
+                    UnitStatus lowestHP = GetLowestHPAlly(card.ownerUnit);
+                    if (lowestHP != null) HighlightTargetUnit(lowestHP, new Color(0.2f, 1f, 0.2f, 1f));
                 }
                 // 3. Hat V1: Highlight Lowest Morale Ally only
                 else if (card.effectType == RelicEffectType.Hat_RestoreMoraleLowest)
@@ -1324,17 +1350,15 @@ namespace TacticalGame.Equipment
                     HighlightRowMoveTiles(card.ownerUnit);
                     UpdateTargetingPrompt($"Move {card.ownerUnit.UnitName} (Same row or 1 tile col) — click tile");
                 }
-                else if (card.effectType == RelicEffectType.Boots_MoveToNeutral)
+                else if (card.effectType == RelicEffectType.Boots_MoveToNeutral || card.effectType == RelicEffectType.Boots_V1_Shipwright)
                 {
                     HighlightNeutralZoneTiles();
-                    UpdateTargetingPrompt($"Move {card.ownerUnit.UnitName} to a neutral zone tile — click tile");
+                    UpdateTargetingPrompt($"Move {card.ownerUnit.UnitName} to a neutral zone tile - click tile");
                 }
                 else if (card.effectType == RelicEffectType.Boots_V2_MoveDestroyObstacle)
                 {
-                    remainingMoveSteps = 1; // Single click, not step-by-step
-                    initialMoveSteps = 1;
-                    HighlightDestroyObstacleTiles(card.ownerUnit, 2);
-                    UpdateTargetingPrompt($"Move {card.ownerUnit.UnitName} to any tile in 2-tile radius (destroys obstacles) — click tile");
+                    HighlightAdjacentTiles(card.ownerUnit, true);
+                    UpdateTargetingPrompt($"Move {card.ownerUnit.UnitName} ({remainingMoveSteps} steps left) - click adjacent tile (destroys obstacles)");
                 }
                 else if (card.effectType == RelicEffectType.Boots_MoveColumnOnly)
                 {
@@ -1342,6 +1366,13 @@ namespace TacticalGame.Equipment
                     initialMoveSteps = 1;
                     HighlightColumnMoveTiles(card.ownerUnit);
                     UpdateTargetingPrompt($"Move {card.ownerUnit.UnitName} (same column or 1 tile on row) — click tile");
+                }
+                else if (card.effectType == RelicEffectType.Boots_V2_Boatswain && remainingMoveSteps == 99)
+                {
+                    remainingMoveSteps = 1; // Single click teleport
+                    initialMoveSteps = 1;
+                    HighlightAllEmptyTiles();
+                    UpdateTargetingPrompt($"Move {card.ownerUnit.UnitName} to any empty tile - click tile");
                 }
                 else
                 {
@@ -1410,9 +1441,9 @@ namespace TacticalGame.Equipment
         private int GetCardMoveRange(BattleCard card)
         {
             // NEW: Boatswain V2 Dynamic Move Range
-            if (card.effectType == RelicEffectType.Boots_MoveAnyIfHighestHP && card.ownerUnit != null)
+            if (card.effectType == RelicEffectType.Boots_V2_Boatswain && card.ownerUnit != null)
             {
-                var allies = GameObject.FindGameObjectsWithTag("Unit")
+                var allies = UnityEngine.Object.FindObjectsByType<TacticalGame.Units.UnitStatus>(UnityEngine.FindObjectsSortMode.None).Select(u => u.gameObject).ToArray()
                     .Select(go => go.GetComponent<UnitStatus>())
                     .Where(u => u != null && u.Team == card.ownerUnit.Team && !u.HasSurrendered)
                     .ToList();
@@ -1431,7 +1462,7 @@ namespace TacticalGame.Equipment
                 return 1;
             }
 
-            if (card.effectType == RelicEffectType.Boots_MoveToNeutral)
+            if (card.effectType == RelicEffectType.Boots_MoveToNeutral || card.effectType == RelicEffectType.Boots_V1_Shipwright)
             {
                 return 1;
             }
@@ -1455,7 +1486,7 @@ namespace TacticalGame.Equipment
             return baseRange;
         }
 
-        private void HighlightAdjacentTiles(UnitStatus unit)
+        private void HighlightAdjacentTiles(UnitStatus unit, bool allowObstacles = false)
         {
             ClearTileHighlights();
 
@@ -1475,7 +1506,15 @@ namespace TacticalGame.Equipment
             foreach (var dir in directions)
             {
                 var cell = gridManager.GetCell(pos.x + dir.x, pos.y + dir.y);
-                if (cell != null && cell.CanPlaceUnit() && !cell.IsMiddleColumn)
+                if (cell == null || cell.IsMiddleColumn) continue;
+                
+                bool valid = cell.CanPlaceUnit();
+                if (allowObstacles && cell.IsBlocked && !cell.IsOccupied)
+                {
+                    valid = true;
+                }
+                
+                if (valid)
                 {
                     highlightedMoveCells.Add(cell);
                     var renderer = cell.GetComponent<Renderer>();
@@ -1811,7 +1850,7 @@ namespace TacticalGame.Equipment
                 
                 // For neutral zone moves, the middle column is blocked by default
                 // so we must force-place rather than using PlaceUnit
-                if (cardAwaitingTarget != null && cardAwaitingTarget.effectType == RelicEffectType.Boots_MoveToNeutral && cell.IsMiddleColumn)
+                if (cardAwaitingTarget != null && (cardAwaitingTarget.effectType == RelicEffectType.Boots_MoveToNeutral || cardAwaitingTarget.effectType == RelicEffectType.Boots_V1_Shipwright) && cell.IsMiddleColumn)
                 {
                     cell.isOccupiedState = true;
                     unit.transform.position = cell.GetWorldPosition();

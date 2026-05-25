@@ -1,3 +1,4 @@
+using System.Linq;
 using UnityEngine;
 using TacticalGame.Equipment;
 using TacticalGame.Enums;
@@ -68,201 +69,7 @@ public static class WeaponRelicEffectHandler
 
         switch (effectType)
         {
-            // === CAPTAIN EFFECTS ===
-            case WeaponRelicEffectType.RestoreEnergyOnKill:
-                if (targetDied || targetSurrendered)
-                {
-                    var energyManager = Object.FindFirstObjectByType<TacticalGame.Managers.EnergyManager>();
-                    if (energyManager != null)
-                    {
-                        int amount = Mathf.RoundToInt(effect.value1);
-                        // Use reflection to add energy
-                        var field = energyManager.GetType().GetField("currentEnergy", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-                        if (field != null)
-                        {
-                            int current = (int)field.GetValue(energyManager);
-                            int max = GetIntProperty(energyManager, "MaxEnergy");
-                            field.SetValue(energyManager, Mathf.Min(max, current + amount));
-                        }
-                        Debug.Log($"<color=green>+{amount} Energy from kill!</color>");
-                    }
-                }
-                break;
-
-            case WeaponRelicEffectType.MarkTargetRestoreEnergy:
-                if (target != null && !targetDied)
-                {
-                    // Mark the target - next hit restores energy
-                    // This requires StatusEffectManager
-                    var statusEffectMgr = target.GetComponent<StatusEffectManager>();
-                    if (statusEffectMgr != null)
-                    {
-                        StatusEffect markEffect = StatusEffect.CreateMarked(effect.duration > 0 ? effect.duration : 1, effect.value1);
-                        statusEffectMgr.ApplyEffect(markEffect);
-                        Debug.Log($"<color=yellow>Target marked! Next hit restores energy.</color>");
-                    }
-                }
-                break;
-
-            // === QUARTERMASTER EFFECTS ===
-            case WeaponRelicEffectType.StealMorale:
-                if (target != null && attacker != null)
-                {
-                    int stealAmount = Mathf.RoundToInt(effect.value1);
-                    InvokeMethod(target, "ApplyMoraleDamage", stealAmount);
-                    InvokeMethod(attacker, "RestoreMorale", stealAmount);
-                    Debug.Log($"<color=purple>Stole {stealAmount} morale!</color>");
-                }
-                break;
-
-            case WeaponRelicEffectType.RestoreMoraleToAllies:
-                if (attacker != null)
-                {
-                    int restoreAmount = Mathf.RoundToInt(attackerCurrentMorale * effect.value1);
-                    GameObject[] allUnits = GameObject.FindGameObjectsWithTag("Unit");
-                    foreach (GameObject unit in allUnits)
-                    {
-                        if (unit == attacker.gameObject) continue;
-                        if (IsSameTeam(attacker.gameObject, unit))
-                        {
-                            InvokeMethod(unit.GetComponent<MonoBehaviour>(), "RestoreMorale", restoreAmount);
-                        }
-                    }
-                    Debug.Log($"<color=green>Restored {restoreAmount} morale to all allies!</color>");
-                }
-                break;
-
-            // === HELMSMASTER EFFECTS ===
-            case WeaponRelicEffectType.IncreaseBuzzMeter:
-                if (target != null)
-                {
-                    int buzzIncrease = Mathf.RoundToInt(targetMaxBuzz * effect.value1);
-                    // Add buzz to target (making them drunker)
-                    InvokeMethod(target, "AddBuzz", buzzIncrease);
-                    Debug.Log($"<color=yellow>Target's buzz increased by {buzzIncrease}!</color>");
-                }
-                break;
-
-            case WeaponRelicEffectType.ApplyMissDebuff:
-                if (target != null && !targetDied)
-                {
-                    var statusEffectMgr = target.GetComponent<StatusEffectManager>();
-                    if (statusEffectMgr != null)
-                    {
-                        StatusEffect missEffect = StatusEffect.CreateMissChance(effect.duration > 0 ? effect.duration : 2, effect.value1);
-                        statusEffectMgr.ApplyEffect(missEffect);
-                        Debug.Log($"<color=yellow>Target disoriented! {effect.value1 * 100}% miss chance for {effect.duration} turns.</color>");
-                    }
-                    else
-                    {
-                        // Fallback: apply stun
-                        InvokeMethod(target, "ApplyStun", effect.duration > 0 ? effect.duration : 1);
-                        Debug.Log($"<color=yellow>Target stunned!</color>");
-                    }
-                }
-                break;
-
-            // === BOATSWAIN EFFECTS ===
-            case WeaponRelicEffectType.StealHealth:
-                if (attacker != null)
-                {
-                    int stealAmount = Mathf.RoundToInt(damageDealt * effect.value1);
-                    InvokeMethod(attacker, "Heal", stealAmount);
-                    Debug.Log($"<color=green>Stole {stealAmount} health!</color>");
-                }
-                break;
-
-            // === SHIPWRIGHT EFFECTS ===
-            case WeaponRelicEffectType.ReduceEnemyGrit:
-                if (target != null && !targetDied)
-                {
-                    var statusEffectMgr = target.GetComponent<StatusEffectManager>();
-                    if (statusEffectMgr != null)
-                    {
-                        StatusEffect gritReduction = StatusEffect.CreateGritReduction(effect.duration > 0 ? effect.duration : 2, effect.value1);
-                        statusEffectMgr.ApplyEffect(gritReduction);
-                        Debug.Log($"<color=orange>Reduced target's Grit by {effect.value1} for {effect.duration} turns!</color>");
-                    }
-                }
-                break;
-
-            case WeaponRelicEffectType.GainGritDealBonusDamage:
-                if (attacker != null)
-                {
-                    var statusEffectMgr = attacker.GetComponent<StatusEffectManager>();
-                    if (statusEffectMgr != null)
-                    {
-                        int gritGain = Mathf.RoundToInt(attackerGrit * effect.value1);
-                        StatusEffect gritBoost = StatusEffect.CreateGritBoost(effect.duration > 0 ? effect.duration : 2, gritGain);
-                        statusEffectMgr.ApplyEffect(gritBoost);
-                        Debug.Log($"<color=cyan>Gained {gritGain} Grit for {effect.duration} turns!</color>");
-                    }
-                }
-                break;
-
-            // === MASTER GUNNER EFFECTS ===
-            case WeaponRelicEffectType.GainPrimaryStatOnKill:
-                if (targetDied && attacker != null)
-                {
-                    int boost = Mathf.RoundToInt(Mathf.Max(attackerPower, attackerAim) * effect.value1);
-                    // This is a permanent buff for the battle - would need special handling
-                    Debug.Log($"<color=gold>+{boost} Power/Aim from kill! (Permanent for this battle)</color>");
-                }
-                break;
-
-            case WeaponRelicEffectType.ReuseAbilityOnKill:
-                if (targetDied && attacker != null)
-                {
-                    var movement = attacker.GetComponent<TacticalGame.Units.UnitMovement>();
-                    if (movement != null)
-                    {
-                        movement.BeginTurn(); // Reset attacked state
-                        Debug.Log($"<color=gold>Ability refreshed from kill!</color>");
-                    }
-                }
-                break;
-
-            case WeaponRelicEffectType.BonusDamagePerStowedWeapon:
-                // This is a passive damage bonus, handled in CalculateBonusDamagePercent
-                // But we can log it here
-                Debug.Log($"<color=cyan>Stowed weapon bonus applied!</color>");
-                break;
-
-            // === MASTER-AT-ARMS EFFECTS ===
-            case WeaponRelicEffectType.ReduceWeaponRelicCost:
-                // This would reduce energy cost of next weapon use
-                Debug.Log($"<color=cyan>Next weapon relic costs {effect.value1} less energy!</color>");
-                break;
-
-            case WeaponRelicEffectType.ExecuteLowHealth:
-                if (target != null && !targetDied && targetMaxHP > 0)
-                {
-                    float hpPercent = (float)targetCurrentHP / targetMaxHP;
-                    if (hpPercent < effect.value1)
-                    {
-                        // Execute the target
-                        InvokeMethod(target, "TakeDamage", targetCurrentHP + 100, attacker.gameObject, true, 0, 0, false, false, 1);
-                        Debug.Log($"<color=red>EXECUTED! Target was below {effect.value1 * 100}% HP!</color>");
-                    }
-                }
-                break;
-
-            // === NAVIGATOR EFFECTS ===
-            case WeaponRelicEffectType.CreateHazardAtTarget:
-                if (target != null && !targetDied)
-                {
-                    // Would need HazardManager reference to create hazard
-                    var hazardManager = Object.FindFirstObjectByType<TacticalGame.Hazards.HazardManager>();
-                    if (hazardManager != null)
-                    {
-                        Debug.Log($"<color=orange>Created hazard at target location!</color>");
-                        // hazardManager.CreateRandomHazardAt(target.transform.position);
-                    }
-                }
-                break;
-
-            // === SURGEON EFFECTS ===
-            case WeaponRelicEffectType.HealClosestAlly:
+            case WeaponRelicEffectType.SurgeonHealAlly:
                 if (attacker != null)
                 {
                     int healAmount = Mathf.RoundToInt(effect.value1);
@@ -275,93 +82,144 @@ public static class WeaponRelicEffectHandler
                     }
                 }
                 break;
-
-            case WeaponRelicEffectType.ApplyHealBlock:
+                
+            case WeaponRelicEffectType.CookReduceTactics:
                 if (target != null && !targetDied)
                 {
                     var statusEffectMgr = target.GetComponent<StatusEffectManager>();
                     if (statusEffectMgr != null)
                     {
-                        StatusEffect healBlock = StatusEffect.CreateHealBlock(effect.duration > 0 ? effect.duration : 2);
-                        statusEffectMgr.ApplyEffect(healBlock);
-                        Debug.Log($"<color=red>Target heal blocked for {effect.duration} turns!</color>");
-                    }
-                    else
-                    {
-                        Debug.Log($"<color=red>Heal block applied! (No StatusEffectManager found)</color>");
+                        int tacticsRed = Mathf.RoundToInt(effect.value1);
+                        StatusEffect debuff = StatusEffect.CreateTacticsDebuff(1, tacticsRed); // Next turn
+                        statusEffectMgr.ApplyEffect(debuff);
+                        Debug.Log($"<color=orange>Target Tactics reduced by {tacticsRed} next turn!</color>");
                     }
                 }
                 break;
-
-            // === COOK EFFECTS ===
-            case WeaponRelicEffectType.ApplyFireDebuff:
-                if (target != null && !targetDied)
-                {
-                    var statusEffectMgr = target.GetComponent<StatusEffectManager>();
-                    if (statusEffectMgr != null)
-                    {
-                        StatusEffect fireEffect = StatusEffect.CreateFire(effect.duration > 0 ? effect.duration : 4, 10f);
-                        statusEffectMgr.ApplyEffect(fireEffect);
-                        Debug.Log($"<color=orange>Target is on FIRE for {effect.duration} turns!</color>");
-                    }
-                    else
-                    {
-                        // Fallback: apply curse
-                        InvokeMethod(target, "ApplyCurse", 1.5f);
-                        Debug.Log($"<color=orange>Target is burning (cursed)!</color>");
-                    }
-                }
-                break;
-
-            case WeaponRelicEffectType.BonusDamagePerDebuff:
-                // This is handled in CalculateBonusDamagePercent
-                Debug.Log($"<color=purple>Debuff damage bonus applied!</color>");
-                break;
-
-            case WeaponRelicEffectType.ApplyDebuffWithHealthDamage:
-                if (target != null && !targetDied)
-                {
-                    var statusEffectMgr = target.GetComponent<StatusEffectManager>();
-                    if (statusEffectMgr != null)
-                    {
-                        StatusEffect trapEffect = StatusEffect.CreateMovementTrap(effect.duration > 0 ? effect.duration : 2, effect.value1);
-                        statusEffectMgr.ApplyEffect(trapEffect);
-                        Debug.Log($"<color=red>Target trapped! Moving will deal {effect.value1 * 100}% HP damage!</color>");
-                    }
-                    else
-                    {
-                        InvokeMethod(target, "ApplyTrap");
-                        Debug.Log($"<color=red>Target trapped!</color>");
-                    }
-                }
-                break;
-
-            // === SWASHBUCKLER EFFECTS ===
-            case WeaponRelicEffectType.FreeCostIfFirst:
-                // This is handled before the attack in energy calculation
-                Debug.Log($"<color=gold>Free attack (first of turn)!</color>");
-                break;
-
-            // === DECKHAND EFFECTS ===
-            case WeaponRelicEffectType.RestoreHull:
+                
+            case WeaponRelicEffectType.NavigatorAddMove:
                 if (attacker != null)
                 {
-                    int hullRestore = Mathf.RoundToInt(effect.value1);
-                    InvokeMethod(attacker, "RestoreHull", hullRestore);
-                    Debug.Log($"<color=cyan>Restored {hullRestore} Hull!</color>");
+                    var statusEffectMgr = attacker.GetComponent<StatusEffectManager>();
+                    if (statusEffectMgr != null)
+                    {
+                        int moveAdd = Mathf.RoundToInt(effect.value1);
+                        StatusEffect buff = StatusEffect.CreateMoveBuff(1, moveAdd); // Next turn
+                        statusEffectMgr.ApplyEffect(buff);
+                        Debug.Log($"<color=cyan>+{moveAdd} Move next turn!</color>");
+                    }
                 }
                 break;
-
-            case WeaponRelicEffectType.ReduceEnemyEnergyOnHullBreak:
-                // Check if we broke the hull with this attack
-                int targetHullAfter = GetIntProperty(target, "CurrentHullPool");
-                if (targetHullAfter <= 0)
+                
+            case WeaponRelicEffectType.CaptainAddMorale:
+                if (attacker != null)
                 {
-                    Debug.Log($"<color=red>Hull broken! Enemy loses {effect.value1} energy next turn!</color>");
-                    // Would need to track this for next turn
+                    int moraleAdd = Mathf.RoundToInt(effect.value1);
+                    GameObject[] allUnits = UnityEngine.Object.FindObjectsByType<TacticalGame.Units.UnitStatus>(UnityEngine.FindObjectsSortMode.None).Select(u => u.gameObject).ToArray();
+                    foreach (GameObject unit in allUnits)
+                    {
+                        if (IsSameTeam(attacker.gameObject, unit))
+                        {
+                            InvokeMethod(unit.GetComponent<MonoBehaviour>(), "RestoreMorale", moraleAdd);
+                        }
+                    }
+                    Debug.Log($"<color=green>Restored {moraleAdd} morale to all allies!</color>");
                 }
                 break;
-
+                
+            case WeaponRelicEffectType.QuartermasterStealMorale:
+                if (target != null && attacker != null && !targetDied)
+                {
+                    int stealAmount = Mathf.RoundToInt(effect.value1);
+                    InvokeMethod(target, "ApplyMoraleDamage", stealAmount);
+                    InvokeMethod(attacker, "RestoreMorale", stealAmount);
+                    Debug.Log($"<color=purple>Stole {stealAmount} morale!</color>");
+                }
+                break;
+                
+            case WeaponRelicEffectType.SwashbucklerAddSpeed:
+                if (attacker != null)
+                {
+                    var statusEffectMgr = attacker.GetComponent<StatusEffectManager>();
+                    if (statusEffectMgr != null)
+                    {
+                        int speedAdd = Mathf.RoundToInt(effect.value1);
+                        StatusEffect buff = StatusEffect.CreateSpeedBoost(1, speedAdd); // Next turn
+                        statusEffectMgr.ApplyEffect(buff);
+                        Debug.Log($"<color=cyan>+{speedAdd} Speed next turn!</color>");
+                    }
+                }
+                break;
+                
+            case WeaponRelicEffectType.BoatswainAddThreat:
+                if (attacker != null)
+                {
+                    int threatAdd = Mathf.RoundToInt(effect.value1);
+                    // Add threat logic here (pseudo-implementation)
+                    Debug.Log($"<color=red>+{threatAdd} Grid Threat generation!</color>");
+                }
+                break;
+                
+            case WeaponRelicEffectType.MasterAtArmsAddCombo:
+                if (attacker != null)
+                {
+                    var statusEffectMgr = attacker.GetComponent<StatusEffectManager>();
+                    if (statusEffectMgr != null)
+                    {
+                        int comboAdd = Mathf.RoundToInt(effect.value1);
+                        StatusEffect buff = StatusEffect.CreateComboMultiplierBuff(1, comboAdd); // Next turn
+                        statusEffectMgr.ApplyEffect(buff);
+                        Debug.Log($"<color=gold>+{comboAdd} Combo Multiplier next turn!</color>");
+                    }
+                }
+                break;
+                
+            case WeaponRelicEffectType.MasterGunnerReduceAim:
+                if (target != null && !targetDied)
+                {
+                    var statusEffectMgr = target.GetComponent<StatusEffectManager>();
+                    if (statusEffectMgr != null)
+                    {
+                        int aimRed = Mathf.RoundToInt(effect.value1);
+                        StatusEffect debuff = StatusEffect.CreateAimReduction(1, aimRed); // Next turn
+                        statusEffectMgr.ApplyEffect(debuff);
+                        Debug.Log($"<color=orange>Target Aim reduced by {aimRed} next turn!</color>");
+                    }
+                }
+                break;
+                
+            case WeaponRelicEffectType.HelmsmasterAddBuzz:
+                if (attacker != null)
+                {
+                    int buzzAdd = Mathf.RoundToInt(effect.value1);
+                    InvokeMethod(attacker, "AddBuzz", buzzAdd);
+                    Debug.Log($"<color=yellow>+{buzzAdd} Buzz to self!</color>");
+                }
+                break;
+                
+            case WeaponRelicEffectType.ShipwrightRestoreHull:
+                if (attacker != null)
+                {
+                    int hullAdd = Mathf.RoundToInt(effect.value1);
+                    InvokeMethod(attacker, "RestoreHull", hullAdd);
+                    Debug.Log($"<color=cyan>Restored {hullAdd} Hull!</color>");
+                }
+                break;
+                
+            case WeaponRelicEffectType.DeckhandReduceMove:
+                if (target != null && !targetDied)
+                {
+                    var statusEffectMgr = target.GetComponent<StatusEffectManager>();
+                    if (statusEffectMgr != null)
+                    {
+                        int moveRed = Mathf.RoundToInt(effect.value1);
+                        StatusEffect debuff = StatusEffect.CreateSlow(1, moveRed); // Next turn
+                        statusEffectMgr.ApplyEffect(debuff);
+                        Debug.Log($"<color=orange>Target Move reduced by {moveRed} next turn!</color>");
+                    }
+                }
+                break;
+                
             default:
                 break;
         }
@@ -398,121 +256,9 @@ public static class WeaponRelicEffectHandler
         int targetSpeed = GetIntProperty(target, "Speed");
         int targetHull = GetIntProperty(target, "CurrentHullPool");
 
-        switch (effect.effectType)
-        {
-            case WeaponRelicEffectType.BonusDamagePerUnspentEnergy:
-                var energyManager = Object.FindFirstObjectByType<TacticalGame.Managers.EnergyManager>();
-                if (energyManager != null)
-                {
-                    int currentEnergy = GetIntProperty(energyManager, "CurrentEnergy");
-                    bonus += currentEnergy * effect.value1;
-                }
-                break;
-
-            case WeaponRelicEffectType.BonusDamageIfLowerMorale:
-                if (targetMorale < attackerMorale)
-                {
-                    bonus += effect.value1;
-                }
-                break;
-
-            case WeaponRelicEffectType.BonusDamageByBuzzState:
-                if (targetMaxBuzz > 0)
-                {
-                    float buzzPercent = (float)targetBuzz / targetMaxBuzz;
-                    bonus += buzzPercent * effect.value1;
-                }
-                break;
-
-            case WeaponRelicEffectType.BonusDamageByProximity:
-                if (attacker != null && target != null)
-                {
-                    float dist = Vector3.Distance(attacker.transform.position, target.transform.position);
-                    float proximityBonus = Mathf.Max(0f, 1f - (dist / 5f)) * effect.value1;
-                    bonus += proximityBonus;
-                }
-                break;
-
-            case WeaponRelicEffectType.DamageBasedOnHealthPercent:
-                if (attackerMaxHP > 0)
-                {
-                    float hpPercent = (float)attackerHP / attackerMaxHP;
-                    bonus += hpPercent * effect.value1;
-                }
-                break;
-
-            case WeaponRelicEffectType.BonusDamageByMissingHealth:
-                if (attackerMaxHP > 0)
-                {
-                    float missingPercent = 1f - ((float)attackerHP / attackerMaxHP);
-                    bonus += missingPercent * effect.value1;
-                }
-                break;
-
-            case WeaponRelicEffectType.BonusDamageIfNotMoved:
-                if (!attackerMovedLastTurn)
-                {
-                    bonus += effect.value1;
-                }
-                break;
-
-            case WeaponRelicEffectType.BonusDamageSameRow:
-                if (attacker != null && target != null)
-                {
-                    if (Mathf.Abs(attacker.transform.position.z - target.transform.position.z) < 0.5f)
-                    {
-                        bonus += effect.value1;
-                    }
-                }
-                break;
-
-            case WeaponRelicEffectType.BonusDamageIfTargetMoved:
-                if (targetMovedLastTurn)
-                {
-                    bonus += effect.value1;
-                }
-                break;
-
-            case WeaponRelicEffectType.BonusDamagePerAllyInRadius:
-                if (attacker != null)
-                {
-                    int allyCount = CountAlliesInRadius(attacker.gameObject, effect.value2);
-                    bonus += allyCount * effect.value1;
-                }
-                break;
-
-            case WeaponRelicEffectType.BonusDamageIfLowerSpeed:
-                if (targetSpeed < attackerSpeed)
-                {
-                    bonus += effect.value1;
-                }
-                break;
-
-            case WeaponRelicEffectType.BonusDamageIfFirstAttack:
-                if (isFirstAttackThisTurn)
-                {
-                    bonus += effect.value1;
-                }
-                break;
-
-            case WeaponRelicEffectType.BonusDamageNoHull:
-                if (targetHull <= 0)
-                {
-                    bonus += effect.value1;
-                }
-                break;
-
-            case WeaponRelicEffectType.BonusDamagePerDebuff:
-                // Count debuffs on target
-                var statusEffectMgr = target.GetComponent<StatusEffectManager>();
-                if (statusEffectMgr != null)
-                {
-                    int debuffCount = statusEffectMgr.DebuffCount;
-                    bonus += debuffCount * effect.value1;
-                }
-                break;
-        }
-
+        // In V5, role weapon tags only apply On-Hit effects, not passive flat damage scaling
+        // So we remove the old switch statement and just return the rarity bonus (if any)
+        
         return bonus;
     }
 
@@ -581,7 +327,7 @@ public static class WeaponRelicEffectHandler
 
     private static GameObject FindClosestAlly(GameObject unit)
     {
-        GameObject[] allUnits = GameObject.FindGameObjectsWithTag("Unit");
+        GameObject[] allUnits = UnityEngine.Object.FindObjectsByType<TacticalGame.Units.UnitStatus>(UnityEngine.FindObjectsSortMode.None).Select(u => u.gameObject).ToArray();
         GameObject closest = null;
         float closestDist = float.MaxValue;
 
@@ -606,7 +352,7 @@ public static class WeaponRelicEffectHandler
     private static int CountAlliesInRadius(GameObject unit, float radius)
     {
         int count = 0;
-        GameObject[] allUnits = GameObject.FindGameObjectsWithTag("Unit");
+        GameObject[] allUnits = UnityEngine.Object.FindObjectsByType<TacticalGame.Units.UnitStatus>(UnityEngine.FindObjectsSortMode.None).Select(u => u.gameObject).ToArray();
 
         foreach (GameObject other in allUnits)
         {

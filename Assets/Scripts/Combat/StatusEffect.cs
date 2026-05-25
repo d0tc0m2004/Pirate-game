@@ -28,6 +28,9 @@ namespace TacticalGame.Combat
         ProficiencyBoost,   // +Proficiency stat
         HealthStatBoost,    // +Health stat (max HP modifier)
         HealthStatReduction,// -Health stat
+        TacticsReduction,   // -Tactics stat
+        MoveBoost,          // +Move distance
+        ComboMultiplierBoost, // +Combo damage scaling
         
         // ==================== DAMAGE MODIFIERS ====================
         DamageBoost,        // Deal more damage (percentage)
@@ -57,6 +60,7 @@ namespace TacticalGame.Combat
         RowCantBeTargeted,  // Allies behind can't be targeted
         Taunt,              // Forces enemies to target this unit
         IgnoredByEnemies,   // Cannot be targeted this turn
+        KnockbackOnAllyDeath, // Knockback enemy on ally death
         
         // ==================== RESOURCE EFFECTS ====================
         EnergyDrain,        // Lose energy next turn
@@ -105,7 +109,8 @@ namespace TacticalGame.Combat
         RelicsNotConsumed,  // Relics can be replayed
         
         // ==================== HEALING TRIGGERS ====================
-        HealOnCaptainDamage, // Heal when damaging captain
+        HealOnCaptainDamage,
+        HealOnDamage, // Heal when damaging any enemy
         AttackOnEnemyHeal,  // Attack enemies that get healed
         
         // ==================== BONUS DAMAGE CONDITIONS ====================
@@ -223,6 +228,7 @@ namespace TacticalGame.Combat
                 StatusEffectType.PowerReduction => true,
                 StatusEffectType.SpeedReduction => true,
                 StatusEffectType.HealthStatReduction => true,
+                StatusEffectType.TacticsReduction => true,
                 
                 // Negative combat
                 StatusEffectType.Vulnerable => true,
@@ -297,6 +303,18 @@ namespace TacticalGame.Combat
 
         public static StatusEffect CreateAimBoost(int duration, float amount, GameObject source = null)
             => new StatusEffect(StatusEffectType.AimBoost, "Focused", duration, amount, 0f, source);
+
+        public static StatusEffect CreateAimReduction(int duration, float amount, GameObject source = null)
+            => new StatusEffect(StatusEffectType.AimReduction, "Blinded", duration, amount, 0f, source);
+
+        public static StatusEffect CreateTacticsDebuff(int duration, float amount, GameObject source = null)
+            => new StatusEffect(StatusEffectType.TacticsReduction, "Confused", duration, amount, 0f, source);
+
+        public static StatusEffect CreateMoveBuff(int duration, float amount, GameObject source = null)
+            => new StatusEffect(StatusEffectType.MoveBoost, "Agile", duration, amount, 0f, source);
+
+        public static StatusEffect CreateComboMultiplierBuff(int duration, float amount, GameObject source = null)
+            => new StatusEffect(StatusEffectType.ComboMultiplierBoost, "Flurry", duration, amount, 0f, source);
 
         public static StatusEffect CreatePowerBoost(int duration, float amount, GameObject source = null)
             => new StatusEffect(StatusEffectType.PowerBoost, "Empowered", duration, amount, 0f, source);
@@ -438,6 +456,9 @@ namespace TacticalGame.Combat
 
         public static StatusEffect CreateDisablePassives(int duration, GameObject source = null)
             => new StatusEffect(StatusEffectType.DisablePassives, "Silence", duration, 0f, 0f, source);
+
+        public static StatusEffect CreateHealOnDamage(int duration, float healPercent, float flatHeal = 0f, GameObject source = null)
+            => new StatusEffect(StatusEffectType.HealOnDamage, "Vampirism", duration, healPercent, flatHeal, source);
 
         public static StatusEffect CreateHealOnCaptainDamage(int duration, float healPercent, GameObject source = null)
             => new StatusEffect(StatusEffectType.HealOnCaptainDamage, "Captain's Bane", duration, healPercent, 0f, source);

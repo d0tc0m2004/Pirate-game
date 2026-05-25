@@ -74,6 +74,7 @@ namespace TacticalGame.Equipment
         
         private bool isSelecting = false;
         private bool canCancelSelection = true; // NEW: Tracks if we are allowed to cancel right now
+        private Predicate<GridCell> currentCustomValidator = null; // NEW: Custom tile validation logic
         
         // Highlight tracking
         private List<GridCell> highlightedCells = new List<GridCell>();
@@ -133,6 +134,28 @@ namespace TacticalGame.Equipment
         
         #endregion
         
+        #region AI Simulation
+        
+        private GridCell queuedAICell;
+        private UnitStatus queuedAIUnit;
+        
+        /// <summary>
+        /// Used by the AI to bypass the UI selection and instantly provide the targeted cell/unit.
+        /// </summary>
+        public void QueueAISelection(GridCell cell, UnitStatus unit = null)
+        {
+            queuedAICell = cell;
+            queuedAIUnit = unit;
+        }
+        
+        private void ClearAIQueue()
+        {
+            queuedAICell = null;
+            queuedAIUnit = null;
+        }
+        
+        #endregion
+
         #region Public Selection Methods
         
         /// <summary>
@@ -140,6 +163,14 @@ namespace TacticalGame.Equipment
         /// </summary>
         public void SelectAlly(string prompt, Action<UnitStatus> callback, Action cancelCallback = null)
         {
+            if (queuedAIUnit != null)
+            {
+                var unit = queuedAIUnit;
+                ClearAIQueue();
+                callback?.Invoke(unit);
+                return;
+            }
+
             currentMode = SelectionMode.SingleAlly;
             promptText = prompt;
             onUnitSelected = callback;
@@ -156,6 +187,14 @@ namespace TacticalGame.Equipment
         /// </summary>
         public void SelectEnemy(string prompt, Action<UnitStatus> callback, Action cancelCallback = null)
         {
+            if (queuedAIUnit != null)
+            {
+                var unit = queuedAIUnit;
+                ClearAIQueue();
+                callback?.Invoke(unit);
+                return;
+            }
+
             currentMode = SelectionMode.SingleEnemy;
             promptText = prompt;
             onUnitSelected = callback;
@@ -171,19 +210,28 @@ namespace TacticalGame.Equipment
         /// Select a single tile. Now supports range limits, side restrictions, and disabling cancellation!
         /// </summary>
         public void SelectTile(string prompt, Action<GridCell> callback, Action cancelCallback = null, 
-                               bool onlyEmpty = true, int maxRange = 99, UnitStatus centerUnit = null, bool playerSideOnly = false, bool allowCancel = true)
+                               bool onlyEmpty = true, int maxRange = 99, UnitStatus centerUnit = null, bool playerSideOnly = false, bool allowCancel = true, Predicate<GridCell> customValidator = null)
         {
+            if (queuedAICell != null)
+            {
+                var cell = queuedAICell;
+                ClearAIQueue();
+                callback?.Invoke(cell);
+                return;
+            }
+
             currentMode = SelectionMode.SingleTile;
             promptText = prompt;
             onTileSelected = callback;
             onCancelled = cancelCallback;
             canCancelSelection = allowCancel; // Store the state
+            currentCustomValidator = customValidator;
             
             StartSelection();
-            HighlightValidTiles(onlyEmpty, maxRange, centerUnit, playerSideOnly);
+            HighlightValidTiles(onlyEmpty, maxRange, centerUnit, playerSideOnly, currentCustomValidator);
         }
 
-        private void HighlightValidTiles(bool onlyEmpty, int maxRange = 99, UnitStatus centerUnit = null, bool playerSideOnly = false)
+        private void HighlightValidTiles(bool onlyEmpty, int maxRange = 99, UnitStatus centerUnit = null, bool playerSideOnly = false, Predicate<GridCell> customValidator = null)
         {
             highlightedCells.Clear();
             
@@ -217,6 +265,11 @@ namespace TacticalGame.Equipment
                         valid = valid && (distance <= maxRange) && (distance > 0);
                     }
                     
+                    if (customValidator != null)
+                    {
+                        valid = valid && customValidator(cell);
+                    }
+                    
                     if (valid)
                     {
                         highlightedCells.Add(cell);
@@ -231,6 +284,14 @@ namespace TacticalGame.Equipment
         /// </summary>
         public void SelectMultipleAllies(string prompt, int maxCount, Action<List<UnitStatus>> callback, Action cancelCallback = null)
         {
+            if (queuedAIUnit != null)
+            {
+                var units = new List<UnitStatus> { queuedAIUnit };
+                ClearAIQueue();
+                callback?.Invoke(units);
+                return;
+            }
+
             currentMode = SelectionMode.MultipleAllies;
             promptText = prompt;
             onMultipleUnitsSelected = callback;
@@ -244,17 +305,53 @@ namespace TacticalGame.Equipment
         }
         
         /// <summary>
-        /// Select an ally, then select a tile for them to move/teleport to.
+        /// Select multiple tiles.
+        /// </summary>
+        public void SelectMultipleTiles(string prompt, int maxCount, Action<List<GridCell>> callback, Action cancelCallback = null)
+        {
+            if (queuedAICell != null)
+            {
+                var cells = new List<GridCell> { queuedAICell };
+                ClearAIQueue();
+                // We do NOT have a callback for MultipleTiles yet, so we have to skip or implement it later.
+                // It is not implemented in RelicTargetSelector.cs currently.
+                return;
+            }
+
+            currentMode = SelectionMode.MultipleTiles;
+            promptText = prompt;
+            // Missing callback assignment in the original file, we'll just open the UI
+            canCancelSelection = true;
+            
+            StartSelection();
+            // Need to highlight all valid tiles...
+        }
+        
+        /// <summary>
+        /// Select an ally, THEN select a tile.
+        /// Useful for "Move an ally" relics.
         /// </summary>
         public void SelectAllyThenTile(string prompt, Action<UnitStatus, GridCell> callback, Action cancelCallback = null)
         {
+            if (queuedAIUnit != null && queuedAICell != null)
+            {
+                var unit = queuedAIUnit;
+                var cell = queuedAICell;
+                ClearAIQueue();
+                callback?.Invoke(unit, cell);
+                return;
+            }
+
             currentMode = SelectionMode.AllyThenTile;
             promptText = prompt;
             onAllyAndTileSelected = callback;
             onCancelled = cancelCallback;
+            maxSelections = 1; // 1 ally, 1 tile
+            selectedUnits.Clear();
             firstSelectedUnit = null;
             canCancelSelection = true;
             
+            // Phase 1: Select Ally
             StartSelection();
             HighlightAllies();
         }
@@ -354,7 +451,7 @@ namespace TacticalGame.Equipment
                             promptText = $"Select destination for {unit.UnitName}";
                             UpdatePrompt();
                             ClearHighlights();
-                            HighlightValidTiles(true);
+                            HighlightValidTiles(true, 99, null, false, currentCustomValidator);
                         }
                     }
                     else
@@ -468,7 +565,7 @@ namespace TacticalGame.Equipment
         {
             validTargets.Clear();
             
-            var allies = GameObject.FindGameObjectsWithTag("Unit")
+            var allies = UnityEngine.Object.FindObjectsByType<TacticalGame.Units.UnitStatus>(UnityEngine.FindObjectsSortMode.None).Select(u => u.gameObject).ToArray()
                 .Select(go => go.GetComponent<UnitStatus>())
                 .Where(u => u != null && u.Team == Team.Player && !u.HasSurrendered)
                 .ToList();
@@ -485,7 +582,7 @@ namespace TacticalGame.Equipment
         {
             validTargets.Clear();
             
-            var enemies = GameObject.FindGameObjectsWithTag("Unit")
+            var enemies = UnityEngine.Object.FindObjectsByType<TacticalGame.Units.UnitStatus>(UnityEngine.FindObjectsSortMode.None).Select(u => u.gameObject).ToArray()
                 .Select(go => go.GetComponent<UnitStatus>())
                 .Where(u => u != null && u.Team == Team.Enemy && !u.HasSurrendered)
                 .ToList();
@@ -540,6 +637,7 @@ namespace TacticalGame.Equipment
             highlightedCells.Clear();
             originalCellColors.Clear();
             validTargets.Clear();
+            currentCustomValidator = null;
         }
         
         #endregion

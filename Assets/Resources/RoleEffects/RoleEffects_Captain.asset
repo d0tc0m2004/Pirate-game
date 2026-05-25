@@ -15,23 +15,23 @@ MonoBehaviour:
   role: 0
   effect1Name: Energy Recovery
   effect1Description: 'On-hit: If it kills or surrenders an enemy, restore 1 energy'
-  effect1Type: 1
-  effect1Value1: 1
+  effect1Type: 4
+  effect1Value1: 2
   effect1Value2: 0
   effect1Duration: 0
   effect2Name: Unspent Power
   effect2Description: 'On-hit: Deal 20% extra damage for every 1 unspent energy this
     turn'
-  effect2Type: 2
-  effect2Value1: 0.2
+  effect2Type: 4
+  effect2Value1: 3
   effect2Value2: 0
   effect2Duration: 0
   effect2BonusDamage: 1
   effect3Name: Mark & Strike
   effect3Description: 'On-hit: Marks target for that round, if another unit hits
     it restores 1 energy'
-  effect3Type: 3
-  effect3Value1: 1
+  effect3Type: 4
+  effect3Value1: 4
   effect3Value2: 0
   effect3Duration: 1
   effect3BonusDamage: 2
